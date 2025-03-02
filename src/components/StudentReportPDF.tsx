@@ -1,74 +1,137 @@
-import React from 'react';
-import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
-import { StudentReport } from '~/types';
 
+import React from 'react';
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { StudentReport } from '../types';
+
+// Define styles for the PDF
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
+    flexDirection: 'column',
+    backgroundColor: '#ffffff',
+    padding: 30,
   },
-  title: {
-    fontSize: 24,
+  header: {
     marginBottom: 20,
     textAlign: 'center',
   },
-  section: {
-    marginBottom: 10,
-  },
-  heading: {
-    fontSize: 16,
-    marginBottom: 10,
+  schoolName: {
+    fontSize: 18,
     fontWeight: 'bold',
-  },
-  row: {
-    flexDirection: 'row',
     marginBottom: 5,
   },
-  label: {
-    width: 150,
-    fontWeight: 'bold',
+  reportTitle: {
+    fontSize: 14,
+    marginBottom: 5,
   },
-  value: {
-    flex: 1,
+  section: {
+    margin: 10,
+    padding: 10,
+    flexGrow: 1,
+  },
+  studentInfo: {
+    marginBottom: 20,
+  },
+  subjectTable: {
+    display: 'flex',
+    width: '100%',
+    borderStyle: 'solid',
+    borderWidth: 1,
+    borderColor: '#bfbfbf',
+    marginBottom: 20,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#bfbfbf',
+    borderBottomStyle: 'solid',
+    alignItems: 'center',
+    height: 24,
+  },
+  tableHeader: {
+    backgroundColor: '#f2f2f2',
+  },
+  tableCol: {
+    width: '50%',
+    textAlign: 'center',
+    paddingHorizontal: 5,
+  },
+  gradeCol: {
+    width: '20%',
+    textAlign: 'center',
+    paddingHorizontal: 5,
+  },
+  comments: {
+    marginTop: 20,
+  },
+  text: {
+    fontSize: 10,
+    marginBottom: 5,
+  },
+  bold: {
+    fontWeight: 'bold',
   },
 });
 
 interface StudentReportPDFProps {
-  data: StudentReport;
+  data: {
+    name: string;
+    grade: string;
+    school: string;
+    rollNumber: string;
+    subjects: { name: string; grade: string }[];
+  };
 }
 
 const StudentReportPDF: React.FC<StudentReportPDFProps> = ({ data }) => (
   <Document>
     <Page size="A4" style={styles.page}>
-      <Text style={styles.title}>Student Report</Text>
-
-      <View style={styles.section}>
-        <View style={styles.row}>
-          <Text style={styles.label}>Name:</Text>
-          <Text style={styles.value}>{data.name}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Grade:</Text>
-          <Text style={styles.value}>{data.grade}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>School:</Text>
-          <Text style={styles.value}>{data.school}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Roll Number/ID:</Text>
-          <Text style={styles.value}>{data.rollNumber}</Text>
-        </View>
+      <View style={styles.header}>
+        <Text style={styles.schoolName}>{data.school}</Text>
+        <Text style={styles.reportTitle}>Student Report Card</Text>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.heading}>Subjects and Grades:</Text>
+      <View style={styles.studentInfo}>
+        <Text style={styles.text}>
+          <Text style={styles.bold}>Student Name: </Text>
+          {data.name}
+        </Text>
+        <Text style={styles.text}>
+          <Text style={styles.bold}>Grade: </Text>
+          {data.grade}
+        </Text>
+        <Text style={styles.text}>
+          <Text style={styles.bold}>Roll Number: </Text>
+          {data.rollNumber}
+        </Text>
+      </View>
+
+      <View style={styles.subjectTable}>
+        <View style={[styles.tableRow, styles.tableHeader]}>
+          <View style={styles.tableCol}>
+            <Text style={styles.text}>Subject</Text>
+          </View>
+          <View style={styles.gradeCol}>
+            <Text style={styles.text}>Grade</Text>
+          </View>
+        </View>
+
         {data.subjects.map((subject, index) => (
-          <View key={index} style={styles.row}>
-            <Text style={styles.label}>{subject.name}:</Text>
-            <Text style={styles.value}>{subject.grade}</Text>
+          <View key={index} style={styles.tableRow}>
+            <View style={styles.tableCol}>
+              <Text style={styles.text}>{subject.name}</Text>
+            </View>
+            <View style={styles.gradeCol}>
+              <Text style={styles.text}>{subject.grade}</Text>
+            </View>
           </View>
         ))}
+      </View>
+
+      <View style={styles.comments}>
+        <Text style={[styles.text, styles.bold]}>Teacher's Comments:</Text>
+        <Text style={styles.text}>
+          The student has shown tremendous progress this semester and has consistently performed well in all subjects.
+        </Text>
       </View>
     </Page>
   </Document>

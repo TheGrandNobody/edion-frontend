@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Plus, X } from 'lucide-react';
-import { ChatTab } from '~/types';
+import { ChatTab } from '../types';
 
 interface TabBarProps {
   tabs: ChatTab[];

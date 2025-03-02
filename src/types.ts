@@ -57,4 +57,5 @@ export interface ChatTab {
   activePDF: string | null;
 }
 
+// TypeScript alias to enable backwards compatibility with existing code
 export type ChatHistory = ChatHistoryItem;

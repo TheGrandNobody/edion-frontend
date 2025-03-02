@@ -2,12 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ChatHistoryMenu from './ChatHistory';
 import UserSettingsModal from './UserSettings';
 import { UserSettings as UserSettingsType, ChatHistoryItem, ChatTab, ChatMessage } from '../types';
 
 const Header = () => {
+  const navigate = useNavigate();
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
@@ -72,34 +74,10 @@ const Header = () => {
     if (chatId === '') {
       setShowHistory(false);
     } else {
-      // Select the chat and close history menu
+      // Navigate to the chat page with the selected chat ID
       setShowHistory(false);
       console.log(`Selected chat with ID: ${chatId}`);
-      
-      // If the tab already exists, switch to it
-      const existingTab = tabs.find(tab => tab.id === chatId);
-      if (existingTab) {
-        setActiveTabId(chatId);
-      } else {
-        // Find the chat in history
-        const selectedChat = chatHistory.find(chat => chat.id === chatId);
-        if (selectedChat) {
-          // Create a new tab based on selected chat
-          const newTab: ChatTab = {
-            id: selectedChat.id,
-            title: selectedChat.title,
-            date: selectedChat.date,
-            messages: [{
-              id: 1,
-              text: selectedChat.lastMessage,
-              isUser: false,
-            }],
-            activePDF: null,
-          };
-          setTabs([...tabs, newTab]);
-          setActiveTabId(newTab.id);
-        }
-      }
+      navigate('/chat', { state: { selectedChatId: chatId } });
     }
   };
 
@@ -126,8 +104,8 @@ const Header = () => {
           className="h-10 w-10 transition-transform duration-200 hover:scale-105 cursor-pointer"
           onClick={() => setShowSettings(true)}
         >
-          <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-          <AvatarFallback>JD</AvatarFallback>
+          <AvatarImage src={userSettings.profilePicture} alt="User" />
+          <AvatarFallback>JS</AvatarFallback>
         </Avatar>
       </motion.header>
 
