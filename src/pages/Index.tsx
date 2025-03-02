@@ -1,12 +1,44 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React, { useEffect } from 'react';
+import Header from '../components/Header';
+import Logo from '../components/Logo';
+import Search from '../components/Search';
+import ActionCards from '../components/ActionCards';
+import MainContainer from '../components/MainContainer';
 
 const Index = () => {
+  useEffect(() => {
+    // Smooth page transition effect on load
+    document.body.style.opacity = '0';
+    setTimeout(() => {
+      document.body.style.transition = 'opacity 0.5s ease';
+      document.body.style.opacity = '1';
+    }, 100);
+    
+    return () => {
+      document.body.style.opacity = '';
+      document.body.style.transition = '';
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header />
+      
+      <main className="flex-grow flex flex-col items-center justify-center px-4">
+        <div className="my-12">
+          <Logo />
+        </div>
+        
+        <MainContainer>
+          <div className="space-y-6">
+            <Search />
+            <div className="pt-4">
+              <ActionCards />
+            </div>
+          </div>
+        </MainContainer>
+      </main>
     </div>
   );
 };
