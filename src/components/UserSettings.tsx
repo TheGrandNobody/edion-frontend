@@ -1,4 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
+
+import React, { useRef, useState } from 'react';
 import { Upload, Lock } from 'lucide-react';
 import { UserSettings } from '~/types';
 
@@ -14,7 +15,6 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   onSave,
 }) => {
   const [formData, setFormData] = useState(settings);
-  const [previewDarkMode, setPreviewDarkMode] = useState(settings.darkMode);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -23,26 +23,8 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
 
-  // Apply preview dark mode immediately
-  useEffect(() => {
-    if (previewDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
-    // Restore original setting when modal is closed
-    return () => {
-      if (settings.darkMode) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    };
-  }, [previewDarkMode, settings.darkMode]);
-
   // Handle click outside to close
-  useEffect(() => {
+  React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (backdropRef.current === event.target) {
         onClose();
@@ -67,8 +49,15 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   };
 
   const handleDarkModeToggle = () => {
-    setPreviewDarkMode(!previewDarkMode);
-    setFormData({ ...formData, darkMode: !previewDarkMode });
+    // Update form data with new dark mode value
+    setFormData({ ...formData, darkMode: !formData.darkMode });
+    
+    // Apply dark mode change immediately for better UX
+    if (!formData.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   };
 
   const handlePasswordChange = () => {
@@ -209,12 +198,12 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
               <button
                 onClick={handleDarkModeToggle}
                 className={`relative inline-flex h-5 sm:h-6 w-9 sm:w-11 items-center rounded-full transition-colors focus:outline-none ${
-                  previewDarkMode ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                  formData.darkMode ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
                 }`}
               >
                 <span
                   className={`inline-block h-4 sm:h-5 w-4 sm:w-5 transform rounded-full bg-white transition-transform ${
-                    previewDarkMode ? 'translate-x-5 sm:translate-x-6' : 'translate-x-1'
+                    formData.darkMode ? 'translate-x-5 sm:translate-x-6' : 'translate-x-1'
                   }`}
                 />
                 <span className="sr-only">Toggle Dark Mode</span>

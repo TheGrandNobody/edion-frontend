@@ -1,23 +1,33 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ChatHistoryMenu from './ChatHistory';
 import UserSettingsModal from './UserSettings';
+import { UserSettings as UserSettingsType } from '../types';
 
 const Header = () => {
   const [showHistory, setShowHistory] = React.useState(false);
   const [showSettings, setShowSettings] = React.useState(false);
   
   // Dummy user settings for demonstration - in a real app, this would come from a context or state management
-  const [userSettings, setUserSettings] = React.useState({
+  const [userSettings, setUserSettings] = React.useState<UserSettingsType>({
     username: 'teacher_jane',
     fullName: 'Jane Smith',
     email: 'jane.smith@school.edu',
     profilePicture: 'https://github.com/shadcn.png',
     darkMode: false,
   });
+
+  // Apply dark mode based on user settings
+  useEffect(() => {
+    if (userSettings.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [userSettings.darkMode]);
 
   // Dummy chat history data - in a real app, this would come from a context or state management
   const chatHistory = [
@@ -43,6 +53,11 @@ const Header = () => {
       setShowHistory(false);
       console.log(`Selected chat with ID: ${chatId}`);
     }
+  };
+
+  const handleSaveSettings = (newSettings: UserSettingsType) => {
+    setUserSettings(newSettings);
+    // No need to manually toggle dark mode here, as the useEffect will handle it
   };
 
   return (
@@ -77,7 +92,7 @@ const Header = () => {
         <UserSettingsModal
           settings={userSettings}
           onClose={() => setShowSettings(false)}
-          onSave={setUserSettings}
+          onSave={handleSaveSettings}
         />
       )}
     </>
