@@ -1,24 +1,47 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ChatHistoryMenu from './ChatHistory';
 import UserSettingsModal from './UserSettings';
-import { UserSettings as UserSettingsType } from '../types';
+import { UserSettings as UserSettingsType, ChatHistoryItem, ChatTab, ChatMessage } from '../types';
 
 const Header = () => {
-  const [showHistory, setShowHistory] = React.useState(false);
-  const [showSettings, setShowSettings] = React.useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   
-  // Dummy user settings for demonstration - in a real app, this would come from a context or state management
-  const [userSettings, setUserSettings] = React.useState<UserSettingsType>({
+  // Dummy user settings for demonstration
+  const [userSettings, setUserSettings] = useState<UserSettingsType>({
     username: 'teacher_jane',
     fullName: 'Jane Smith',
     email: 'jane.smith@school.edu',
     profilePicture: 'https://github.com/shadcn.png',
     darkMode: false,
   });
+
+  // Chat tab management
+  const [tabs, setTabs] = useState<ChatTab[]>([
+    {
+      id: '1',
+      title: 'Drafting a report for Justin',
+      date: '24/06/2024',
+      messages: [
+        {
+          id: 1,
+          text: 'Hey Edion, can you generate a report for one of my students?',
+          isUser: true,
+        },
+        {
+          id: 2,
+          text: 'Of course. Please provide any necessary documents, notes or work from said student.\n\nFurthermore, attach a draft or reference for how you would want the report to be structured, or select one which you have previously completed.',
+          isUser: false,
+        },
+      ],
+      activePDF: null,
+    },
+  ]);
+  const [activeTabId, setActiveTabId] = useState(tabs[0].id);
 
   // Apply dark mode based on user settings
   useEffect(() => {
@@ -29,7 +52,7 @@ const Header = () => {
     }
   }, [userSettings.darkMode]);
 
-  // Dummy chat history data - in a real app, this would come from a context or state management
+  // Dummy chat history data
   const chatHistory = [
     {
       id: '1',
@@ -49,15 +72,39 @@ const Header = () => {
     if (chatId === '') {
       setShowHistory(false);
     } else {
-      // Handle selecting a chat from history
+      // Select the chat and close history menu
       setShowHistory(false);
       console.log(`Selected chat with ID: ${chatId}`);
+      
+      // If the tab already exists, switch to it
+      const existingTab = tabs.find(tab => tab.id === chatId);
+      if (existingTab) {
+        setActiveTabId(chatId);
+      } else {
+        // Find the chat in history
+        const selectedChat = chatHistory.find(chat => chat.id === chatId);
+        if (selectedChat) {
+          // Create a new tab based on selected chat
+          const newTab: ChatTab = {
+            id: selectedChat.id,
+            title: selectedChat.title,
+            date: selectedChat.date,
+            messages: [{
+              id: 1,
+              text: selectedChat.lastMessage,
+              isUser: false,
+            }],
+            activePDF: null,
+          };
+          setTabs([...tabs, newTab]);
+          setActiveTabId(newTab.id);
+        }
+      }
     }
   };
 
   const handleSaveSettings = (newSettings: UserSettingsType) => {
     setUserSettings(newSettings);
-    // No need to manually toggle dark mode here, as the useEffect will handle it
   };
 
   return (

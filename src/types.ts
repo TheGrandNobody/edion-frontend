@@ -40,3 +40,21 @@ export interface StudentReport {
   attendancePercentage: number;
   teacherNotes: string;
 }
+
+// Additional types from temp.tsx and other components
+export interface ChatMessage {
+  id: number;
+  text: string;
+  isUser: boolean;
+  pdfUrl?: string;
+}
+
+export interface ChatTab {
+  id: string;
+  title: string;
+  date: string;
+  messages: ChatMessage[];
+  activePDF: string | null;
+}
+
+export type ChatHistory = ChatHistoryItem;

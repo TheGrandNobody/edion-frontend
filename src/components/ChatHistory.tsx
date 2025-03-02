@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { Search, FileText, Dumbbell, GraduationCap, School, X } from 'lucide-react';
-import { ChatHistory } from '~/types';
+import { ChatHistoryItem } from '../types';
 
 interface ChatHistoryMenuProps {
-  history: ChatHistory[];
+  history: ChatHistoryItem[];
   onSelectChat: (chatId: string) => void;
 }
 
