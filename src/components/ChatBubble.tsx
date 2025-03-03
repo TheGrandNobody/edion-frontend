@@ -1,6 +1,5 @@
 import React from 'react';
 import { ChatMessage } from '../types';
-import logo from '../assets/logo.png';
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -32,7 +31,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode }) => {
     <div className="flex space-x-2">
       <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-800 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-md">
         <img
-          src={logo}
+          src='/logo.png'
           alt="Chatbot Logo"
           className="w-full h-full object-cover"
         />
