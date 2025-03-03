@@ -1,27 +1,25 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Menu } from 'lucide-react';
+import { LayoutGrid, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ChatHistoryMenu from './ChatHistory';
 import UserSettingsModal from './UserSettings';
 import { UserSettings as UserSettingsType, ChatHistoryItem, ChatTab, ChatMessage } from '../types';
-import { useTheme } from '../hooks/useTheme';
 
 const Header = () => {
   const navigate = useNavigate();
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const { isDarkMode, setDarkMode } = useTheme();
   
   // Dummy user settings for demonstration
   const [userSettings, setUserSettings] = useState<UserSettingsType>({
     username: 'teacher_jane',
     fullName: 'Jane Smith',
     email: 'jane.smith@school.edu',
-    profilePicture: '/teacher-profile.png',
-    darkMode: isDarkMode,
+    profilePicture: 'https://github.com/shadcn.png',
+    darkMode: false,
   });
 
   // Chat tab management
@@ -46,6 +44,15 @@ const Header = () => {
     },
   ]);
   const [activeTabId, setActiveTabId] = useState(tabs[0].id);
+
+  // Apply dark mode based on user settings
+  useEffect(() => {
+    if (userSettings.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [userSettings.darkMode]);
 
   // Dummy chat history data
   const chatHistory = [
@@ -76,7 +83,6 @@ const Header = () => {
 
   const handleSaveSettings = (newSettings: UserSettingsType) => {
     setUserSettings(newSettings);
-    setDarkMode(newSettings.darkMode);
   };
 
   return (
@@ -88,10 +94,10 @@ const Header = () => {
         transition={{ duration: 0.5 }}
       >
         <button 
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors duration-200 transform hover:scale-105"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors duration-200"
           onClick={() => setShowHistory(!showHistory)}
         >
-          <Menu className="w-5 h-5" />
+          <LayoutGrid className="w-5 h-5" />
         </button>
         
         <Avatar 
