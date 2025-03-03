@@ -1,12 +1,8 @@
 
 import React, { useRef, useState } from 'react';
+import { Upload, Lock } from 'lucide-react';
 import { UserSettings } from '../types';
 import { useTheme } from '../hooks/useTheme';
-import ProfileImageSection from './settings/ProfileImageSection';
-import UserInfoSection from './settings/UserInfoSection';
-import PasswordChangeSection from './settings/PasswordChangeSection';
-import DarkModeToggle from './settings/DarkModeToggle';
-import ActionButtons from './settings/ActionButtons';
 
 interface UserSettingsModalProps {
   settings: UserSettings;
@@ -24,6 +20,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const { isDarkMode } = useTheme();
@@ -42,8 +39,15 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     };
   }, [onClose]);
 
-  const handleProfileImageChange = (newImage: string) => {
-    setFormData({ ...formData, profilePicture: newImage });
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, profilePicture: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleDarkModeToggle = () => {
@@ -51,14 +55,45 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     setFormData({ ...formData, darkMode: !formData.darkMode });
   };
 
-  const handlePasswordChange = (currentPwd: string, newPwd: string) => {
-    // If we get here, validation has already passed in the child component
-    // In a real app, would validate and update password
+  const handlePasswordChange = () => {
+    // Simple validation
+    if (!currentPassword) {
+      setPasswordError('Current password is required');
+      return false;
+    }
+    
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters');
+      return false;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return false;
+    }
+    
+    // In a real app, you would verify the current password against stored value
+    // and then update with the new password
+    
+    setPasswordError('');
     return true;
   };
 
   const handleSave = () => {
+    // If password fields are filled, validate password change
+    if (currentPassword || newPassword || confirmPassword) {
+      if (!handlePasswordChange()) {
+        return;
+      }
+      // Password change successful, would save in a real app
+    }
+    
     onSave(formData);
+    onClose();
+  };
+
+  const handleCancel = () => {
+    // Revert to original settings
     onClose();
   };
 
@@ -70,38 +105,122 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           
           <div className="space-y-4">
             {/* Profile Picture */}
-            <ProfileImageSection 
-              profilePicture={formData.profilePicture}
-              onImageChange={handleProfileImageChange}
-            />
+            <div className="flex flex-col items-center space-y-2">
+              <div className="relative">
+                <img
+                  src={formData.profilePicture}
+                  alt="Profile"
+                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover shadow-lg"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 p-1.5 sm:p-2 bg-white/80 dark:bg-gray-800/80 rounded-full shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 backdrop-blur-sm"
+                >
+                  <Upload className="w-3 h-3 sm:w-4 sm:h-4 text-gray-700 dark:text-gray-300" />
+                </button>
+              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+            </div>
 
             {/* User Info */}
-            <UserInfoSection 
-              username={formData.username}
-              fullName={formData.fullName}
-              email={formData.email}
-              onUsernameChange={(value) => setFormData({ ...formData, username: value })}
-              onFullNameChange={(value) => setFormData({ ...formData, fullName: value })}
-              onEmailChange={(value) => setFormData({ ...formData, email: value })}
-            />
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="Username"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-gray-200 bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-700 backdrop-blur-sm"
+              />
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-gray-200 bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-700 backdrop-blur-sm"
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-gray-200 bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-700 backdrop-blur-sm"
+              />
+            </div>
 
             {/* Password Change Section */}
-            <PasswordChangeSection
-              onPasswordChange={handlePasswordChange}
-            />
+            <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+              <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1">
+                <Lock className="w-4 h-4" />
+                Change Password
+              </h3>
+              
+              {passwordError && (
+                <p className="text-xs text-red-500">{passwordError}</p>
+              )}
+              
+              <input
+                type="password"
+                placeholder="Current Password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-gray-200 bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-700 backdrop-blur-sm"
+              />
+              <input
+                type="password"
+                placeholder="New Password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-gray-200 bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-700 backdrop-blur-sm"
+              />
+              <input
+                type="password"
+                placeholder="Confirm New Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-gray-200 bg-white/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-700 backdrop-blur-sm"
+              />
+            </div>
 
             {/* Dark Mode Toggle */}
-            <DarkModeToggle 
-              isDarkMode={formData.darkMode}
-              onToggle={handleDarkModeToggle}
-            />
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Dark Mode</span>
+              <button
+                onClick={handleDarkModeToggle}
+                className={`relative inline-flex h-5 sm:h-6 w-9 sm:w-11 items-center rounded-full transition-colors focus:outline-none ${
+                  formData.darkMode ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 sm:h-5 w-4 sm:w-5 transform rounded-full bg-white transition-transform ${
+                    formData.darkMode ? 'translate-x-5 sm:translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+                <span className="sr-only">Toggle Dark Mode</span>
+              </button>
+            </div>
           </div>
 
           {/* Actions */}
-          <ActionButtons
-            onCancel={onClose}
-            onSave={handleSave}
-          />
+          <div className="flex justify-end space-x-2 mt-6">
+            <button
+              onClick={handleCancel}
+              className="px-3 sm:px-4 py-1.5 sm:py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 rounded-lg backdrop-blur-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-3 sm:px-4 py-1.5 sm:py-2 text-sm text-white bg-blue-500 hover:bg-blue-600 rounded-lg"
+            >
+              Save Changes
+            </button>
+          </div>
         </div>
       </div>
     </div>
