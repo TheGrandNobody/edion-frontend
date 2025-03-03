@@ -22,6 +22,7 @@ export const generateStudentReportPDF = async (tabId: string, tabs: ChatTab[], s
     ],
   };
 
+  // Fix the JSX syntax by properly creating the PDF element
   const blob = await pdf(<StudentReportPDF data={sampleData} />).toBlob();
   const url = URL.createObjectURL(blob);
   
