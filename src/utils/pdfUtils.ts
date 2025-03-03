@@ -23,7 +23,7 @@ export const generateStudentReportPDF = async (tabId: string, tabs: ChatTab[], s
     ],
   };
 
-  // Create PDF using the document renderer
+  // Create PDF document using the React.createElement approach
   const blob = await pdf(
     React.createElement(StudentReportPDF, { data: sampleData })
   ).toBlob();

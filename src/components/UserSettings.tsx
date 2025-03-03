@@ -1,6 +1,7 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { Upload, Lock } from 'lucide-react';
-import { UserSettings } from '~/types';
+import { UserSettings } from '../types';
 
 interface UserSettingsModalProps {
   settings: UserSettings;
@@ -24,7 +25,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   const originalDarkMode = useRef<boolean>(settings.darkMode);
 
   // Handle click outside to close
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (backdropRef.current === event.target) {
         handleCancel();
@@ -35,7 +36,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [onClose]);
+  }, []);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
