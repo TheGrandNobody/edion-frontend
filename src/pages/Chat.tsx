@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Menu, 
@@ -23,6 +22,7 @@ import TabBar from '../components/TabBar';
 import ChatHistoryMenu from '../components/ChatHistory';
 import UserSettingsModal from '../components/UserSettings';
 import { pdf } from '@react-pdf/renderer';
+import { generateStudentReportPDF } from '../utils/pdfUtils';
 
 const Chat = () => {
   // User Settings
@@ -115,42 +115,7 @@ const Chat = () => {
   }, []);
 
   const generatePDF = async (tabId: string) => {
-    const sampleData = {
-      name: 'Joost Van Der Straatweg',
-      grade: '8th',
-      school: 'School of Rock',
-      rollNumber: '129138',
-      subjects: [
-        { name: 'Mathematics', grade: 'A' },
-        { name: 'Science', grade: 'A' },
-        { name: 'English', grade: 'A-' },
-        { name: 'History', grade: 'B+' },
-        { name: 'Physical Education', grade: 'A' },
-        { name: 'Art', grade: 'A' },
-        { name: 'Music', grade: 'A' },
-        { name: 'Computer Science', grade: 'A' },
-        { name: 'Geography', grade: 'B+' },
-      ],
-    };
-
-    const blob = await pdf(<StudentReportPDF data={sampleData} />).toBlob();
-    const url = URL.createObjectURL(blob);
-    
-    setTabs(tabs.map(tab => {
-      if (tab.id === tabId) {
-        return {
-          ...tab,
-          messages: [...tab.messages, {
-            id: tab.messages.length + 1,
-            text: 'I have generated the report for Joost. He sounds like an excellent student!\n\nPlease indicate how you would like to proceed:',
-            isUser: false,
-            pdfUrl: url,
-          }],
-          activePDF: url,
-        };
-      }
-      return tab;
-    }));
+    await generateStudentReportPDF(tabId, tabs, setTabs);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -203,19 +168,15 @@ const Chat = () => {
     if (chatId === '') {
       setShowHistory(false);
     } else {
-      // Handle selecting a chat from history
       setShowHistory(false);
       console.log(`Selected chat with ID: ${chatId}`);
       
-      // If the tab already exists, switch to it
       const existingTab = tabs.find(tab => tab.id === chatId);
       if (existingTab) {
         setActiveTabId(chatId);
       } else {
-        // Find the chat in history
         const selectedChat = chatHistory.find(chat => chat.id === chatId);
         if (selectedChat) {
-          // Create a new tab based on selected chat
           const newTab: ChatTab = {
             id: selectedChat.id,
             title: selectedChat.title,
@@ -236,14 +197,10 @@ const Chat = () => {
 
   return (
     <div className="flex h-screen">
-      {/* Side Menu */}
       {showHistory && <ChatHistoryMenu history={chatHistory} onSelectChat={handleHistoryAction} />}
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col bg-gray-100 dark:bg-gray-800">
-        {/* Top Navigation - Now with floating elements directly on the background */}
         <div className="navbar-container sticky top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-3 bg-transparent">
-          {/* Menu Button - Now floating directly on the background */}
           <button
             className="p-1.5 sm:p-2 hover:bg-white/40 dark:hover:bg-gray-800/40 rounded-lg bg-white/60 dark:bg-gray-900/60 backdrop-blur-md shadow-lg mr-3"
             onClick={() => setShowHistory(!showHistory)}
@@ -251,7 +208,6 @@ const Chat = () => {
             <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-200" />
           </button>
           
-          {/* Tab Bar - Now floating directly on the background */}
           <div className="flex-1 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md rounded-lg shadow-lg p-1.5 mx-2">
             <TabBar
               tabs={tabs}
@@ -262,7 +218,6 @@ const Chat = () => {
             />
           </div>
           
-          {/* Profile Button */}
           <button
             className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg ml-3"
             onClick={() => setShowSettings(true)}
@@ -274,16 +229,13 @@ const Chat = () => {
           </button>
         </div>
 
-        {/* Chat Content */}
         <div className="flex-1 flex overflow-hidden">
-          {/* PDF Viewer */}
           {activeTab.activePDF && (
             <div className="w-full md:w-1/2 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
               <PDFViewer pdfUrl={activeTab.activePDF} darkMode={userSettings.darkMode} />
             </div>
           )}
 
-          {/* Chat Area */}
           <div className={`flex-1 flex flex-col ${activeTab.activePDF ? 'hidden md:flex md:w-1/2' : 'w-full'}`}>
             <div 
               ref={chatContainerRef}
@@ -317,7 +269,6 @@ const Chat = () => {
               </div>
             </div>
 
-            {/* Input Area */}
             <div className="p-3 sm:p-4 bg-white/70 dark:bg-gray-900/70 border-t border-gray-200 dark:border-gray-700 backdrop-blur-md">
               <div className="w-full mx-auto" style={{ maxWidth: 'min(100%, 800px)', width: '100%', padding: '0 4px', boxSizing: 'border-box' }}>
                 <form onSubmit={handleSubmit} className="relative">
@@ -355,7 +306,6 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Settings Modal */}
       {showSettings && (
         <UserSettingsModal
           settings={userSettings}

@@ -1,5 +1,4 @@
-
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Upload, Lock } from 'lucide-react';
 import { UserSettings } from '~/types';
 
@@ -22,12 +21,13 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const originalDarkMode = useRef<boolean>(settings.darkMode);
 
   // Handle click outside to close
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (backdropRef.current === event.target) {
-        onClose();
+        handleCancel();
       }
     };
 
@@ -50,10 +50,11 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
 
   const handleDarkModeToggle = () => {
     // Update form data with new dark mode value
-    setFormData({ ...formData, darkMode: !formData.darkMode });
+    const newDarkModeValue = !formData.darkMode;
+    setFormData({ ...formData, darkMode: newDarkModeValue });
     
     // Apply dark mode change immediately for better UX
-    if (!formData.darkMode) {
+    if (newDarkModeValue) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
@@ -93,12 +94,24 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
       // Password change successful, would save in a real app
     }
     
+    // Update the original dark mode reference to prevent reverting on next open
+    originalDarkMode.current = formData.darkMode;
+    
     onSave(formData);
     onClose();
   };
 
   const handleCancel = () => {
-    // Revert to original settings
+    // Revert to original dark mode setting if it was changed but not saved
+    if (formData.darkMode !== originalDarkMode.current) {
+      if (originalDarkMode.current) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+    
+    // Close the modal
     onClose();
   };
 
