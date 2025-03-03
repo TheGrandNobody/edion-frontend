@@ -1,7 +1,8 @@
 
 import React, { useRef, useState } from 'react';
 import { Upload, Lock } from 'lucide-react';
-import { UserSettings } from '~/types';
+import { UserSettings } from '../types';
+import { useTheme } from '../hooks/useTheme';
 
 interface UserSettingsModalProps {
   settings: UserSettings;
@@ -22,6 +23,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const { isDarkMode } = useTheme();
 
   // Handle click outside to close
   React.useEffect(() => {
@@ -51,13 +53,6 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   const handleDarkModeToggle = () => {
     // Update form data with new dark mode value
     setFormData({ ...formData, darkMode: !formData.darkMode });
-    
-    // Apply dark mode change immediately for better UX
-    if (!formData.darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
   };
 
   const handlePasswordChange = () => {
@@ -103,8 +98,8 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   };
 
   return (
-    <div ref={backdropRef} className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div ref={modalRef} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div ref={backdropRef} className="fixed inset-0 bg-black/25 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div ref={modalRef} className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="p-4 sm:p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">User Settings</h2>
           

@@ -1,5 +1,7 @@
+
 import React from 'react';
 import { ChatMessage } from '../types';
+import { useTheme } from '../hooks/useTheme';
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -7,6 +9,8 @@ interface ChatBubbleProps {
 }
 
 const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode }) => {
+  const { isDarkMode } = useTheme();
+  
   if (message.isUser) {
     return (
       <div className="flex justify-end space-x-2">
@@ -29,9 +33,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode }) => {
 
   return (
     <div className="flex space-x-2">
-      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-800 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-md">
+      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center shadow-md">
         <img
-          src='/logo.png'
+          src={isDarkMode ? '/logo-white-circle.png' : '/logo-black-circle.png'}
           alt="Chatbot Logo"
           className="w-full h-full object-cover"
         />
