@@ -23,38 +23,38 @@ const Search = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
     >
-      <form onSubmit={handleSubmit} className="search-input flex items-center">
-        <div className="flex items-center gap-2 text-muted-foreground mr-2">
-          <button 
-            type="button" 
-            className="focus:outline-none hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-            aria-label="Attach file"
-          >
-            <Paperclip className="h-5 w-5" />
-          </button>
-          <button 
-            type="button" 
-            className="focus:outline-none hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-            aria-label="Voice input"
-          >
-            <Mic className="h-5 w-5" />
-          </button>
-        </div>
+      <form onSubmit={handleSubmit} className="relative">
         <input
           type="text"
           placeholder="What can I help you with, Julia?"
-          className="flex-1 placeholder-gray-400 w-full bg-transparent border-none focus:outline-none"
+          className="w-full px-4 py-2.5 sm:py-3 pr-24 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400 shadow-sm backdrop-blur-sm"
           aria-label="Search box"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
-        <button 
-          type="submit" 
-          className="focus:outline-none"
-          aria-label="Submit search"
-        >
-          <ArrowRight className="h-5 w-5 text-muted-foreground" />
-        </button>
+        <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 sm:space-x-2">
+          <button 
+            type="button" 
+            className="p-1.5 sm:p-2 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+            aria-label="Voice input"
+          >
+            <Mic className="h-4 w-4 sm:w-5 sm:h-5" />
+          </button>
+          <button 
+            type="button" 
+            className="p-1.5 sm:p-2 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+            aria-label="Attach file"
+          >
+            <Paperclip className="h-4 w-4 sm:w-5 sm:h-5" />
+          </button>
+          <button 
+            type="submit" 
+            className="p-1.5 sm:p-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white"
+            aria-label="Submit search"
+          >
+            <ArrowRight className="h-4 w-4 sm:w-5 sm:h-5" />
+          </button>
+        </div>
       </form>
     </motion.div>
   );

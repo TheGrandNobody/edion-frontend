@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Menu, 
@@ -6,7 +7,8 @@ import {
   Pencil, 
   RefreshCw, 
   Send, 
-  Mic 
+  Mic,
+  Paperclip
 } from 'lucide-react';
 import { 
   ChatMessage, 
@@ -17,22 +19,29 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ChatBubble from '../components/ChatBubble';
 import PDFViewer from '../components/PDFViewer';
-import StudentReportPDF from '../components/StudentReportPDF';
 import TabBar from '../components/TabBar';
 import ChatHistoryMenu from '../components/ChatHistory';
 import UserSettingsModal from '../components/UserSettings';
-import { pdf } from '@react-pdf/renderer';
 import { generateStudentReportPDF } from '../utils/pdfUtils';
 
-const Chat = () => {
-  // User Settings
-  const [userSettings, setUserSettings] = useState<UserSettingsType>({
+// Get user settings from localStorage or use default
+const getUserSettingsFromStorage = (): UserSettingsType => {
+  const storedSettings = localStorage.getItem('userSettings');
+  if (storedSettings) {
+    return JSON.parse(storedSettings);
+  }
+  return {
     username: 'teacher_jane',
     fullName: 'Jane Smith',
     email: 'jane.smith@school.edu',
-    profilePicture: 'https://github.com/shadcn.png',
+    profilePicture: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80',
     darkMode: false,
-  });
+  };
+};
+
+const Chat = () => {
+  // User Settings
+  const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
   const [showSettings, setShowSettings] = useState(false);
 
   // Chat History
@@ -195,6 +204,12 @@ const Chat = () => {
     }
   };
 
+  const handleSaveSettings = (newSettings: UserSettingsType) => {
+    setUserSettings(newSettings);
+    // Save to localStorage for persistence across page loads
+    localStorage.setItem('userSettings', JSON.stringify(newSettings));
+  };
+
   return (
     <div className="flex h-screen">
       {showHistory && <ChatHistoryMenu history={chatHistory} onSelectChat={handleHistoryAction} />}
@@ -202,7 +217,7 @@ const Chat = () => {
       <div className="flex-1 flex flex-col bg-gray-100 dark:bg-gray-800">
         <div className="navbar-container sticky top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-3 bg-transparent">
           <button
-            className="p-1.5 sm:p-2 hover:bg-white/40 dark:hover:bg-gray-800/40 rounded-lg bg-white/60 dark:bg-gray-900/60 backdrop-blur-md shadow-lg mr-3"
+            className="h-full aspect-square hover:bg-white/40 dark:hover:bg-gray-800/40 rounded-lg bg-white/60 dark:bg-gray-900/60 backdrop-blur-md shadow-lg mr-3 flex items-center justify-center"
             onClick={() => setShowHistory(!showHistory)}
           >
             <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-200" />
@@ -224,7 +239,7 @@ const Chat = () => {
           >
             <Avatar>
               <AvatarImage src={userSettings.profilePicture} alt="Profile" />
-              <AvatarFallback>JS</AvatarFallback>
+              <AvatarFallback>{userSettings.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
             </Avatar>
           </button>
         </div>
@@ -290,7 +305,7 @@ const Chat = () => {
                       type="button"
                       className="p-1.5 sm:p-2 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
                     >
-                      <Folder className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                     <button
                       type="submit"
@@ -310,7 +325,7 @@ const Chat = () => {
         <UserSettingsModal
           settings={userSettings}
           onClose={() => setShowSettings(false)}
-          onSave={setUserSettings}
+          onSave={handleSaveSettings}
         />
       )}
     </div>

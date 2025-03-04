@@ -1,49 +1,35 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { LayoutGrid, User } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ChatHistoryMenu from './ChatHistory';
 import UserSettingsModal from './UserSettings';
-import { UserSettings as UserSettingsType, ChatHistoryItem, ChatTab, ChatMessage } from '../types';
+import { UserSettings as UserSettingsType } from '../types';
+
+// Get user settings from localStorage or use default
+const getUserSettingsFromStorage = (): UserSettingsType => {
+  const storedSettings = localStorage.getItem('userSettings');
+  if (storedSettings) {
+    return JSON.parse(storedSettings);
+  }
+  return {
+    username: 'teacher_jane',
+    fullName: 'Jane Smith',
+    email: 'jane.smith@school.edu',
+    profilePicture: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80',
+    darkMode: false,
+  };
+};
 
 const Header = () => {
   const navigate = useNavigate();
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
-  // Dummy user settings for demonstration
-  const [userSettings, setUserSettings] = useState<UserSettingsType>({
-    username: 'teacher_jane',
-    fullName: 'Jane Smith',
-    email: 'jane.smith@school.edu',
-    profilePicture: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=300&h=300',
-    darkMode: false,
-  });
-
-  // Chat tab management
-  const [tabs, setTabs] = useState<ChatTab[]>([
-    {
-      id: '1',
-      title: 'Drafting a report for Justin',
-      date: '24/06/2024',
-      messages: [
-        {
-          id: 1,
-          text: 'Hey Edion, can you generate a report for one of my students?',
-          isUser: true,
-        },
-        {
-          id: 2,
-          text: 'Of course. Please provide any necessary documents, notes or work from said student.\n\nFurthermore, attach a draft or reference for how you would want the report to be structured, or select one which you have previously completed.',
-          isUser: false,
-        },
-      ],
-      activePDF: null,
-    },
-  ]);
-  const [activeTabId, setActiveTabId] = useState(tabs[0].id);
+  // Get user settings from localStorage
+  const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
 
   // Apply dark mode based on user settings
   useEffect(() => {
@@ -83,6 +69,8 @@ const Header = () => {
 
   const handleSaveSettings = (newSettings: UserSettingsType) => {
     setUserSettings(newSettings);
+    // Save settings to localStorage for persistence
+    localStorage.setItem('userSettings', JSON.stringify(newSettings));
   };
 
   return (
@@ -111,7 +99,7 @@ const Header = () => {
             onClick={() => setShowSettings(true)}
           >
             <AvatarImage src={userSettings.profilePicture} alt="User" />
-            <AvatarFallback>JS</AvatarFallback>
+            <AvatarFallback>{userSettings.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
           </Avatar>
         </motion.div>
       </motion.header>

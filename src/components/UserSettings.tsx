@@ -2,6 +2,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Upload, Lock, Trash2 } from 'lucide-react';
 import { UserSettings } from '../types';
+import ImageCropper from './ImageCropper';
 
 interface UserSettingsModalProps {
   settings: UserSettings;
@@ -19,6 +20,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -43,10 +45,20 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData({ ...formData, profilePicture: reader.result as string });
+        // Instead of directly setting the image, we'll open the cropper
+        setImageToCrop(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (croppedImageUrl: string) => {
+    setFormData({ ...formData, profilePicture: croppedImageUrl });
+    setImageToCrop(null);
+  };
+
+  const handleCropCancel = () => {
+    setImageToCrop(null);
   };
 
   const handleRemoveProfilePicture = () => {
@@ -262,6 +274,15 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Image Cropper Modal */}
+      {imageToCrop && (
+        <ImageCropper
+          src={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+        />
+      )}
     </div>
   );
 };
