@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ChatHistoryMenu from './ChatHistory';
 import UserSettingsModal from './UserSettings';
@@ -23,6 +24,7 @@ const getUserSettingsFromStorage = (): UserSettingsType => {
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
@@ -54,6 +56,7 @@ const Header = () => {
   const handleHistoryAction = (chatId: string) => {
     if (chatId !== '') {
       console.log(`Selected chat with ID: ${chatId}`);
+      // Only navigate, don't close the history panel
       navigate('/chat', { state: { selectedChatId: chatId } });
     }
   };
@@ -76,7 +79,7 @@ const Header = () => {
         transition={{ duration: 0.5 }}
       >
         <motion.button 
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors duration-200"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors duration-200 z-20"
           onClick={toggleHistory}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
