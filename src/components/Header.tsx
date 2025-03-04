@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid } from 'lucide-react';
@@ -8,7 +7,6 @@ import ChatHistoryMenu from './ChatHistory';
 import UserSettingsModal from './UserSettings';
 import { UserSettings as UserSettingsType } from '../types';
 
-// Get user settings from localStorage or use default
 const getUserSettingsFromStorage = (): UserSettingsType => {
   const storedSettings = localStorage.getItem('userSettings');
   if (storedSettings) {
@@ -28,10 +26,8 @@ const Header = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
-  // Get user settings from localStorage
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
 
-  // Apply dark mode based on user settings
   useEffect(() => {
     if (userSettings.darkMode) {
       document.documentElement.classList.add('dark');
@@ -40,7 +36,6 @@ const Header = () => {
     }
   }, [userSettings.darkMode]);
 
-  // Dummy chat history data
   const chatHistory = [
     {
       id: '1',
@@ -57,11 +52,7 @@ const Header = () => {
   ];
 
   const handleHistoryAction = (chatId: string) => {
-    if (chatId === '') {
-      setShowHistory(false);
-    } else {
-      // Navigate to the chat page with the selected chat ID
-      setShowHistory(false);
+    if (chatId !== '') {
       console.log(`Selected chat with ID: ${chatId}`);
       navigate('/chat', { state: { selectedChatId: chatId } });
     }
@@ -69,7 +60,6 @@ const Header = () => {
 
   const handleSaveSettings = (newSettings: UserSettingsType) => {
     setUserSettings(newSettings);
-    // Save settings to localStorage for persistence
     localStorage.setItem('userSettings', JSON.stringify(newSettings));
   };
 
@@ -108,7 +98,6 @@ const Header = () => {
         </motion.div>
       </motion.header>
 
-      {/* Side Menu - Only render when showHistory is true */}
       {showHistory && (
         <ChatHistoryMenu 
           history={chatHistory} 
@@ -116,7 +105,6 @@ const Header = () => {
         />
       )}
 
-      {/* Settings Modal */}
       {showSettings && (
         <UserSettingsModal
           settings={userSettings}
