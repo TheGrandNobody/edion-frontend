@@ -25,15 +25,15 @@ const TabBar: React.FC<TabBarProps> = ({
           key={tab.id}
           className={`group flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg cursor-pointer transition-colors ${
             activeTabId === tab.id
-              ? 'bg-white/80 dark:bg-black/80 shadow-sm'
-              : 'hover:bg-white/40 dark:hover:bg-black/60'
+              ? 'bg-white/80 dark:bg-black shadow-sm dark:border dark:border-gray-800'
+              : 'hover:bg-white/40 dark:hover:bg-gray-900/80'
           }`}
           onClick={() => onTabChange(tab.id)}
         >
           <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate max-w-[40px] sm:max-w-none">{tab.date}</span>
           <span className="text-xs sm:text-sm text-gray-900 dark:text-gray-200 truncate max-w-[80px] sm:max-w-[120px] md:max-w-[160px]">{tab.title}</span>
           <button
-            className="p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-100/70 dark:hover:bg-gray-900/70"
+            className="p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-100/70 dark:hover:bg-gray-900"
             onClick={(e) => {
               e.stopPropagation();
               onTabClose(tab.id);
@@ -44,7 +44,7 @@ const TabBar: React.FC<TabBarProps> = ({
         </div>
       ))}
       <button
-        className="p-1 hover:bg-white/40 dark:hover:bg-black/60 rounded-lg flex-shrink-0"
+        className="p-1 hover:bg-white/40 dark:hover:bg-gray-900/80 rounded-lg flex-shrink-0"
         onClick={onNewTab}
       >
         <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-700 dark:text-gray-300" />

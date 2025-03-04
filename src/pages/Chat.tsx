@@ -313,7 +313,7 @@ const Chat = () => {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-800">
+      <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
         <p className="text-gray-500 dark:text-gray-400">Loading chat...</p>
       </div>
     );
@@ -322,7 +322,7 @@ const Chat = () => {
   const activeTab = getActiveTab();
   if (!activeTab) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-800">
+      <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
         <p className="text-gray-500 dark:text-gray-400">No active chat found. Please try again or start a new chat.</p>
       </div>
     );
@@ -332,16 +332,16 @@ const Chat = () => {
     <div className="flex h-screen">
       {showHistory && <ChatHistoryMenu history={chatHistory} onSelectChat={handleHistoryAction} />}
 
-      <div className="flex-1 flex flex-col bg-gray-100 dark:bg-gray-800">
+      <div className="flex-1 flex flex-col bg-gray-100 dark:bg-gray-950">
         <div className="navbar-container sticky top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-3 bg-transparent">
           <button
-            className="p-2 hover:bg-white/40 dark:hover:bg-gray-800/40 rounded-lg text-gray-700 dark:text-gray-200 flex items-center justify-center"
+            className="p-2 hover:bg-white/40 dark:hover:bg-gray-900 rounded-lg text-gray-700 dark:text-gray-200 flex items-center justify-center"
             onClick={() => setShowHistory(!showHistory)}
           >
             <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
           
-          <div className="flex-1 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md rounded-lg shadow-lg p-1.5 mx-2">
+          <div className="flex-1 bg-white/60 dark:bg-black/60 backdrop-blur-md rounded-lg shadow-lg p-1.5 mx-2 border border-gray-200/10 dark:border-gray-800/40">
             <TabBar
               tabs={tabs}
               activeTabId={activeTabId}
@@ -364,7 +364,7 @@ const Chat = () => {
 
         <div className="flex-1 flex overflow-hidden">
           {activeTab.activePDF && (
-            <div className="w-full md:w-1/2 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="w-full md:w-1/2 border-r border-gray-200 dark:border-gray-800 overflow-hidden">
               <PDFViewer pdfUrl={activeTab.activePDF} darkMode={userSettings.darkMode} />
             </div>
           )}
@@ -383,15 +383,15 @@ const Chat = () => {
                     <ChatBubble message={message} darkMode={userSettings.darkMode} />
                     {message.pdfUrl && !message.isUser && (
                       <div className="ml-10 mt-2 flex flex-wrap gap-2">
-                        <button className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-700/70 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm backdrop-blur-sm">
+                        <button className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-sm backdrop-blur-sm">
                           <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           <span>Download</span>
                         </button>
-                        <button className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-700/70 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm backdrop-blur-sm">
+                        <button className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-sm backdrop-blur-sm">
                           <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           <span>Edit</span>
                         </button>
-                        <button className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-700/70 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm backdrop-blur-sm">
+                        <button className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-sm backdrop-blur-sm">
                           <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           <span>Regenerate report</span>
                         </button>
@@ -402,7 +402,7 @@ const Chat = () => {
               </div>
             </div>
 
-            <div className="p-3 sm:p-4 bg-white/70 dark:bg-gray-900/70 border-t border-gray-200 dark:border-gray-700 backdrop-blur-md">
+            <div className="p-3 sm:p-4 bg-white/70 dark:bg-black/70 border-t border-gray-200 dark:border-gray-800 backdrop-blur-md">
               <div className="w-full mx-auto" style={{ maxWidth: 'min(100%, 800px)', width: '100%', padding: '0 4px', boxSizing: 'border-box' }}>
                 <form onSubmit={handleSubmit} className="relative">
                   <input
@@ -410,18 +410,18 @@ const Chat = () => {
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder="Ask anything"
-                    className="w-full px-4 py-2.5 sm:py-3 pr-24 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400 shadow-sm backdrop-blur-sm"
+                    className="w-full px-4 py-2.5 sm:py-3 pr-24 bg-gray-50/80 dark:bg-gray-900/80 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400 shadow-sm backdrop-blur-sm"
                   />
                   <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 sm:space-x-2">
                     <button
                       type="button"
-                      className="p-1.5 sm:p-2 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+                      className="p-1.5 sm:p-2 hover:bg-gray-200/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
                     >
                       <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                     <button
                       type="button"
-                      className="p-1.5 sm:p-2 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+                      className="p-1.5 sm:p-2 hover:bg-gray-200/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
                     >
                       <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
