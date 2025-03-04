@@ -250,7 +250,12 @@ const Chat = () => {
             date: selectedChat.date,
             messages: [{
               id: 1,
-              text: `Starting conversation: ${selectedChat.title}`,
+              text: selectedChat.title,
+              isUser: true,
+            },
+            {
+              id: 2,
+              text: "Hello! I'm here to help. What can I assist you with today?",
               isUser: false,
             }],
             activePDF: null,
@@ -391,4 +396,3 @@ const Chat = () => {
 };
 
 export default Chat;
-

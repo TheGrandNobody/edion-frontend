@@ -22,21 +22,26 @@ const Search = () => {
         id: newChatId,
         title: searchInput,
         date: formattedDate,
-        lastMessage: 'New conversation started.',
+        lastMessage: searchInput,
       };
       
       // Get existing chat history or initialize empty array
       const existingHistory = localStorage.getItem('chatHistory');
       let chatHistory: ChatHistoryItem[] = existingHistory ? JSON.parse(existingHistory) : [];
       
-      // Add new chat to history
+      // Add new chat to history (at the beginning)
       chatHistory = [newChat, ...chatHistory];
       
       // Save updated history
       localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
       
       // Navigate to chat page with the new chat ID
-      navigate('/chat', { state: { selectedChatId: newChatId, initialQuery: searchInput } });
+      navigate('/chat', { 
+        state: { 
+          selectedChatId: newChatId, 
+          initialQuery: searchInput 
+        } 
+      });
     }
   };
 
