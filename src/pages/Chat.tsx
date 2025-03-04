@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Menu, 
+  LayoutGrid, 
   Folder, 
   Download, 
   Pencil, 
@@ -220,7 +220,7 @@ const Chat = () => {
             className="h-full aspect-square hover:bg-white/40 dark:hover:bg-gray-800/40 rounded-lg bg-white/60 dark:bg-gray-900/60 backdrop-blur-md shadow-lg mr-3 flex items-center justify-center"
             onClick={() => setShowHistory(!showHistory)}
           >
-            <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-200" />
+            <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-200" />
           </button>
           
           <div className="flex-1 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md rounded-lg shadow-lg p-1.5 mx-2">
