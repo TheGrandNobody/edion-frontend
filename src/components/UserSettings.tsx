@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import ImageCropper from './ImageCropper';
@@ -31,6 +30,26 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
     }
   }, [croppedImage]);
 
+  // Apply dark mode in real-time when the toggle changes
+  useEffect(() => {
+    // Apply dark mode to document based on current state
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
+    // Cleanup function to handle component unmount or changes
+    return () => {
+      // Restore original dark mode setting if user hasn't saved
+      if (originalDarkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+  }, [darkMode, originalDarkMode]);
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -46,6 +65,14 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
   const handleClose = () => {
     // Revert to original settings if user closes without saving
     setDarkMode(originalDarkMode);
+    
+    // Make sure the document class matches the original dark mode setting
+    if (originalDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    
     onClose();
   };
 
