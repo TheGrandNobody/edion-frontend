@@ -24,7 +24,6 @@ import ChatHistoryMenu from '../components/ChatHistory';
 import UserSettingsModal from '../components/UserSettings';
 import { generateStudentReportPDF } from '../utils/pdfUtils';
 
-// Get user settings from localStorage or use default
 const getUserSettingsFromStorage = (): UserSettingsType => {
   const storedSettings = localStorage.getItem('userSettings');
   if (storedSettings) {
@@ -43,15 +42,18 @@ const Chat = () => {
   const location = useLocation();
   const initialState = location.state || {};
   
-  // User Settings
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
   const [showSettings, setShowSettings] = useState(false);
-
-  // Chat History
   const [showHistory, setShowHistory] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
-  
-  // Get chat history from localStorage
+  const [tabs, setTabs] = useState<ChatTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [inputValue, setInputValue] = useState('');
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const navbarHeight = useRef<number>(0);
+  const [scrollPosition, setScrollPosition] = useState(0);
+
   useEffect(() => {
     const storedHistory = localStorage.getItem('chatHistory');
     if (storedHistory) {
@@ -59,53 +61,52 @@ const Chat = () => {
     }
   }, []);
 
-  // Tabs
-  const [tabs, setTabs] = useState<ChatTab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string>('');
-
-  // Initialize tabs based on selectedChatId from location state
   useEffect(() => {
+    const savedTabs = localStorage.getItem('chatTabs');
+    let loadedTabs: ChatTab[] = savedTabs ? JSON.parse(savedTabs) : [];
+    
     if (initialState.selectedChatId) {
-      const storedHistory = localStorage.getItem('chatHistory');
-      const history = storedHistory ? JSON.parse(storedHistory) : [];
-      const selectedChat = history.find((chat: ChatHistoryItem) => chat.id === initialState.selectedChatId);
+      const existingTabIndex = loadedTabs.findIndex(tab => tab.id === initialState.selectedChatId);
       
-      if (selectedChat) {
-        // Check if this tab already exists
-        if (!tabs.some(tab => tab.id === selectedChat.id)) {
+      if (existingTabIndex >= 0) {
+        setActiveTabId(initialState.selectedChatId);
+        setTabs(loadedTabs);
+      } else {
+        const storedHistory = localStorage.getItem('chatHistory');
+        const history = storedHistory ? JSON.parse(storedHistory) : [];
+        const selectedChat = history.find((chat: ChatHistoryItem) => chat.id === initialState.selectedChatId);
+        
+        if (selectedChat) {
           const newTab: ChatTab = {
             id: selectedChat.id,
             title: selectedChat.title,
             date: selectedChat.date,
-            messages: initialState.initialQuery 
-              ? [
-                  {
-                    id: 1,
-                    text: initialState.initialQuery,
-                    isUser: true,
-                  },
-                  {
-                    id: 2,
-                    text: "Hello! I'm here to help. What can I assist you with today?",
-                    isUser: false,
-                  }
-                ] 
-              : [],
+            messages: [
+              {
+                id: 1,
+                text: initialState.initialQuery || selectedChat.title,
+                isUser: true,
+              },
+              {
+                id: 2,
+                text: "Hello! I'm here to help. What can I assist you with today?",
+                isUser: false,
+              }
+            ],
             activePDF: null,
           };
           
-          setTabs(prevTabs => [...prevTabs, newTab]);
+          loadedTabs = [newTab, ...loadedTabs];
+          setTabs(loadedTabs);
           setActiveTabId(selectedChat.id);
-        } else {
-          setActiveTabId(selectedChat.id);
+          
+          localStorage.setItem('chatTabs', JSON.stringify(loadedTabs));
         }
       }
-    }
-  }, [initialState.selectedChatId, tabs]);
-
-  // Set a default tab if none exists and no selectedChatId was provided
-  useEffect(() => {
-    if (tabs.length === 0 && !initialState.selectedChatId) {
+    } else if (loadedTabs.length > 0) {
+      setTabs(loadedTabs);
+      setActiveTabId(loadedTabs[0].id);
+    } else {
       const defaultTab: ChatTab = {
         id: String(Date.now()),
         title: 'New Chat',
@@ -115,18 +116,13 @@ const Chat = () => {
       };
       setTabs([defaultTab]);
       setActiveTabId(defaultTab.id);
+      
+      localStorage.setItem('chatTabs', JSON.stringify([defaultTab]));
     }
-  }, [tabs, initialState.selectedChatId]);
+    
+    setIsLoading(false);
+  }, [initialState.selectedChatId, initialState.initialQuery]);
 
-  const [inputValue, setInputValue] = useState('');
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-  const navbarHeight = useRef<number>(0);
-  const [scrollPosition, setScrollPosition] = useState(0);
-
-  // Find the active tab safely
-  const activeTab = tabs.find((tab) => tab.id === activeTabId);
-
-  // Apply dark mode class to body
   useEffect(() => {
     if (userSettings.darkMode) {
       document.documentElement.classList.add('dark');
@@ -135,7 +131,6 @@ const Chat = () => {
     }
   }, [userSettings.darkMode]);
 
-  // Measure the navbar height after component mounts
   useEffect(() => {
     const navbar = document.querySelector('.navbar-container');
     if (navbar) {
@@ -143,7 +138,6 @@ const Chat = () => {
     }
   }, []);
 
-  // Track scroll position for blur effect
   useEffect(() => {
     const handleScroll = () => {
       if (chatContainerRef.current) {
@@ -166,33 +160,41 @@ const Chat = () => {
     e.preventDefault();
     if (!inputValue.trim() || !activeTab) return;
 
-    setTabs(tabs.map(tab => {
+    const updatedTabs = tabs.map(tab => {
       if (tab.id === activeTabId) {
-        return {
-          ...tab,
-          messages: [...tab.messages, {
+        const updatedMessages = [
+          ...tab.messages,
+          {
             id: tab.messages.length + 1,
             text: inputValue,
             isUser: true,
-          }],
+          }
+        ];
+        
+        return {
+          ...tab,
+          messages: updatedMessages,
         };
       }
       return tab;
-    }));
-
+    });
+    
+    setTabs(updatedTabs);
     setInputValue('');
 
-    // Add assistant response after a short delay
     setTimeout(() => {
-      setTabs(tabs.map(tab => {
+      setTabs(prevTabs => prevTabs.map(tab => {
         if (tab.id === activeTabId) {
           return {
             ...tab,
-            messages: [...tab.messages, {
-              id: tab.messages.length + 2,
-              text: "I'm processing your request. How else can I assist you?",
-              isUser: false,
-            }],
+            messages: [
+              ...tab.messages,
+              {
+                id: tab.messages.length + 1,
+                text: "I'm processing your request. How else can I assist you?",
+                isUser: false,
+              }
+            ],
           };
         }
         return tab;
@@ -202,6 +204,19 @@ const Chat = () => {
     if (inputValue.toLowerCase().includes('generate') || inputValue.toLowerCase().includes('report')) {
       setTimeout(() => generatePDF(activeTabId), 2000);
     }
+    
+    const updatedHistory = chatHistory.map(chat => {
+      if (chat.id === activeTabId) {
+        return {
+          ...chat,
+          lastMessage: inputValue,
+        };
+      }
+      return chat;
+    });
+    
+    setChatHistory(updatedHistory);
+    localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
   };
 
   const handleNewTab = () => {
@@ -212,70 +227,97 @@ const Chat = () => {
       messages: [],
       activePDF: null,
     };
-    setTabs([...tabs, newTab]);
+    
+    const updatedTabs = [...tabs, newTab];
+    setTabs(updatedTabs);
     setActiveTabId(newTab.id);
+    
+    localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
+    
+    const newChatHistoryItem: ChatHistoryItem = {
+      id: newTab.id,
+      title: newTab.title,
+      date: newTab.date,
+      lastMessage: '',
+    };
+    
+    const updatedHistory = [newChatHistoryItem, ...chatHistory];
+    setChatHistory(updatedHistory);
+    localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
   };
 
   const handleTabClose = (tabId: string) => {
     if (tabs.length === 1) return;
+    
     const newTabs = tabs.filter(tab => tab.id !== tabId);
     setTabs(newTabs);
+    
     if (activeTabId === tabId) {
       setActiveTabId(newTabs[newTabs.length - 1].id);
     }
+    
+    localStorage.setItem('chatTabs', JSON.stringify(newTabs));
   };
 
   const handleHistoryAction = (chatId: string) => {
     if (chatId === '') {
       setShowHistory(false);
+      return;
+    }
+    
+    setShowHistory(false);
+    
+    const existingTab = tabs.find(tab => tab.id === chatId);
+    
+    if (existingTab) {
+      setActiveTabId(chatId);
     } else {
-      setShowHistory(false);
-      console.log(`Selected chat with ID: ${chatId}`);
-      
-      const storedHistory = localStorage.getItem('chatHistory');
-      const history = storedHistory ? JSON.parse(storedHistory) : [];
-      const selectedChat = history.find((chat: ChatHistoryItem) => chat.id === chatId);
+      const selectedChat = chatHistory.find(chat => chat.id === chatId);
       
       if (selectedChat) {
-        // Check if this tab already exists
-        const existingTab = tabs.find(tab => tab.id === chatId);
-        if (existingTab) {
-          setActiveTabId(chatId);
-        } else {
-          const newTab: ChatTab = {
-            id: selectedChat.id,
-            title: selectedChat.title,
-            date: selectedChat.date,
-            messages: [{
-              id: 1,
-              text: selectedChat.title,
-              isUser: true,
-            },
-            {
-              id: 2,
-              text: "Hello! I'm here to help. What can I assist you with today?",
-              isUser: false,
-            }],
-            activePDF: null,
-          };
-          setTabs([...tabs, newTab]);
-          setActiveTabId(newTab.id);
-        }
+        const newTab: ChatTab = {
+          id: selectedChat.id,
+          title: selectedChat.title,
+          date: selectedChat.date,
+          messages: [{
+            id: 1,
+            text: selectedChat.title,
+            isUser: true,
+          },
+          {
+            id: 2,
+            text: "Hello! I'm here to help. What can I assist you with today?",
+            isUser: false,
+          }],
+          activePDF: null,
+        };
+        
+        const updatedTabs = [...tabs, newTab];
+        setTabs(updatedTabs);
+        setActiveTabId(newTab.id);
+        
+        localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
       }
     }
   };
 
   const handleSaveSettings = (newSettings: UserSettingsType) => {
     setUserSettings(newSettings);
-    // Save to localStorage for persistence across page loads
     localStorage.setItem('userSettings', JSON.stringify(newSettings));
   };
 
-  // Render nothing until we have a valid active tab to prevent errors
-  if (!activeTab) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-800">
         <p className="text-gray-500 dark:text-gray-400">Loading chat...</p>
+      </div>
+    );
+  }
+
+  if (!activeTab) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-800">
+        <p className="text-gray-500 dark:text-gray-400">No active chat found. Please try again or start a new chat.</p>
       </div>
     );
   }

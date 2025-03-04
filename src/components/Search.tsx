@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Paperclip, Mic } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { ChatHistoryItem } from '../types';
+import { ChatHistoryItem, ChatTab } from '../types';
 
 const Search = () => {
   const [searchInput, setSearchInput] = useState("");
@@ -34,6 +34,32 @@ const Search = () => {
       
       // Save updated history
       localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+      
+      // Create initial tab data
+      const newTab: ChatTab = {
+        id: newChatId,
+        title: searchInput,
+        date: formattedDate,
+        messages: [
+          {
+            id: 1,
+            text: searchInput,
+            isUser: true,
+          },
+          {
+            id: 2,
+            text: "Hello! I'm here to help. What can I assist you with today?",
+            isUser: false,
+          }
+        ],
+        activePDF: null
+      };
+      
+      // Store the new tab in localStorage so Chat component can find it
+      const existingTabs = localStorage.getItem('chatTabs');
+      let chatTabs: ChatTab[] = existingTabs ? JSON.parse(existingTabs) : [];
+      chatTabs = [newTab, ...chatTabs];
+      localStorage.setItem('chatTabs', JSON.stringify(chatTabs));
       
       // Navigate to chat page with the new chat ID
       navigate('/chat', { 
