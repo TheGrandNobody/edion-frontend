@@ -362,7 +362,7 @@ const Chat = () => {
           </button>
         </div>
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden relative">
           {activeTab.activePDF && (
             <div className="w-full md:w-1/2 border-r border-gray-200 dark:border-gray-800 overflow-hidden">
               <PDFViewer pdfUrl={activeTab.activePDF} darkMode={userSettings.darkMode} />
@@ -372,7 +372,7 @@ const Chat = () => {
           <div className={`flex-1 flex flex-col ${activeTab.activePDF ? 'hidden md:flex md:w-1/2' : 'w-full'}`}>
             <div 
               ref={chatContainerRef}
-              className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6"
+              className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 pb-28"
             >
               <div className="w-full mx-auto" style={{ maxWidth: 'min(100%, 800px)', width: '100%', padding: '0 4px', boxSizing: 'border-box' }}>
                 {activeTab.messages.map((message, index) => (
@@ -402,37 +402,40 @@ const Chat = () => {
               </div>
             </div>
 
-            <div className="p-3 sm:p-4 bg-white/70 dark:bg-black/70 border-t border-gray-200 dark:border-gray-800 backdrop-blur-md">
+            {/* Detached input field container */}
+            <div className="absolute bottom-6 left-0 right-0 px-3 sm:px-6">
               <div className="w-full mx-auto" style={{ maxWidth: 'min(100%, 800px)', width: '100%', padding: '0 4px', boxSizing: 'border-box' }}>
-                <form onSubmit={handleSubmit} className="relative">
-                  <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder="Ask anything"
-                    className="w-full px-4 py-2.5 sm:py-3 pr-24 bg-gray-50/80 dark:bg-gray-900/80 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400 shadow-sm backdrop-blur-sm"
-                  />
-                  <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 sm:space-x-2">
-                    <button
-                      type="button"
-                      className="p-1.5 sm:p-2 hover:bg-gray-200/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
-                    >
-                      <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                    <button
-                      type="button"
-                      className="p-1.5 sm:p-2 hover:bg-gray-200/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
-                    >
-                      <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                    <button
-                      type="submit"
-                      className="p-1.5 sm:p-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white"
-                    >
-                      <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                  </div>
-                </form>
+                <div className="bg-white/80 dark:bg-gray-900/80 border border-gray-200/80 dark:border-gray-800/50 backdrop-blur-md rounded-xl shadow-lg">
+                  <form onSubmit={handleSubmit} className="relative">
+                    <input
+                      type="text"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      placeholder="Ask anything"
+                      className="w-full px-4 py-3 sm:py-3.5 pr-24 bg-transparent rounded-xl focus:outline-none text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400"
+                    />
+                    <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 sm:space-x-2">
+                      <button
+                        type="button"
+                        className="p-1.5 sm:p-2 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+                      >
+                        <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="p-1.5 sm:p-2 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+                      >
+                        <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                      <button
+                        type="submit"
+                        className="p-1.5 sm:p-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white"
+                      >
+                        <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
