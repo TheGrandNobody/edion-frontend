@@ -6,7 +6,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ChatHistoryMenu from './ChatHistory';
 import UserSettingsModal from './UserSettings';
-import { UserSettings as UserSettingsType } from '../types';
+import { UserSettings as UserSettingsType, ChatHistoryItem } from '../types';
 
 const getUserSettingsFromStorage = (): UserSettingsType => {
   const storedSettings = localStorage.getItem('userSettings');
@@ -22,11 +22,20 @@ const getUserSettingsFromStorage = (): UserSettingsType => {
   };
 };
 
+const getChatHistoryFromStorage = (): ChatHistoryItem[] => {
+  const storedHistory = localStorage.getItem('chatHistory');
+  if (storedHistory) {
+    return JSON.parse(storedHistory);
+  }
+  return [];
+};
+
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>(getChatHistoryFromStorage());
   
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
 
@@ -38,20 +47,21 @@ const Header = () => {
     }
   }, [userSettings.darkMode]);
 
-  const chatHistory = [
-    {
-      id: '1',
-      title: 'Generate 3 Student Reports',
-      date: '11/02/2024',
-      lastMessage: 'The reports have been generated successfully.',
-    },
-    {
-      id: '2',
-      title: 'Civil War Quiz',
-      date: '10/02/2024',
-      lastMessage: 'Quiz has been created and saved.',
-    },
-  ];
+  useEffect(() => {
+    // Update chat history when localStorage changes
+    const handleStorageChange = () => {
+      setChatHistory(getChatHistoryFromStorage());
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check for updates on mount and when returning to the page
+    setChatHistory(getChatHistoryFromStorage());
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [location.pathname]);
 
   const handleHistoryAction = (chatId: string) => {
     if (chatId !== '') {

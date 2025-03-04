@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Paperclip, Mic } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
+import { ChatHistoryItem } from '../types';
 
 const Search = () => {
   const [searchInput, setSearchInput] = useState("");
@@ -11,8 +13,30 @@ const Search = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
-      // Navigate to chat page with the query as state
-      navigate('/chat', { state: { initialQuery: searchInput } });
+      // Create a new chat history item
+      const newChatId = uuidv4();
+      const now = new Date();
+      const formattedDate = `${now.getDate()}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+      
+      const newChat: ChatHistoryItem = {
+        id: newChatId,
+        title: searchInput,
+        date: formattedDate,
+        lastMessage: 'New conversation started.',
+      };
+      
+      // Get existing chat history or initialize empty array
+      const existingHistory = localStorage.getItem('chatHistory');
+      let chatHistory: ChatHistoryItem[] = existingHistory ? JSON.parse(existingHistory) : [];
+      
+      // Add new chat to history
+      chatHistory = [newChat, ...chatHistory];
+      
+      // Save updated history
+      localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+      
+      // Navigate to chat page with the new chat ID
+      navigate('/chat', { state: { selectedChatId: newChatId, initialQuery: searchInput } });
     }
   };
 
