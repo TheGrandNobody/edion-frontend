@@ -12,7 +12,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode }) => {
     return (
       <div className="flex justify-end space-x-2">
         <div
-          className="max-w-[80%] bg-white dark:bg-gray-700 rounded-2xl p-3 sm:p-4 shadow-lg transform hover:scale-[1.01] transition-all duration-200"
+          className="max-w-[80%] bg-white dark:bg-black/80 rounded-2xl p-3 sm:p-4 shadow-lg transform hover:scale-[1.01] transition-all duration-200"
           style={{
             boxShadow: darkMode
               ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2), 0 -2px 6px -2px rgba(255, 255, 255, 0.1) inset'
@@ -38,7 +38,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode }) => {
         />
       </div>
       <div
-        className="max-w-[80%] bg-white dark:bg-gray-700 rounded-2xl p-3 sm:p-4 shadow-lg transform hover:scale-[1.01] transition-all duration-200"
+        className="max-w-[80%] bg-white dark:bg-black/80 rounded-2xl p-3 sm:p-4 shadow-lg transform hover:scale-[1.01] transition-all duration-200"
         style={{
           boxShadow: darkMode
             ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2), 0 -2px 6px -2px rgba(255, 255, 255, 0.1) inset'
