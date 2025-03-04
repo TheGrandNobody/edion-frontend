@@ -17,9 +17,9 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
       {/* Content container */}
       <div className="relative h-full p-3 sm:p-4 flex flex-col overflow-hidden">
         <div className="flex items-center justify-between mb-4">
-          <div className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200">
             Chat History
-          </div>
+          </h2>
           <button
             className="p-1.5 rounded-full hover:bg-white/20 dark:hover:bg-gray-800/20 text-gray-600 dark:text-gray-400"
             onClick={() => onSelectChat('')}
