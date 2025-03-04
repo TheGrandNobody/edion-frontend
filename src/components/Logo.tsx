@@ -13,7 +13,7 @@ const Logo = () => {
       <div className="logo-container">
         <div className="flex items-center">
           <img 
-            src="/white_on_black.svg" 
+            src="/black_on_trans.svg" 
             alt="edion logo" 
             className="h-12 w-auto mr-2" 
           />
