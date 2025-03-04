@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
@@ -62,7 +61,7 @@ const Chat = () => {
 
   // Tabs
   const [tabs, setTabs] = useState<ChatTab[]>([]);
-  const [activeTabId, setActiveTabId] = useState('');
+  const [activeTabId, setActiveTabId] = useState<string>('');
 
   // Initialize tabs based on selectedChatId from location state
   useEffect(() => {
@@ -102,7 +101,7 @@ const Chat = () => {
         }
       }
     }
-  }, [initialState.selectedChatId]);
+  }, [initialState.selectedChatId, tabs]);
 
   // Set a default tab if none exists and no selectedChatId was provided
   useEffect(() => {
@@ -116,17 +115,16 @@ const Chat = () => {
       };
       setTabs([defaultTab]);
       setActiveTabId(defaultTab.id);
-    } else if (tabs.length > 0 && !activeTabId) {
-      setActiveTabId(tabs[0].id);
     }
-  }, [tabs, initialState.selectedChatId, activeTabId]);
+  }, [tabs, initialState.selectedChatId]);
 
   const [inputValue, setInputValue] = useState('');
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const navbarHeight = useRef<number>(0);
   const [scrollPosition, setScrollPosition] = useState(0);
 
-  const activeTab = tabs.find((tab) => tab.id === activeTabId) || tabs[0];
+  // Find the active tab safely
+  const activeTab = tabs.find((tab) => tab.id === activeTabId);
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -166,7 +164,7 @@ const Chat = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !activeTab) return;
 
     setTabs(tabs.map(tab => {
       if (tab.id === activeTabId) {
@@ -272,6 +270,15 @@ const Chat = () => {
     // Save to localStorage for persistence across page loads
     localStorage.setItem('userSettings', JSON.stringify(newSettings));
   };
+
+  // Render nothing until we have a valid active tab to prevent errors
+  if (!activeTab) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-800">
+        <p className="text-gray-500 dark:text-gray-400">Loading chat...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen">
