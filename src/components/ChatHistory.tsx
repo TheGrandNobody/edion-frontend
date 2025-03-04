@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Search, FileText, Dumbbell, GraduationCap, School, X, Menu } from 'lucide-react';
+import { Search, FileText, Dumbbell, GraduationCap, School, X, LayoutGrid } from 'lucide-react';
 import { ChatHistoryItem } from '../types';
 
 interface ChatHistoryMenuProps {
@@ -18,7 +17,7 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
       <div className="relative h-full p-3 sm:p-4 flex flex-col overflow-hidden">
         <div className="flex items-center justify-between mb-4">
           <div className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-gray-200">
-            <Menu className="w-5 h-5" />
+            <LayoutGrid className="w-5 h-5" />
           </div>
           <button
             className="p-1.5 rounded-full hover:bg-white/20 dark:hover:bg-gray-800/20 text-gray-600 dark:text-gray-400"
