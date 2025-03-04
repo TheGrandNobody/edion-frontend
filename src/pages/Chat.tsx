@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
@@ -53,6 +54,9 @@ const Chat = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const navbarHeight = useRef<number>(0);
   const [scrollPosition, setScrollPosition] = useState(0);
+
+  // Get active tab using activeTabId
+  const getActiveTab = () => tabs.find(tab => tab.id === activeTabId);
 
   useEffect(() => {
     const storedHistory = localStorage.getItem('chatHistory');
@@ -158,6 +162,7 @@ const Chat = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const activeTab = getActiveTab();
     if (!inputValue.trim() || !activeTab) return;
 
     const updatedTabs = tabs.map(tab => {
@@ -314,6 +319,7 @@ const Chat = () => {
     );
   }
 
+  const activeTab = getActiveTab();
   if (!activeTab) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-800">
