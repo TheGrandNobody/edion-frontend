@@ -1,6 +1,6 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Upload, Lock } from 'lucide-react';
+import { Upload, Lock, Trash2 } from 'lucide-react';
 import { UserSettings } from '../types';
 
 interface UserSettingsModalProps {
@@ -47,6 +47,10 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleRemoveProfilePicture = () => {
+    setFormData({ ...formData, profilePicture: '' });
   };
 
   const handleDarkModeToggle = () => {
@@ -117,8 +121,8 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   };
 
   return (
-    <div ref={backdropRef} className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div ref={modalRef} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div ref={backdropRef} className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div ref={modalRef} className="bg-white/90 dark:bg-gray-900/80 backdrop-blur-md rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="p-4 sm:p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">User Settings</h2>
           
@@ -126,17 +130,33 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             {/* Profile Picture */}
             <div className="flex flex-col items-center space-y-2">
               <div className="relative">
-                <img
-                  src={formData.profilePicture}
-                  alt="Profile"
-                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover shadow-lg"
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 p-1.5 sm:p-2 bg-white/80 dark:bg-gray-800/80 rounded-full shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 backdrop-blur-sm"
-                >
-                  <Upload className="w-3 h-3 sm:w-4 sm:h-4 text-gray-700 dark:text-gray-300" />
-                </button>
+                {formData.profilePicture ? (
+                  <img
+                    src={formData.profilePicture}
+                    alt="Profile"
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover shadow-lg"
+                  />
+                ) : (
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shadow-lg">
+                    <span className="text-gray-500 dark:text-gray-400 text-2xl">JS</span>
+                  </div>
+                )}
+                <div className="absolute bottom-0 right-0 flex space-x-1">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-1.5 sm:p-2 bg-white/80 dark:bg-gray-800/80 rounded-full shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 backdrop-blur-sm"
+                  >
+                    <Upload className="w-3 h-3 sm:w-4 sm:h-4 text-gray-700 dark:text-gray-300" />
+                  </button>
+                  {formData.profilePicture && (
+                    <button
+                      onClick={handleRemoveProfilePicture}
+                      className="p-1.5 sm:p-2 bg-white/80 dark:bg-gray-800/80 rounded-full shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 backdrop-blur-sm"
+                    >
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />
+                    </button>
+                  )}
+                </div>
               </div>
               <input
                 type="file"

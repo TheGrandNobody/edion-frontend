@@ -1,23 +1,23 @@
 
 import React from 'react';
 import ActionCard from './ActionCard';
-import { FileText, Pencil, AlertCircle } from 'lucide-react';
+import { FileText, PenSquare, AlertTriangle } from 'lucide-react';
 
 const ActionCards = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-xl mx-auto">
       <ActionCard
-        icon="📋"
+        icon={<FileText className="w-5 h-5 text-blue-500" />}
         title="Generate Report"
         delay={0.3}
       />
       <ActionCard
-        icon="✏️"
+        icon={<PenSquare className="w-5 h-5 text-green-500" />}
         title="Generate Exercises"
         delay={0.4}
       />
       <ActionCard
-        icon="❗"
+        icon={<AlertTriangle className="w-5 h-5 text-amber-500" />}
         title="Prepare an Exam"
         delay={0.5}
       />

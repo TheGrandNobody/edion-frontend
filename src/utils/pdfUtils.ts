@@ -3,6 +3,7 @@ import React from 'react';
 import { pdf } from '@react-pdf/renderer';
 import StudentReportPDF from '../components/StudentReportPDF';
 import { ChatTab } from '../types';
+import { Document } from '@react-pdf/renderer';
 
 export const generateStudentReportPDF = async (tabId: string, tabs: ChatTab[], setTabs: React.Dispatch<React.SetStateAction<ChatTab[]>>) => {
   const sampleData = {
@@ -23,9 +24,11 @@ export const generateStudentReportPDF = async (tabId: string, tabs: ChatTab[], s
     ],
   };
 
-  // Create PDF document using the React.createElement approach
+  // Create PDF document as a Document component with StudentReportPDF as a child
   const blob = await pdf(
-    React.createElement(StudentReportPDF, { data: sampleData })
+    React.createElement(Document, {}, 
+      React.createElement(StudentReportPDF, { data: sampleData })
+    )
   ).toBlob();
   
   const url = URL.createObjectURL(blob);

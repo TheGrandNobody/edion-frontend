@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Search, FileText, Dumbbell, GraduationCap, School, X } from 'lucide-react';
+import { Search, FileText, Dumbbell, GraduationCap, School, X, Menu } from 'lucide-react';
 import { ChatHistoryItem } from '../types';
 
 interface ChatHistoryMenuProps {
@@ -17,9 +17,9 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
       {/* Content container */}
       <div className="relative h-full p-3 sm:p-4 flex flex-col overflow-hidden">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-gray-200">
-            <span>Menu</span>
-          </h2>
+          <div className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-gray-200">
+            <Menu className="w-5 h-5" />
+          </div>
           <button
             className="p-1.5 rounded-full hover:bg-white/20 dark:hover:bg-gray-800/20 text-gray-600 dark:text-gray-400"
             onClick={() => onSelectChat('')}
@@ -108,7 +108,7 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
           </div>
 
           {/* Previous Chats */}
-          <div className="mt-4 sm:mt-6">
+          <div className="mt-4 sm:mt-6 px-3">
             <h3 className="font-medium mb-2 text-gray-800 dark:text-gray-200 text-sm">
               Previous Chats
             </h3>
@@ -116,7 +116,7 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
               {history.map((chat) => (
                 <button
                   key={chat.id}
-                  className="w-full text-left px-3 py-2 rounded hover:bg-white/20 dark:hover:bg-gray-800/20 transition-colors"
+                  className="w-full text-left py-2 rounded hover:bg-white/20 dark:hover:bg-gray-800/20 transition-colors"
                   onClick={() => onSelectChat(chat.id)}
                 >
                   <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400">

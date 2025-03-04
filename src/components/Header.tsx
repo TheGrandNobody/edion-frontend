@@ -18,7 +18,7 @@ const Header = () => {
     username: 'teacher_jane',
     fullName: 'Jane Smith',
     email: 'jane.smith@school.edu',
-    profilePicture: 'https://github.com/shadcn.png',
+    profilePicture: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=300&h=300',
     darkMode: false,
   });
 
@@ -93,20 +93,27 @@ const Header = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <button 
+        <motion.button 
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors duration-200"
           onClick={() => setShowHistory(!showHistory)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           <LayoutGrid className="w-5 h-5" />
-        </button>
+        </motion.button>
         
-        <Avatar 
-          className="h-10 w-10 transition-transform duration-200 hover:scale-105 cursor-pointer"
-          onClick={() => setShowSettings(true)}
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
-          <AvatarImage src={userSettings.profilePicture} alt="User" />
-          <AvatarFallback>JS</AvatarFallback>
-        </Avatar>
+          <Avatar 
+            className="h-10 w-10 cursor-pointer"
+            onClick={() => setShowSettings(true)}
+          >
+            <AvatarImage src={userSettings.profilePicture} alt="User" />
+            <AvatarFallback>JS</AvatarFallback>
+          </Avatar>
+        </motion.div>
       </motion.header>
 
       {/* Side Menu */}
