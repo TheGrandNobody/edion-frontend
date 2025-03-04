@@ -73,6 +73,10 @@ const Header = () => {
     localStorage.setItem('userSettings', JSON.stringify(newSettings));
   };
 
+  const toggleHistory = () => {
+    setShowHistory(!showHistory);
+  };
+
   return (
     <>
       <motion.header 
@@ -83,7 +87,7 @@ const Header = () => {
       >
         <motion.button 
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors duration-200"
-          onClick={() => setShowHistory(!showHistory)}
+          onClick={toggleHistory}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
@@ -104,8 +108,13 @@ const Header = () => {
         </motion.div>
       </motion.header>
 
-      {/* Side Menu */}
-      {showHistory && <ChatHistoryMenu history={chatHistory} onSelectChat={handleHistoryAction} />}
+      {/* Side Menu - Only render when showHistory is true */}
+      {showHistory && (
+        <ChatHistoryMenu 
+          history={chatHistory} 
+          onSelectChat={handleHistoryAction} 
+        />
+      )}
 
       {/* Settings Modal */}
       {showSettings && (
