@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   LayoutGrid, 
   Folder, 
@@ -40,56 +41,92 @@ const getUserSettingsFromStorage = (): UserSettingsType => {
 };
 
 const Chat = () => {
+  const location = useLocation();
+  const initialState = location.state || {};
+  
   // User Settings
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
   const [showSettings, setShowSettings] = useState(false);
 
   // Chat History
   const [showHistory, setShowHistory] = useState(false);
-  const [chatHistory] = useState<ChatHistoryItem[]>([
-    {
-      id: '1',
-      title: 'Generate 3 Student Reports',
-      date: '11/02/2024',
-      lastMessage: 'The reports have been generated successfully.',
-    },
-    {
-      id: '2',
-      title: 'Civil War Quiz',
-      date: '10/02/2024',
-      lastMessage: 'Quiz has been created and saved.',
-    },
-  ]);
+  const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
+  
+  // Get chat history from localStorage
+  useEffect(() => {
+    const storedHistory = localStorage.getItem('chatHistory');
+    if (storedHistory) {
+      setChatHistory(JSON.parse(storedHistory));
+    }
+  }, []);
 
   // Tabs
-  const [tabs, setTabs] = useState<ChatTab[]>([
-    {
-      id: '1',
-      title: 'Drafting a report for Justin',
-      date: '24/06/2024',
-      messages: [
-        {
-          id: 1,
-          text: 'Hey Edion, can you generate a report for one of my students?',
-          isUser: true,
-        },
-        {
-          id: 2,
-          text: 'Of course. Please provide any necessary documents, notes or work from said student.\n\nFurthermore, attach a draft or reference for how you would want the report to be structured, or select one which you have previously completed.',
-          isUser: false,
-        },
-      ],
-      activePDF: null,
-    },
-  ]);
-  const [activeTabId, setActiveTabId] = useState(tabs[0].id);
+  const [tabs, setTabs] = useState<ChatTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState('');
+
+  // Initialize tabs based on selectedChatId from location state
+  useEffect(() => {
+    if (initialState.selectedChatId) {
+      const storedHistory = localStorage.getItem('chatHistory');
+      const history = storedHistory ? JSON.parse(storedHistory) : [];
+      const selectedChat = history.find((chat: ChatHistoryItem) => chat.id === initialState.selectedChatId);
+      
+      if (selectedChat) {
+        // Check if this tab already exists
+        if (!tabs.some(tab => tab.id === selectedChat.id)) {
+          const newTab: ChatTab = {
+            id: selectedChat.id,
+            title: selectedChat.title,
+            date: selectedChat.date,
+            messages: initialState.initialQuery 
+              ? [
+                  {
+                    id: 1,
+                    text: initialState.initialQuery,
+                    isUser: true,
+                  },
+                  {
+                    id: 2,
+                    text: "Hello! I'm here to help. What can I assist you with today?",
+                    isUser: false,
+                  }
+                ] 
+              : [],
+            activePDF: null,
+          };
+          
+          setTabs(prevTabs => [...prevTabs, newTab]);
+          setActiveTabId(selectedChat.id);
+        } else {
+          setActiveTabId(selectedChat.id);
+        }
+      }
+    }
+  }, [initialState.selectedChatId]);
+
+  // Set a default tab if none exists and no selectedChatId was provided
+  useEffect(() => {
+    if (tabs.length === 0 && !initialState.selectedChatId) {
+      const defaultTab: ChatTab = {
+        id: String(Date.now()),
+        title: 'New Chat',
+        date: new Date().toLocaleDateString('en-GB'),
+        messages: [],
+        activePDF: null,
+      };
+      setTabs([defaultTab]);
+      setActiveTabId(defaultTab.id);
+    } else if (tabs.length > 0 && !activeTabId) {
+      setActiveTabId(tabs[0].id);
+    }
+  }, [tabs, initialState.selectedChatId, activeTabId]);
 
   const [inputValue, setInputValue] = useState('');
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const navbarHeight = useRef<number>(0);
   const [scrollPosition, setScrollPosition] = useState(0);
 
-  const activeTab = tabs.find((tab) => tab.id === activeTabId)!;
+  const activeTab = tabs.find((tab) => tab.id === activeTabId) || tabs[0];
 
   // Apply dark mode class to body
   useEffect(() => {
@@ -147,8 +184,25 @@ const Chat = () => {
 
     setInputValue('');
 
+    // Add assistant response after a short delay
+    setTimeout(() => {
+      setTabs(tabs.map(tab => {
+        if (tab.id === activeTabId) {
+          return {
+            ...tab,
+            messages: [...tab.messages, {
+              id: tab.messages.length + 2,
+              text: "I'm processing your request. How else can I assist you?",
+              isUser: false,
+            }],
+          };
+        }
+        return tab;
+      }));
+    }, 1000);
+
     if (inputValue.toLowerCase().includes('generate') || inputValue.toLowerCase().includes('report')) {
-      setTimeout(() => generatePDF(activeTabId), 1000);
+      setTimeout(() => generatePDF(activeTabId), 2000);
     }
   };
 
@@ -180,19 +234,23 @@ const Chat = () => {
       setShowHistory(false);
       console.log(`Selected chat with ID: ${chatId}`);
       
-      const existingTab = tabs.find(tab => tab.id === chatId);
-      if (existingTab) {
-        setActiveTabId(chatId);
-      } else {
-        const selectedChat = chatHistory.find(chat => chat.id === chatId);
-        if (selectedChat) {
+      const storedHistory = localStorage.getItem('chatHistory');
+      const history = storedHistory ? JSON.parse(storedHistory) : [];
+      const selectedChat = history.find((chat: ChatHistoryItem) => chat.id === chatId);
+      
+      if (selectedChat) {
+        // Check if this tab already exists
+        const existingTab = tabs.find(tab => tab.id === chatId);
+        if (existingTab) {
+          setActiveTabId(chatId);
+        } else {
           const newTab: ChatTab = {
             id: selectedChat.id,
             title: selectedChat.title,
             date: selectedChat.date,
             messages: [{
               id: 1,
-              text: selectedChat.lastMessage,
+              text: `Starting conversation: ${selectedChat.title}`,
               isUser: false,
             }],
             activePDF: null,
@@ -333,3 +391,4 @@ const Chat = () => {
 };
 
 export default Chat;
+
