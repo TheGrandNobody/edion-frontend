@@ -109,4 +109,17 @@
   .logo-container:hover .logo {
     @apply transform scale-105;
   }
+
+  /* Responsive chat container */
+  .chat-welcome-container {
+    @apply px-3 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10;
+  }
+
+  .chat-input-wrapper {
+    @apply w-full max-w-[95%] sm:max-w-[90%] md:max-w-[800px] mx-auto px-2 sm:px-4;
+  }
+
+  .welcome-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-[90%] sm:max-w-lg mx-auto;
+  }
 }

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronLeft } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -32,11 +31,9 @@ const TabBar: React.FC<TabBarProps> = ({
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Force recalculation when tabs change
     setForceUpdate(prev => prev + 1);
   }, [tabs]);
 
-  // Run the calculation on component mount
   useEffect(() => {
     if (tabs.length > 0 && !isInitialized) {
       calculateVisibleTabs();
@@ -51,14 +48,10 @@ const TabBar: React.FC<TabBarProps> = ({
     const plusButtonWidth = plusButtonRef.current.offsetWidth;
     const dropdownWidth = 32; // Width of chevron button
     
-    // Reserve space for plus button and a bit of padding
     let availableWidth = containerWidth - plusButtonWidth - 8; 
     
-    // Always subtract the dropdown width to ensure a consistent layout
-    // This prevents layout shifts when the chevron appears/disappears
     availableWidth -= dropdownWidth;
     
-    // Create temporary divs to measure tab widths
     const tabWidths: number[] = [];
     const tempContainer = document.createElement('div');
     tempContainer.style.position = 'absolute';
@@ -66,7 +59,6 @@ const TabBar: React.FC<TabBarProps> = ({
     tempContainer.style.display = 'flex';
     document.body.appendChild(tempContainer);
     
-    // Create and measure each tab
     tabs.forEach((tab) => {
       const tempTab = document.createElement('div');
       tempTab.className = `flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg`;
@@ -87,13 +79,11 @@ const TabBar: React.FC<TabBarProps> = ({
       tempTab.appendChild(closeButton);
       tempContainer.appendChild(tempTab);
       
-      tabWidths.push(tempTab.offsetWidth + 8); // 8px for margin
+      tabWidths.push(tempTab.offsetWidth + 8);
     });
     
-    // Clean up temporary elements
     document.body.removeChild(tempContainer);
     
-    // Calculate from the end (newest tabs), how many we can fit
     let accumulatedWidth = 0;
     let visibleCount = 0;
     
@@ -105,25 +95,20 @@ const TabBar: React.FC<TabBarProps> = ({
       visibleCount++;
     }
     
-    // Ensure at least one tab is visible
     visibleCount = Math.max(1, visibleCount);
     
     if (visibleCount < tabs.length) {
-      // We need to hide some tabs - get the newest 'visibleCount' tabs
       setVisibleTabs(tabs.slice(tabs.length - visibleCount));
       setHiddenTabs(tabs.slice(0, tabs.length - visibleCount));
     } else {
-      // All tabs fit
       setVisibleTabs(tabs);
       setHiddenTabs([]);
     }
   };
 
-  // Use useEffect to run the calculation when needed
   useEffect(() => {
     calculateVisibleTabs();
     
-    // Recalculate on window resize
     window.addEventListener('resize', calculateVisibleTabs);
     
     return () => {
@@ -136,18 +121,18 @@ const TabBar: React.FC<TabBarProps> = ({
       ref={containerRef}
       className="flex items-center w-full relative overflow-hidden"
     >
-      {/* Chevron dropdown positioned absolutely */}
       <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center">
         {hiddenTabs.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button 
                 className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm"
+                aria-label="Show hidden tabs"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800">
+            <DropdownMenuContent align="start" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800 max-h-[50vh] overflow-y-auto">
               {hiddenTabs.map((tab) => (
                 <div
                   key={tab.id}
@@ -164,6 +149,7 @@ const TabBar: React.FC<TabBarProps> = ({
                       e.stopPropagation();
                       onTabClose(tab.id);
                     }}
+                    aria-label="Close tab"
                   >
                     <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
                   </button>
@@ -174,7 +160,6 @@ const TabBar: React.FC<TabBarProps> = ({
         )}
       </div>
       
-      {/* Add padding to the left to make space for the chevron */}
       <div
         ref={tabsRef}
         className="flex items-center space-x-1 sm:space-x-2 overflow-hidden flex-grow px-8"
@@ -190,13 +175,14 @@ const TabBar: React.FC<TabBarProps> = ({
             onClick={() => onTabChange(tab.id)}
           >
             <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate max-w-[40px] sm:max-w-none">{tab.date}</span>
-            <span className="text-xs sm:text-sm text-gray-900 dark:text-gray-200 truncate max-w-[80px] sm:max-w-[120px] md:max-w-[160px]">{tab.title}</span>
+            <span className="text-xs sm:text-sm text-gray-900 dark:text-gray-200 truncate max-w-[80px] sm:max-w-[120px] md:max-w-[160px] lg:max-w-[200px]">{tab.title}</span>
             <button
               className="p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-100/70 dark:hover:bg-gray-900"
               onClick={(e) => {
                 e.stopPropagation();
                 onTabClose(tab.id);
               }}
+              aria-label="Close tab"
             >
               <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
             </button>
@@ -209,6 +195,7 @@ const TabBar: React.FC<TabBarProps> = ({
           ref={plusButtonRef}
           className="p-1 hover:bg-white/40 dark:hover:bg-gray-900/80 rounded-lg flex-shrink-0"
           onClick={onNewTab}
+          aria-label="Add new tab"
         >
           <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-700 dark:text-gray-300" />
         </button>

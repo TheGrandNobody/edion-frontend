@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
@@ -55,7 +54,6 @@ const Chat = () => {
   const navbarHeight = useRef<number>(0);
   const [scrollPosition, setScrollPosition] = useState(0);
 
-  // Get active tab using activeTabId
   const getActiveTab = () => tabs.find(tab => tab.id === activeTabId);
 
   useEffect(() => {
@@ -333,15 +331,16 @@ const Chat = () => {
       {showHistory && <ChatHistoryMenu history={chatHistory} onSelectChat={handleHistoryAction} />}
 
       <div className="flex-1 flex flex-col bg-gray-100 dark:bg-gray-950">
-        <div className="navbar-container sticky top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-3 bg-transparent">
+        <div className="navbar-container sticky top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 bg-transparent">
           <button
-            className="p-2 hover:bg-white/40 dark:hover:bg-gray-900 rounded-lg text-gray-700 dark:text-gray-200 flex items-center justify-center"
+            className="p-1.5 sm:p-2 hover:bg-white/40 dark:hover:bg-gray-900 rounded-lg text-gray-700 dark:text-gray-200 flex items-center justify-center"
             onClick={() => setShowHistory(!showHistory)}
+            aria-label="Show chat history"
           >
             <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
           
-          <div className="flex-1 bg-white/60 dark:bg-black/60 backdrop-blur-md rounded-lg shadow-lg p-1.5 mx-2 border border-gray-200/10 dark:border-gray-800/40">
+          <div className="flex-1 bg-white/60 dark:bg-black/60 backdrop-blur-md rounded-lg shadow-lg p-1 sm:p-1.5 mx-2 border border-gray-200/10 dark:border-gray-800/40">
             <TabBar
               tabs={tabs}
               activeTabId={activeTabId}
@@ -352,8 +351,9 @@ const Chat = () => {
           </div>
           
           <button
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg ml-3"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg ml-2 sm:ml-3"
             onClick={() => setShowSettings(true)}
+            aria-label="User settings"
           >
             <Avatar>
               <AvatarImage src={userSettings.profilePicture} alt={userSettings.fullName} />
@@ -372,28 +372,28 @@ const Chat = () => {
           <div className={`flex-1 flex flex-col ${activeTab.activePDF ? 'hidden md:flex md:w-1/2' : 'w-full'}`}>
             <div 
               ref={chatContainerRef}
-              className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 pb-28"
+              className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-6 space-y-4 sm:space-y-6 pb-28"
             >
-              <div className="w-full mx-auto" style={{ maxWidth: 'min(100%, 800px)', width: '100%', padding: '0 4px', boxSizing: 'border-box' }}>
+              <div className="w-full mx-auto" style={{ maxWidth: 'min(95%, 800px)', width: '100%', padding: '0 4px', boxSizing: 'border-box' }}>
                 {activeTab.messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full py-20">
-                    <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
-                      <Send className="w-8 h-8 text-blue-500 dark:text-blue-400" />
+                  <div className="flex flex-col items-center justify-center h-full py-10 sm:py-16 md:py-20 chat-welcome-container">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-3 sm:mb-4">
+                      <Send className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 dark:text-blue-400" />
                     </div>
-                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Welcome to EduChat</h2>
-                    <p className="text-gray-600 dark:text-gray-400 text-center max-w-md mb-6">
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Welcome to EduChat</h2>
+                    <p className="text-gray-600 dark:text-gray-400 text-center max-w-md mb-4 sm:mb-6 px-2 text-sm sm:text-base">
                       I'm your AI assistant ready to help with teaching tasks, creating reports, and answering questions.
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+                    <div className="welcome-grid">
                       <button
                         onClick={() => setInputValue("Generate a student progress report")}
-                        className="p-3 text-left rounded-lg bg-white/80 dark:bg-gray-800/60 hover:bg-white dark:hover:bg-gray-800 border border-gray-200/50 dark:border-gray-700/50 shadow-sm"
+                        className="p-2 sm:p-3 text-left rounded-lg bg-white/80 dark:bg-gray-800/60 hover:bg-white dark:hover:bg-gray-800 border border-gray-200/50 dark:border-gray-700/50 shadow-sm text-sm sm:text-base"
                       >
                         <span className="text-gray-800 dark:text-gray-200">Generate a student progress report</span>
                       </button>
                       <button
                         onClick={() => setInputValue("Help me create a lesson plan for 5th grade science")}
-                        className="p-3 text-left rounded-lg bg-white/80 dark:bg-gray-800/60 hover:bg-white dark:hover:bg-gray-800 border border-gray-200/50 dark:border-gray-700/50 shadow-sm"
+                        className="p-2 sm:p-3 text-left rounded-lg bg-white/80 dark:bg-gray-800/60 hover:bg-white dark:hover:bg-gray-800 border border-gray-200/50 dark:border-gray-700/50 shadow-sm text-sm sm:text-base"
                       >
                         <span className="text-gray-800 dark:text-gray-200">Create a lesson plan for 5th grade science</span>
                       </button>
@@ -428,9 +428,8 @@ const Chat = () => {
               </div>
             </div>
 
-            {/* Detached input field container */}
-            <div className="absolute bottom-6 left-0 right-0 px-3 sm:px-6">
-              <div className="w-full mx-auto" style={{ maxWidth: 'min(100%, 800px)', width: '100%', padding: '0 4px', boxSizing: 'border-box' }}>
+            <div className="absolute bottom-3 sm:bottom-4 md:bottom-6 left-0 right-0 px-2 sm:px-4 md:px-6">
+              <div className="chat-input-wrapper">
                 <div className="bg-white/80 dark:bg-gray-900/80 border border-gray-200/80 dark:border-gray-800/50 backdrop-blur-md rounded-xl shadow-lg">
                   <form onSubmit={handleSubmit} className="relative">
                     <input
@@ -438,26 +437,29 @@ const Chat = () => {
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       placeholder="Ask anything"
-                      className="w-full px-4 py-3 sm:py-3.5 pr-24 bg-transparent rounded-xl focus:outline-none text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-16 sm:pr-24 bg-transparent rounded-xl focus:outline-none text-xs sm:text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400"
                     />
-                    <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 sm:space-x-2">
+                    <div className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1 sm:space-x-2">
                       <button
                         type="button"
-                        className="p-1.5 sm:p-2 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+                        className="p-1 sm:p-1.5 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+                        aria-label="Voice input"
                       >
-                        <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                       <button
                         type="button"
-                        className="p-1.5 sm:p-2 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+                        className="p-1 sm:p-1.5 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+                        aria-label="Attach file"
                       >
-                        <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <Paperclip className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                       <button
                         type="submit"
-                        className="p-1.5 sm:p-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white"
+                        className="p-1 sm:p-1.5 bg-blue-500 hover:bg-blue-600 rounded-lg text-white"
+                        aria-label="Send message"
                       >
-                        <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                     </div>
                   </form>
