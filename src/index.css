@@ -36,6 +36,25 @@
     --ring: 0 0% 80%;
 
     --radius: 0.5rem;
+
+  }
+
+  :root.dark ::-webkit-scrollbar {
+    width: 8px; /* Adjust width */
+  }
+
+  :root.dark ::-webkit-scrollbar-track {
+    background: #1e1e1e; /* Dark background */
+  }
+
+  :root.dark ::-webkit-scrollbar-thumb {
+    background: #444; /* Dark grey scrollbar */
+    border-radius: 4px;
+  }
+
+  /* Optional: Add a hover effect */
+  :root.dark ::-webkit-scrollbar-thumb:hover {
+    background: #666;
   }
 
   .dark {
