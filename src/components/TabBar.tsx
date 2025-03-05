@@ -28,7 +28,6 @@ const TabBar: React.FC<TabBarProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
   const plusButtonRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLButtonElement>(null);
   const [forceUpdate, setForceUpdate] = useState(0);
 
   useEffect(() => {
@@ -38,7 +37,7 @@ const TabBar: React.FC<TabBarProps> = ({
 
   useEffect(() => {
     const calculateVisibleTabs = () => {
-      if (!containerRef.current || !tabsRef.current || !plusButtonRef.current || tabs.length === 0) return;
+      if (!containerRef.current || !plusButtonRef.current || tabs.length === 0) return;
       
       const containerWidth = containerRef.current.offsetWidth;
       const plusButtonWidth = plusButtonRef.current.offsetWidth;
@@ -49,7 +48,6 @@ const TabBar: React.FC<TabBarProps> = ({
       
       // Create temporary divs to measure tab widths
       const tabWidths: number[] = [];
-      const tabElements: HTMLDivElement[] = [];
       const tempContainer = document.createElement('div');
       tempContainer.style.position = 'absolute';
       tempContainer.style.visibility = 'hidden';
@@ -59,7 +57,7 @@ const TabBar: React.FC<TabBarProps> = ({
       // Create and measure each tab
       tabs.forEach((tab) => {
         const tempTab = document.createElement('div');
-        tempTab.className = `group flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg`;
+        tempTab.className = `flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg`;
         
         const dateSpan = document.createElement('span');
         dateSpan.className = 'text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate max-w-[40px] sm:max-w-none';
@@ -70,14 +68,13 @@ const TabBar: React.FC<TabBarProps> = ({
         titleSpan.textContent = tab.title;
         
         const closeButton = document.createElement('button');
-        closeButton.className = 'p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-100/70 dark:hover:bg-gray-900';
+        closeButton.className = 'p-0.5 rounded-full';
         
         tempTab.appendChild(dateSpan);
         tempTab.appendChild(titleSpan);
         tempTab.appendChild(closeButton);
         tempContainer.appendChild(tempTab);
         
-        tabElements.push(tempTab);
         tabWidths.push(tempTab.offsetWidth + 8); // 8px for margin
       });
       
@@ -88,30 +85,23 @@ const TabBar: React.FC<TabBarProps> = ({
       let accumulatedWidth = 0;
       let breakpoint = tabs.length;
       
+      // Always reserve space for the dropdown if there's more than 1 tab
+      if (tabs.length > 1) {
+        availableWidth -= dropdownWidth;
+      }
+      
       for (let i = 0; i < tabs.length; i++) {
-        if (accumulatedWidth + tabWidths[i] > availableWidth - (i < tabs.length - 1 ? dropdownWidth : 0)) {
+        if (accumulatedWidth + tabWidths[i] > availableWidth) {
           breakpoint = i;
           break;
         }
         accumulatedWidth += tabWidths[i];
       }
       
+      // Ensure at least one tab is visible
+      breakpoint = Math.max(1, breakpoint);
+      
       if (breakpoint < tabs.length) {
-        // We need the dropdown, so reduce available width
-        availableWidth -= dropdownWidth;
-        
-        // Recalculate breakpoint with dropdown taking space
-        accumulatedWidth = 0;
-        breakpoint = tabs.length;
-        
-        for (let i = 0; i < tabs.length; i++) {
-          if (accumulatedWidth + tabWidths[i] > availableWidth) {
-            breakpoint = i;
-            break;
-          }
-          accumulatedWidth += tabWidths[i];
-        }
-        
         setVisibleTabs(tabs.slice(0, breakpoint));
         setHiddenTabs(tabs.slice(breakpoint));
       } else {
@@ -135,7 +125,7 @@ const TabBar: React.FC<TabBarProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="flex items-center space-x-1 sm:space-x-2 w-full"
+      className="flex items-center space-x-1 sm:space-x-2 w-full overflow-hidden"
     >
       <div
         ref={tabsRef}
@@ -170,7 +160,6 @@ const TabBar: React.FC<TabBarProps> = ({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button 
-              ref={dropdownRef}
               className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white"
             >
               <ChevronRight className="w-4 h-4" />
