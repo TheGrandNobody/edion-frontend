@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Search, FileText, Dumbbell, GraduationCap, School, Trash2 } from 'lucide-react';
 import { ChatHistoryItem } from '../types';
 import { useToast } from "@/hooks/use-toast";
@@ -12,16 +12,25 @@ interface ChatHistoryMenuProps {
 
 const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat, onDeleteChat }) => {
   const { toast } = useToast();
+  const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
 
   const handleDelete = (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation(); // Prevent triggering the parent button's onClick
     
+    // Store the chat we're deleting to prevent re-clicks
+    setDeletingChatId(chatId);
+    
     if (onDeleteChat) {
-      onDeleteChat(chatId);
-      toast({
-        title: "Chat deleted",
-        description: "The chat has been removed from your history",
-      });
+      // Small delay to prevent accidental double-clicks or state race conditions
+      setTimeout(() => {
+        onDeleteChat(chatId);
+        setDeletingChatId(null);
+        
+        toast({
+          title: "Chat deleted",
+          description: "The chat has been removed from your history",
+        });
+      }, 50);
     }
   };
 
@@ -137,11 +146,13 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
                   {/* Delete button - shown on hover or focus */}
                   {onDeleteChat && (
                     <button
-                      className="absolute right-2 top-2 p-1.5 rounded-full bg-gray-100/70 dark:bg-gray-800/70 
+                      className={`absolute right-2 top-2 p-1.5 rounded-full bg-gray-100/70 dark:bg-gray-800/70 
                                 text-gray-500 hover:text-red-500 dark:hover:text-red-400 
-                                opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity
+                                ${deletingChatId === chat.id ? 'pointer-events-none opacity-50' : ''}`}
                       onClick={(e) => handleDelete(e, chat.id)}
                       aria-label="Delete chat"
+                      disabled={deletingChatId === chat.id}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

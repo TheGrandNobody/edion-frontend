@@ -399,6 +399,11 @@ const Chat = () => {
     localStorage.setItem('userSettings', JSON.stringify(newSettings));
   };
 
+  const handleReorderTabs = (newTabOrder: ChatTab[]) => {
+    setTabs(newTabOrder);
+    localStorage.setItem('chatTabs', JSON.stringify(newTabOrder));
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -436,6 +441,7 @@ const Chat = () => {
               onTabChange={setActiveTabId}
               onTabClose={handleTabClose}
               onNewTab={handleNewTab}
+              onReorderTabs={handleReorderTabs}
             />
           </div>
           

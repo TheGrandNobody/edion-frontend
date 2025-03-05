@@ -116,9 +116,16 @@ export default {
           '&::-webkit-scrollbar-thumb': {
             backgroundColor: 'rgba(155, 155, 155, 0.5)',
             borderRadius: '20px',
+            transition: 'background-color 0.2s ease',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: 'rgba(155, 155, 155, 0.7)',
           },
           '&.dark::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(75, 75, 75, 0.5)',
+            backgroundColor: 'rgba(55, 55, 55, 0.5)',
+          },
+          '&.dark::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: 'rgba(75, 75, 75, 0.7)',
           },
         },
       };
