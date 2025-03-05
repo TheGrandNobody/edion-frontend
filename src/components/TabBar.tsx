@@ -136,7 +136,7 @@ const TabBar: React.FC<TabBarProps> = ({
         {visibleTabs.map((tab) => (
           <div
             key={tab.id}
-            className={`group flex items-center justify-between w-full max-w-[120px] px-2 sm:px-3 py-1 sm:py-1.5 mx-1 rounded-lg cursor-pointer transition-colors ${
+            className={`group flex items-center justify-between w-full max-w-[120px] px-2 py-0.5 mx-1 rounded-lg cursor-pointer transition-colors ${
               activeTabId === tab.id
                 ? 'bg-white/80 dark:bg-black shadow-sm dark:border dark:border-gray-800'
                 : 'hover:bg-white/40 dark:hover:bg-gray-900/80'
@@ -146,7 +146,7 @@ const TabBar: React.FC<TabBarProps> = ({
             <div className="flex-grow overflow-hidden">
               <div className="flex flex-col">
                 <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{tab.date}</span>
-                <span className="text-xs sm:text-sm text-gray-900 dark:text-gray-200 truncate">{tab.title}</span>
+                <span className="text-xs text-gray-900 dark:text-gray-200 truncate">{tab.title}</span>
               </div>
             </div>
             <button
@@ -168,7 +168,7 @@ const TabBar: React.FC<TabBarProps> = ({
           className="p-1 hover:bg-white/40 dark:hover:bg-gray-900/80 rounded-lg flex-shrink-0"
           onClick={onNewTab}
         >
-          <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-700 dark:text-gray-300" />
+          <Plus className="w-3.5 h-3.5 text-gray-700 dark:text-gray-300" />
         </button>
       </div>
     </div>
