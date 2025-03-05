@@ -127,12 +127,13 @@ const TabBar: React.FC<TabBarProps> = ({
       ref={containerRef}
       className="flex items-center w-full relative overflow-hidden"
     >
-      <div className="flex-none">
+      {/* Chevron dropdown positioned absolutely */}
+      <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center">
         {hiddenTabs.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button 
-                className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white"
+                className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -162,14 +163,12 @@ const TabBar: React.FC<TabBarProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        {hiddenTabs.length === 0 && (
-          <div className="w-[32px]"></div> /* Placeholder to maintain consistent layout */
-        )}
       </div>
       
+      {/* Add padding to the left to make space for the chevron */}
       <div
         ref={tabsRef}
-        className="flex items-center space-x-1 sm:space-x-2 overflow-hidden flex-grow"
+        className="flex items-center space-x-1 sm:space-x-2 overflow-hidden flex-grow px-8"
       >
         {visibleTabs.map((tab) => (
           <div

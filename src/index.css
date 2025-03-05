@@ -75,7 +75,7 @@
   }
   
   html, body {
-    @apply overflow-x-hidden;
+    @apply overflow-x-hidden max-w-[100vw];
   }
   
   body {
