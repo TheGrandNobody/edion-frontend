@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Plus, X, ChevronRight } from 'lucide-react';
+import { Plus, X, ChevronLeft } from 'lucide-react';
 import { ChatTab } from '../types';
 import { 
   DropdownMenu,
@@ -81,29 +81,31 @@ const TabBar: React.FC<TabBarProps> = ({
       // Clean up temporary elements
       document.body.removeChild(tempContainer);
       
-      // Calculate which tabs can be visible
-      let accumulatedWidth = 0;
-      let breakpoint = tabs.length;
-      
+      // Calculate which tabs can be visible, but show the most recent tabs
       // Always reserve space for the dropdown if there's more than 1 tab
       if (tabs.length > 1) {
         availableWidth -= dropdownWidth;
       }
       
-      for (let i = 0; i < tabs.length; i++) {
+      // Calculate from the end (newest tabs), how many we can fit
+      let accumulatedWidth = 0;
+      let visibleCount = 0;
+      
+      for (let i = tabs.length - 1; i >= 0; i--) {
         if (accumulatedWidth + tabWidths[i] > availableWidth) {
-          breakpoint = i;
           break;
         }
         accumulatedWidth += tabWidths[i];
+        visibleCount++;
       }
       
       // Ensure at least one tab is visible
-      breakpoint = Math.max(1, breakpoint);
+      visibleCount = Math.max(1, visibleCount);
       
-      if (breakpoint < tabs.length) {
-        setVisibleTabs(tabs.slice(0, breakpoint));
-        setHiddenTabs(tabs.slice(breakpoint));
+      if (visibleCount < tabs.length) {
+        // We need to hide some tabs - get the newest 'visibleCount' tabs
+        setVisibleTabs(tabs.slice(tabs.length - visibleCount));
+        setHiddenTabs(tabs.slice(0, tabs.length - visibleCount));
       } else {
         // All tabs fit
         setVisibleTabs(tabs);
@@ -127,6 +129,41 @@ const TabBar: React.FC<TabBarProps> = ({
       ref={containerRef}
       className="flex items-center space-x-1 sm:space-x-2 w-full overflow-hidden"
     >
+      {hiddenTabs.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button 
+              className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800">
+            {hiddenTabs.map((tab) => (
+              <div
+                key={tab.id}
+                className="flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70"
+                onClick={() => onTabChange(tab.id)}
+              >
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">{tab.date}</span>
+                  <span className="text-sm text-gray-900 dark:text-gray-200 truncate max-w-[150px]">{tab.title}</span>
+                </div>
+                <button
+                  className="p-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTabClose(tab.id);
+                  }}
+                >
+                  <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                </button>
+              </div>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      
       <div
         ref={tabsRef}
         className="flex items-center space-x-1 sm:space-x-2 overflow-hidden"
@@ -155,41 +192,6 @@ const TabBar: React.FC<TabBarProps> = ({
           </div>
         ))}
       </div>
-      
-      {hiddenTabs.length > 0 && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button 
-              className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800">
-            {hiddenTabs.map((tab) => (
-              <div
-                key={tab.id}
-                className="flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70"
-                onClick={() => onTabChange(tab.id)}
-              >
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs text-gray-600 dark:text-gray-400">{tab.date}</span>
-                  <span className="text-sm text-gray-900 dark:text-gray-200 truncate max-w-[150px]">{tab.title}</span>
-                </div>
-                <button
-                  className="p-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTabClose(tab.id);
-                  }}
-                >
-                  <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
-                </button>
-              </div>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
       
       <button
         ref={plusButtonRef}
