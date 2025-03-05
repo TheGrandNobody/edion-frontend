@@ -75,7 +75,7 @@
   }
   
   html, body {
-    @apply overflow-x-hidden max-w-[100vw];
+    @apply overflow-x-hidden scrollbar-hide max-w-[100vw];
   }
   
   body {

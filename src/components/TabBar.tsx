@@ -33,6 +33,7 @@ const TabBar: React.FC<TabBarProps> = ({
   const [forceUpdate, setForceUpdate] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
   const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
+  const [draggedOverTabId, setDraggedOverTabId] = useState<string | null>(null);
   const [draggedHiddenTabId, setDraggedHiddenTabId] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -91,7 +92,10 @@ const TabBar: React.FC<TabBarProps> = ({
   }, [tabs, forceUpdate]);
 
   const handleDragStart = (e: React.DragEvent, tabId: string, isHidden: boolean = false) => {
-    // Prevent default to allow drop
+    e.stopPropagation();
+    
+    // Set data transfer for HTML5 drag and drop
+    e.dataTransfer.setData('text/plain', tabId);
     e.dataTransfer.effectAllowed = 'move';
     
     // Set a ghost image that's invisible
@@ -107,24 +111,37 @@ const TabBar: React.FC<TabBarProps> = ({
     } else {
       setDraggedTabId(tabId);
     }
+    
+    setTimeout(() => document.body.removeChild(ghostElement), 0);
   };
 
-  const handleDragOver = (e: React.DragEvent, tabId: string, isHidden: boolean = false) => {
-    // Prevent default to allow drop
+  const handleDragOver = (e: React.DragEvent, tabId: string) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Set the current tab we're dragging over
+    setDraggedOverTabId(tabId);
+    
+    // Change cursor to indicate a valid drop target
+    e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e: React.DragEvent, targetTabId: string, isDropZoneHidden: boolean = false) => {
+  const handleDrop = (e: React.DragEvent, targetTabId: string) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    // Prevent empty drops
-    if (!draggedTabId && !draggedHiddenTabId) return;
+    // Clear the dragged over state
+    setDraggedOverTabId(null);
     
-    // Get tabs from correct source
-    const sourceIsHidden = draggedHiddenTabId !== null;
-    const draggedId = sourceIsHidden ? draggedHiddenTabId : draggedTabId;
+    // Get the dragged tab ID from dataTransfer or state
+    const draggedId = e.dataTransfer.getData('text/plain') || draggedTabId || draggedHiddenTabId;
     
-    if (!draggedId) return;
+    if (!draggedId || draggedId === targetTabId) {
+      // No valid drag or dropped on itself
+      setDraggedTabId(null);
+      setDraggedHiddenTabId(null);
+      return;
+    }
     
     // Create a copy of the full tabs array
     const newTabs = [...tabs];
@@ -133,7 +150,11 @@ const TabBar: React.FC<TabBarProps> = ({
     const draggedIndex = newTabs.findIndex(tab => tab.id === draggedId);
     const targetIndex = newTabs.findIndex(tab => tab.id === targetTabId);
     
-    if (draggedIndex === -1 || targetIndex === -1) return;
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedTabId(null);
+      setDraggedHiddenTabId(null);
+      return;
+    }
     
     // Move the dragged tab to the target position
     const [movedTab] = newTabs.splice(draggedIndex, 1);
@@ -150,9 +171,10 @@ const TabBar: React.FC<TabBarProps> = ({
   };
 
   const handleDragEnd = () => {
-    // Reset drag state
+    // Reset all drag states
     setDraggedTabId(null);
     setDraggedHiddenTabId(null);
+    setDraggedOverTabId(null);
   };
 
   return (
@@ -177,12 +199,12 @@ const TabBar: React.FC<TabBarProps> = ({
                   key={tab.id}
                   className={`flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70 ${
                     draggedHiddenTabId === tab.id ? 'opacity-50' : ''
-                  }`}
+                  } ${draggedOverTabId === tab.id ? 'bg-blue-100/30 dark:bg-blue-900/30' : ''}`}
                   onClick={() => onTabChange(tab.id)}
                   draggable
                   onDragStart={(e) => handleDragStart(e, tab.id, true)}
-                  onDragOver={(e) => handleDragOver(e, tab.id, true)}
-                  onDrop={(e) => handleDrop(e, tab.id, true)}
+                  onDragOver={(e) => handleDragOver(e, tab.id)}
+                  onDrop={(e) => handleDrop(e, tab.id)}
                   onDragEnd={handleDragEnd}
                 >
                   <div className="flex items-center space-x-2">
@@ -217,7 +239,8 @@ const TabBar: React.FC<TabBarProps> = ({
               activeTabId === tab.id
                 ? 'bg-white/80 dark:bg-black shadow-sm dark:border dark:border-gray-800'
                 : 'hover:bg-white/40 dark:hover:bg-gray-900/80'
-            } ${draggedTabId === tab.id ? 'opacity-50' : ''}`}
+            } ${draggedTabId === tab.id ? 'opacity-50' : ''} 
+              ${draggedOverTabId === tab.id ? 'bg-blue-100/30 dark:bg-blue-900/30' : ''}`}
             onClick={() => onTabChange(tab.id)}
             draggable
             onDragStart={(e) => handleDragStart(e, tab.id)}

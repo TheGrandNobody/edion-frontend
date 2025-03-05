@@ -104,6 +104,14 @@ export default {
     require("tailwindcss-animate"),
     function({ addUtilities }) {
       const newUtilities = {
+        '.scrollbar-hide': {
+          /* Firefox */
+          'scrollbar-width': 'none',
+          /* Safari and Chrome */
+          '&::-webkit-scrollbar': {
+            display: 'none'
+          }
+        },
         '.scrollbar-thin': {
           scrollbarWidth: 'thin',
           '&::-webkit-scrollbar': {
@@ -114,18 +122,18 @@ export default {
             background: 'transparent',
           },
           '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(155, 155, 155, 0.5)',
+            backgroundColor: 'rgba(155, 155, 155, 0.4)',
             borderRadius: '20px',
             transition: 'background-color 0.2s ease',
           },
           '&::-webkit-scrollbar-thumb:hover': {
-            backgroundColor: 'rgba(155, 155, 155, 0.7)',
+            backgroundColor: 'rgba(155, 155, 155, 0.5)',
           },
           '&.dark::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(55, 55, 55, 0.5)',
+            backgroundColor: 'rgba(70, 70, 70, 0.4)',
           },
           '&.dark::-webkit-scrollbar-thumb:hover': {
-            backgroundColor: 'rgba(75, 75, 75, 0.7)',
+            backgroundColor: 'rgba(90, 90, 90, 0.5)',
           },
         },
       };

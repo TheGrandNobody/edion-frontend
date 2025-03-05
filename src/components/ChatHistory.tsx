@@ -16,12 +16,19 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
 
   const handleDelete = (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation(); // Prevent triggering the parent button's onClick
+    e.preventDefault(); // Prevent any default actions
     
     // Store the chat we're deleting to prevent re-clicks
     setDeletingChatId(chatId);
     
     if (onDeleteChat) {
-      // Small delay to prevent accidental double-clicks or state race conditions
+      // Dispatch a custom event so that other components can react to it
+      const event = new CustomEvent('chatDeleted', { 
+        detail: { chatId } 
+      });
+      window.dispatchEvent(event);
+      
+      // Small delay to prevent accidental double-clicks
       setTimeout(() => {
         onDeleteChat(chatId);
         setDeletingChatId(null);
