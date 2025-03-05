@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ChatHistoryMenu from './ChatHistory';
 import UserSettingsModal from './UserSettings';
 import { UserSettings as UserSettingsType, ChatHistoryItem } from '../types';
+import { useToast } from "@/hooks/use-toast";
 
 const getUserSettingsFromStorage = (): UserSettingsType => {
   const storedSettings = localStorage.getItem('userSettings');
@@ -33,6 +34,7 @@ const getChatHistoryFromStorage = (): ChatHistoryItem[] => {
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>(getChatHistoryFromStorage());
@@ -69,6 +71,24 @@ const Header = () => {
       // Only navigate, don't close the history panel
       navigate('/chat', { state: { selectedChatId: chatId } });
     }
+  };
+
+  const handleDeleteChat = (chatId: string) => {
+    // Remove from chatHistory
+    const updatedHistory = chatHistory.filter(chat => chat.id !== chatId);
+    setChatHistory(updatedHistory);
+    localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
+    
+    // Also remove from tabs if present
+    const storedTabs = localStorage.getItem('chatTabs');
+    if (storedTabs) {
+      const tabs = JSON.parse(storedTabs);
+      const updatedTabs = tabs.filter((tab: any) => tab.id !== chatId);
+      localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
+    }
+
+    // Create a custom event to notify other components
+    window.dispatchEvent(new CustomEvent('chatDeleted', { detail: { chatId } }));
   };
 
   const handleSaveSettings = (newSettings: UserSettingsType) => {
@@ -114,7 +134,8 @@ const Header = () => {
       {showHistory && (
         <ChatHistoryMenu 
           history={chatHistory} 
-          onSelectChat={handleHistoryAction} 
+          onSelectChat={handleHistoryAction}
+          onDeleteChat={handleDeleteChat}
         />
       )}
 

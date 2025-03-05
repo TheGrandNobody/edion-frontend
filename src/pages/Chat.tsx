@@ -9,7 +9,8 @@ import {
   RefreshCw, 
   Send, 
   Mic,
-  Paperclip
+  Paperclip,
+  Trash2
 } from 'lucide-react';
 import { 
   ChatMessage, 
@@ -18,6 +19,7 @@ import {
   ChatHistoryItem 
 } from '../types';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 import ChatBubble from '../components/ChatBubble';
 import PDFViewer from '../components/PDFViewer';
 import TabBar from '../components/TabBar';
@@ -42,6 +44,7 @@ const getUserSettingsFromStorage = (): UserSettingsType => {
 const Chat = () => {
   const location = useLocation();
   const initialState = location.state || {};
+  const { toast } = useToast();
   
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
   const [showSettings, setShowSettings] = useState(false);
@@ -102,7 +105,7 @@ const Chat = () => {
           
           loadedTabs = [newTab, ...loadedTabs];
           setTabs(loadedTabs);
-          setActiveTabId(selectedChat.id);
+          setActiveTabId(newTab.id);
           
           localStorage.setItem('chatTabs', JSON.stringify(loadedTabs));
         }
@@ -126,6 +129,38 @@ const Chat = () => {
     
     setIsLoading(false);
   }, [initialState.selectedChatId, initialState.initialQuery]);
+
+  // Handle chat deletion events from other components
+  useEffect(() => {
+    const handleChatDeleted = (event: CustomEvent) => {
+      const { chatId } = event.detail;
+      
+      // Remove the tab if it exists
+      const tabExists = tabs.some(tab => tab.id === chatId);
+      
+      if (tabExists) {
+        const updatedTabs = tabs.filter(tab => tab.id !== chatId);
+        setTabs(updatedTabs);
+        
+        // If the active tab was deleted, switch to another tab
+        if (activeTabId === chatId && updatedTabs.length > 0) {
+          setActiveTabId(updatedTabs[0].id);
+        }
+        
+        localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
+      }
+      
+      // Update local chat history
+      const updatedHistory = chatHistory.filter(chat => chat.id !== chatId);
+      setChatHistory(updatedHistory);
+    };
+    
+    window.addEventListener('chatDeleted', handleChatDeleted as EventListener);
+    
+    return () => {
+      window.removeEventListener('chatDeleted', handleChatDeleted as EventListener);
+    };
+  }, [tabs, activeTabId, chatHistory]);
 
   useEffect(() => {
     if (userSettings.darkMode) {
@@ -306,6 +341,37 @@ const Chat = () => {
     }
   };
 
+  const handleDeleteChat = (chatId: string) => {
+    // Remove from chatHistory
+    const updatedHistory = chatHistory.filter(chat => chat.id !== chatId);
+    setChatHistory(updatedHistory);
+    localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
+    
+    // Remove from tabs if it exists
+    const tabExists = tabs.some(tab => tab.id === chatId);
+    
+    if (tabExists) {
+      const updatedTabs = tabs.filter(tab => tab.id !== chatId);
+      setTabs(updatedTabs);
+      
+      // If the active tab was deleted, switch to another tab
+      if (activeTabId === chatId && updatedTabs.length > 0) {
+        setActiveTabId(updatedTabs[0].id);
+      } else if (updatedTabs.length === 0) {
+        // If no tabs left, create a new one
+        handleNewTab();
+      }
+      
+      localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
+    }
+
+    setShowHistory(false);
+    toast({
+      title: "Chat deleted",
+      description: "The chat has been removed from your history",
+    });
+  };
+
   const handleSaveSettings = (newSettings: UserSettingsType) => {
     setUserSettings(newSettings);
     localStorage.setItem('userSettings', JSON.stringify(newSettings));
@@ -330,7 +396,7 @@ const Chat = () => {
 
   return (
     <div className="flex h-screen">
-      {showHistory && <ChatHistoryMenu history={chatHistory} onSelectChat={handleHistoryAction} />}
+      {showHistory && <ChatHistoryMenu history={chatHistory} onSelectChat={handleHistoryAction} onDeleteChat={handleDeleteChat} />}
 
       <div className="flex-1 flex flex-col bg-gray-100 dark:bg-gray-950">
         <div className="navbar-container sticky top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-3 bg-transparent">

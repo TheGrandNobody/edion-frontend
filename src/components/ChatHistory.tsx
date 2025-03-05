@@ -1,14 +1,30 @@
 
 import React from 'react';
-import { Search, FileText, Dumbbell, GraduationCap, School } from 'lucide-react';
+import { Search, FileText, Dumbbell, GraduationCap, School, Trash2 } from 'lucide-react';
 import { ChatHistoryItem } from '../types';
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatHistoryMenuProps {
   history: ChatHistoryItem[];
   onSelectChat: (chatId: string) => void;
+  onDeleteChat?: (chatId: string) => void;
 }
 
-const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat }) => {
+const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat, onDeleteChat }) => {
+  const { toast } = useToast();
+
+  const handleDelete = (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation(); // Prevent triggering the parent button's onClick
+    
+    if (onDeleteChat) {
+      onDeleteChat(chatId);
+      toast({
+        title: "Chat deleted",
+        description: "The chat has been removed from your history",
+      });
+    }
+  };
+
   return (
     <div className="fixed inset-y-0 left-0 w-64 sm:w-80 bg-transparent backdrop-blur-xl z-10">
       {/* Semi-transparent overlay */}
@@ -102,18 +118,35 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
             </h3>
             <div className="space-y-2">
               {history.map((chat) => (
-                <button
+                <div
                   key={chat.id}
-                  className="w-full text-left py-2 rounded hover:bg-white/20 dark:hover:bg-gray-800/20 transition-colors"
-                  onClick={() => onSelectChat(chat.id)}
+                  className="relative group"
                 >
-                  <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400">
-                    {chat.date}: {chat.title}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                    {chat.lastMessage}
-                  </p>
-                </button>
+                  <button
+                    className="w-full text-left py-2 px-2 rounded hover:bg-white/20 dark:hover:bg-gray-800/20 transition-colors"
+                    onClick={() => onSelectChat(chat.id)}
+                  >
+                    <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400">
+                      {chat.date}: {chat.title}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {chat.lastMessage}
+                    </p>
+                  </button>
+                  
+                  {/* Delete button - shown on hover or focus */}
+                  {onDeleteChat && (
+                    <button
+                      className="absolute right-2 top-2 p-1.5 rounded-full bg-gray-100/70 dark:bg-gray-800/70 
+                                text-gray-500 hover:text-red-500 dark:hover:text-red-400 
+                                opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                      onClick={(e) => handleDelete(e, chat.id)}
+                      aria-label="Delete chat"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </div>
