@@ -68,18 +68,6 @@
     --input: 0 0% 20%;
     --ring: 0 0% 28%;
   }
-  :root.dark ::-webkit-scrollbar {
-    width: 8px; /* Adjust width */
-  }
-
-  :root.dark ::-webkit-scrollbar-track {
-    background: #1e1e1e; /* Dark background */
-  }
-
-  :root.dark ::-webkit-scrollbar-thumb {
-    background: #444; /* Dark grey scrollbar */
-    border-radius: 4px;
-  }
 }
 
 @layer base {
