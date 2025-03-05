@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronLeft } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -38,11 +37,9 @@ const TabBar: React.FC<TabBarProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
-    // Force recalculation when tabs change
     setForceUpdate(prev => prev + 1);
   }, [tabs]);
 
-  // Run the calculation on component mount
   useEffect(() => {
     if (tabs.length > 0 && !isInitialized) {
       calculateVisibleTabs();
@@ -55,35 +52,25 @@ const TabBar: React.FC<TabBarProps> = ({
     
     const containerWidth = containerRef.current.offsetWidth;
     const plusButtonWidth = plusButtonRef.current.offsetWidth;
-    const dropdownWidth = 32; // Width of chevron button
+    const dropdownWidth = 32;
     
-    // Reserve space for plus button and a bit of padding
-    let availableWidth = containerWidth - plusButtonWidth - 8; 
-    
-    // Always subtract the dropdown width to ensure a consistent layout
-    // This prevents layout shifts when the chevron appears/disappears
+    let availableWidth = containerWidth - plusButtonWidth - 8;
     availableWidth -= dropdownWidth;
     
-    // Calculate how many tabs we can fit
-    // We want all tabs to be the same width
-    const maxVisibleTabs = Math.max(1, Math.floor(availableWidth / 120)); // Each tab is 120px wide
+    const maxVisibleTabs = Math.max(1, Math.floor(availableWidth / 120));
     
     if (maxVisibleTabs < tabs.length) {
-      // Show the most recent tabs
       setVisibleTabs(tabs.slice(tabs.length - maxVisibleTabs));
       setHiddenTabs(tabs.slice(0, tabs.length - maxVisibleTabs));
     } else {
-      // All tabs fit
       setVisibleTabs(tabs);
       setHiddenTabs([]);
     }
   };
 
-  // Use useEffect to run the calculation when needed
   useEffect(() => {
     calculateVisibleTabs();
     
-    // Recalculate on window resize
     window.addEventListener('resize', calculateVisibleTabs);
     
     return () => {
@@ -94,18 +81,15 @@ const TabBar: React.FC<TabBarProps> = ({
   const handleDragStart = (e: React.DragEvent, tabId: string, isHidden: boolean = false) => {
     e.stopPropagation();
     
-    // Set data transfer for HTML5 drag and drop
     e.dataTransfer.setData('text/plain', tabId);
     e.dataTransfer.effectAllowed = 'move';
     
-    // Set a ghost image that's invisible
     const ghostElement = document.createElement('div');
     ghostElement.style.width = '1px';
     ghostElement.style.height = '1px';
     document.body.appendChild(ghostElement);
     e.dataTransfer.setDragImage(ghostElement, 0, 0);
     
-    // Set the dragged tab ID
     if (isHidden) {
       setDraggedHiddenTabId(tabId);
     } else {
@@ -119,10 +103,7 @@ const TabBar: React.FC<TabBarProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // Set the current tab we're dragging over
     setDraggedOverTabId(tabId);
-    
-    // Change cursor to indicate a valid drop target
     e.dataTransfer.dropEffect = 'move';
   };
 
@@ -130,23 +111,18 @@ const TabBar: React.FC<TabBarProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // Clear the dragged over state
     setDraggedOverTabId(null);
     
-    // Get the dragged tab ID from dataTransfer or state
     const draggedId = e.dataTransfer.getData('text/plain') || draggedTabId || draggedHiddenTabId;
     
     if (!draggedId || draggedId === targetTabId) {
-      // No valid drag or dropped on itself
       setDraggedTabId(null);
       setDraggedHiddenTabId(null);
       return;
     }
     
-    // Create a copy of the full tabs array
     const newTabs = [...tabs];
     
-    // Find the indices
     const draggedIndex = newTabs.findIndex(tab => tab.id === draggedId);
     const targetIndex = newTabs.findIndex(tab => tab.id === targetTabId);
     
@@ -156,22 +132,18 @@ const TabBar: React.FC<TabBarProps> = ({
       return;
     }
     
-    // Move the dragged tab to the target position
     const [movedTab] = newTabs.splice(draggedIndex, 1);
     newTabs.splice(targetIndex, 0, movedTab);
     
-    // Update tabs
     if (onReorderTabs) {
       onReorderTabs(newTabs);
     }
     
-    // Reset drag state
     setDraggedTabId(null);
     setDraggedHiddenTabId(null);
   };
 
   const handleDragEnd = () => {
-    // Reset all drag states
     setDraggedTabId(null);
     setDraggedHiddenTabId(null);
     setDraggedOverTabId(null);
@@ -182,7 +154,6 @@ const TabBar: React.FC<TabBarProps> = ({
       ref={containerRef}
       className="flex items-center w-full relative overflow-hidden"
     >
-      {/* Chevron dropdown positioned absolutely */}
       <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center">
         {hiddenTabs.length > 0 && (
           <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
@@ -227,7 +198,6 @@ const TabBar: React.FC<TabBarProps> = ({
         )}
       </div>
       
-      {/* Add padding to the left to make space for the chevron */}
       <div
         ref={tabsRef}
         className="flex items-center overflow-hidden flex-grow px-8"

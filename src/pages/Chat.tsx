@@ -373,20 +373,44 @@ const Chat = () => {
     setChatHistory(updatedHistory);
     localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
     
-    const tabExists = tabs.some(tab => tab.id === chatId);
+    const isActiveTab = activeTabId === chatId;
     
-    if (tabExists) {
+    if (isActiveTab) {
+      const tabIndex = tabs.findIndex(tab => tab.id === chatId);
+      const updatedTabs = tabs.filter(tab => tab.id !== chatId);
+      
+      if (updatedTabs.length > 0) {
+        const newActiveIndex = tabIndex < updatedTabs.length ? tabIndex : updatedTabs.length - 1;
+        setActiveTabId(updatedTabs[newActiveIndex].id);
+        setTabs(updatedTabs);
+      } else {
+        const newTab: ChatTab = {
+          id: String(Date.now()),
+          title: 'New Chat',
+          date: new Date().toLocaleDateString('en-GB'),
+          messages: [],
+          activePDF: null,
+        };
+        
+        setTabs([newTab]);
+        setActiveTabId(newTab.id);
+        
+        const newChatHistoryItem: ChatHistoryItem = {
+          id: newTab.id,
+          title: newTab.title,
+          date: newTab.date,
+          lastMessage: '',
+        };
+        
+        setChatHistory([newChatHistoryItem, ...updatedHistory]);
+        localStorage.setItem('chatHistory', JSON.stringify([newChatHistoryItem, ...updatedHistory]));
+      }
+    } else {
       const updatedTabs = tabs.filter(tab => tab.id !== chatId);
       setTabs(updatedTabs);
-      
-      if (activeTabId === chatId && updatedTabs.length > 0) {
-        setActiveTabId(updatedTabs[0].id);
-      } else if (updatedTabs.length === 0) {
-        handleNewTab();
-      }
-      
-      localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
     }
+    
+    localStorage.setItem('chatTabs', JSON.stringify(tabs.filter(tab => tab.id !== chatId)));
 
     toast({
       title: "Chat deleted",
