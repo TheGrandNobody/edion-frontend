@@ -74,8 +74,12 @@
     @apply border-border;
   }
   
+  html, body {
+    @apply overflow-x-hidden;
+  }
+  
   body {
-    @apply bg-background text-foreground overflow-x-hidden;
+    @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
   }
   

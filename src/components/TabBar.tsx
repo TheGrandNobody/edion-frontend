@@ -41,10 +41,14 @@ const TabBar: React.FC<TabBarProps> = ({
       
       const containerWidth = containerRef.current.offsetWidth;
       const plusButtonWidth = plusButtonRef.current.offsetWidth;
-      const dropdownWidth = 32; // Width of dropdown button
+      const dropdownWidth = 32; // Width of chevron button
       
-      // Start with max available width
-      let availableWidth = containerWidth - plusButtonWidth - 16; // 16px for some buffer
+      // Reserve space for plus button and a bit of padding
+      let availableWidth = containerWidth - plusButtonWidth - 8; 
+      
+      // Always subtract the dropdown width to ensure a consistent layout
+      // This prevents layout shifts when the chevron appears/disappears
+      availableWidth -= dropdownWidth;
       
       // Create temporary divs to measure tab widths
       const tabWidths: number[] = [];
@@ -80,12 +84,6 @@ const TabBar: React.FC<TabBarProps> = ({
       
       // Clean up temporary elements
       document.body.removeChild(tempContainer);
-      
-      // Calculate which tabs can be visible, but show the most recent tabs
-      // Always reserve space for the dropdown if there's more than 1 tab
-      if (tabs.length > 1) {
-        availableWidth -= dropdownWidth;
-      }
       
       // Calculate from the end (newest tabs), how many we can fit
       let accumulatedWidth = 0;
@@ -127,46 +125,51 @@ const TabBar: React.FC<TabBarProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="flex items-center space-x-1 sm:space-x-2 w-full overflow-hidden"
+      className="flex items-center w-full relative overflow-hidden"
     >
-      {hiddenTabs.length > 0 && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button 
-              className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800">
-            {hiddenTabs.map((tab) => (
-              <div
-                key={tab.id}
-                className="flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70"
-                onClick={() => onTabChange(tab.id)}
+      <div className="flex-none">
+        {hiddenTabs.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white"
               >
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs text-gray-600 dark:text-gray-400">{tab.date}</span>
-                  <span className="text-sm text-gray-900 dark:text-gray-200 truncate max-w-[150px]">{tab.title}</span>
-                </div>
-                <button
-                  className="p-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTabClose(tab.id);
-                  }}
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800">
+              {hiddenTabs.map((tab) => (
+                <div
+                  key={tab.id}
+                  className="flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70"
+                  onClick={() => onTabChange(tab.id)}
                 >
-                  <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
-                </button>
-              </div>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">{tab.date}</span>
+                    <span className="text-sm text-gray-900 dark:text-gray-200 truncate max-w-[150px]">{tab.title}</span>
+                  </div>
+                  <button
+                    className="p-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTabClose(tab.id);
+                    }}
+                  >
+                    <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                  </button>
+                </div>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        {hiddenTabs.length === 0 && (
+          <div className="w-[32px]"></div> /* Placeholder to maintain consistent layout */
+        )}
+      </div>
       
       <div
         ref={tabsRef}
-        className="flex items-center space-x-1 sm:space-x-2 overflow-hidden"
+        className="flex items-center space-x-1 sm:space-x-2 overflow-hidden flex-grow"
       >
         {visibleTabs.map((tab) => (
           <div
@@ -193,13 +196,15 @@ const TabBar: React.FC<TabBarProps> = ({
         ))}
       </div>
       
-      <button
-        ref={plusButtonRef}
-        className="p-1 hover:bg-white/40 dark:hover:bg-gray-900/80 rounded-lg flex-shrink-0"
-        onClick={onNewTab}
-      >
-        <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-700 dark:text-gray-300" />
-      </button>
+      <div className="flex-none">
+        <button
+          ref={plusButtonRef}
+          className="p-1 hover:bg-white/40 dark:hover:bg-gray-900/80 rounded-lg flex-shrink-0"
+          onClick={onNewTab}
+        >
+          <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-700 dark:text-gray-300" />
+        </button>
+      </div>
     </div>
   );
 };
