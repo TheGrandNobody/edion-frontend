@@ -42,8 +42,8 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
           <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         </div>
 
-        {/* Scrollable content area */}
-        <div className="overflow-y-auto flex-1 text-sm">
+        {/* Scrollable content area with custom scrollbar styles */}
+        <div className="overflow-y-auto flex-1 text-sm scrollbar-thin">
           {/* Categories */}
           <div className="space-y-3 sm:space-y-4">
             {/* Reports */}

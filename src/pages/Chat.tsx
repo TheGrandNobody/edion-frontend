@@ -388,7 +388,6 @@ const Chat = () => {
       localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
     }
 
-    setShowHistory(false);
     toast({
       title: "Chat deleted",
       description: "The chat has been removed from your history",
