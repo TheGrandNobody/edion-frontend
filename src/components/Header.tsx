@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { LayoutGrid } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { toast } from "sonner";
 import ChatHistoryMenu from './ChatHistory';
 import UserSettingsModal from './UserSettings';
 import { UserSettings as UserSettingsType, ChatHistoryItem } from '../types';
@@ -72,29 +71,6 @@ const Header = () => {
     }
   };
 
-  const handleDeleteChat = (chatId: string) => {
-    // Get current chat history
-    const currentHistory = getChatHistoryFromStorage();
-    // Filter out the chat to be deleted
-    const updatedHistory = currentHistory.filter(chat => chat.id !== chatId);
-    // Save updated history to localStorage
-    localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
-    
-    // Update local state
-    setChatHistory(updatedHistory);
-    
-    // Also need to check if the chat is in tabs and remove it
-    const currentTabs = localStorage.getItem('chatTabs');
-    if (currentTabs) {
-      const tabsArray = JSON.parse(currentTabs);
-      const updatedTabs = tabsArray.filter((tab: any) => tab.id !== chatId);
-      localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
-    }
-    
-    // Show confirmation toast
-    toast.success("Chat deleted successfully");
-  };
-
   const handleSaveSettings = (newSettings: UserSettingsType) => {
     setUserSettings(newSettings);
     localStorage.setItem('userSettings', JSON.stringify(newSettings));
@@ -138,8 +114,7 @@ const Header = () => {
       {showHistory && (
         <ChatHistoryMenu 
           history={chatHistory} 
-          onSelectChat={handleHistoryAction}
-          onDeleteChat={handleDeleteChat}
+          onSelectChat={handleHistoryAction} 
         />
       )}
 
