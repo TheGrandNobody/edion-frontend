@@ -58,60 +58,14 @@ const TabBar: React.FC<TabBarProps> = ({
     // This prevents layout shifts when the chevron appears/disappears
     availableWidth -= dropdownWidth;
     
-    // Create temporary divs to measure tab widths
-    const tabWidths: number[] = [];
-    const tempContainer = document.createElement('div');
-    tempContainer.style.position = 'absolute';
-    tempContainer.style.visibility = 'hidden';
-    tempContainer.style.display = 'flex';
-    document.body.appendChild(tempContainer);
+    // Calculate how many tabs we can fit
+    // We want all tabs to be the same width
+    const maxVisibleTabs = Math.max(1, Math.floor(availableWidth / 120)); // Each tab is 120px wide
     
-    // Create and measure each tab
-    tabs.forEach((tab) => {
-      const tempTab = document.createElement('div');
-      tempTab.className = `flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg`;
-      
-      const dateSpan = document.createElement('span');
-      dateSpan.className = 'text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate max-w-[40px] sm:max-w-none';
-      dateSpan.textContent = tab.date;
-      
-      const titleSpan = document.createElement('span');
-      titleSpan.className = 'text-xs sm:text-sm text-gray-900 dark:text-gray-200 truncate max-w-[80px] sm:max-w-[120px] md:max-w-[160px]';
-      titleSpan.textContent = tab.title;
-      
-      const closeButton = document.createElement('button');
-      closeButton.className = 'p-0.5 rounded-full';
-      
-      tempTab.appendChild(dateSpan);
-      tempTab.appendChild(titleSpan);
-      tempTab.appendChild(closeButton);
-      tempContainer.appendChild(tempTab);
-      
-      tabWidths.push(tempTab.offsetWidth + 8); // 8px for margin
-    });
-    
-    // Clean up temporary elements
-    document.body.removeChild(tempContainer);
-    
-    // Calculate from the end (newest tabs), how many we can fit
-    let accumulatedWidth = 0;
-    let visibleCount = 0;
-    
-    for (let i = tabs.length - 1; i >= 0; i--) {
-      if (accumulatedWidth + tabWidths[i] > availableWidth) {
-        break;
-      }
-      accumulatedWidth += tabWidths[i];
-      visibleCount++;
-    }
-    
-    // Ensure at least one tab is visible
-    visibleCount = Math.max(1, visibleCount);
-    
-    if (visibleCount < tabs.length) {
-      // We need to hide some tabs - get the newest 'visibleCount' tabs
-      setVisibleTabs(tabs.slice(tabs.length - visibleCount));
-      setHiddenTabs(tabs.slice(0, tabs.length - visibleCount));
+    if (maxVisibleTabs < tabs.length) {
+      // Show the most recent tabs
+      setVisibleTabs(tabs.slice(tabs.length - maxVisibleTabs));
+      setHiddenTabs(tabs.slice(0, tabs.length - maxVisibleTabs));
     } else {
       // All tabs fit
       setVisibleTabs(tabs);
@@ -177,20 +131,24 @@ const TabBar: React.FC<TabBarProps> = ({
       {/* Add padding to the left to make space for the chevron */}
       <div
         ref={tabsRef}
-        className="flex items-center space-x-1 sm:space-x-2 overflow-hidden flex-grow px-8"
+        className="flex items-center overflow-hidden flex-grow px-8"
       >
         {visibleTabs.map((tab) => (
           <div
             key={tab.id}
-            className={`group flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg cursor-pointer transition-colors ${
+            className={`group flex items-center justify-between w-full max-w-[120px] px-2 sm:px-3 py-1 sm:py-1.5 mx-1 rounded-lg cursor-pointer transition-colors ${
               activeTabId === tab.id
                 ? 'bg-white/80 dark:bg-black shadow-sm dark:border dark:border-gray-800'
                 : 'hover:bg-white/40 dark:hover:bg-gray-900/80'
             }`}
             onClick={() => onTabChange(tab.id)}
           >
-            <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate max-w-[40px] sm:max-w-none">{tab.date}</span>
-            <span className="text-xs sm:text-sm text-gray-900 dark:text-gray-200 truncate max-w-[80px] sm:max-w-[120px] md:max-w-[160px]">{tab.title}</span>
+            <div className="flex-grow overflow-hidden">
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{tab.date}</span>
+                <span className="text-xs sm:text-sm text-gray-900 dark:text-gray-200 truncate">{tab.title}</span>
+              </div>
+            </div>
             <button
               className="p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-100/70 dark:hover:bg-gray-900"
               onClick={(e) => {

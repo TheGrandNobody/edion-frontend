@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
@@ -58,7 +57,6 @@ const Chat = () => {
   const navbarHeight = useRef<number>(0);
   const [scrollPosition, setScrollPosition] = useState(0);
 
-  // Get active tab using activeTabId
   const getActiveTab = () => tabs.find(tab => tab.id === activeTabId);
 
   useEffect(() => {
@@ -130,19 +128,16 @@ const Chat = () => {
     setIsLoading(false);
   }, [initialState.selectedChatId, initialState.initialQuery]);
 
-  // Handle chat deletion events from other components
   useEffect(() => {
     const handleChatDeleted = (event: CustomEvent) => {
       const { chatId } = event.detail;
       
-      // Remove the tab if it exists
       const tabExists = tabs.some(tab => tab.id === chatId);
       
       if (tabExists) {
         const updatedTabs = tabs.filter(tab => tab.id !== chatId);
         setTabs(updatedTabs);
         
-        // If the active tab was deleted, switch to another tab
         if (activeTabId === chatId && updatedTabs.length > 0) {
           setActiveTabId(updatedTabs[0].id);
         }
@@ -150,7 +145,6 @@ const Chat = () => {
         localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
       }
       
-      // Update local chat history
       const updatedHistory = chatHistory.filter(chat => chat.id !== chatId);
       setChatHistory(updatedHistory);
     };
@@ -259,6 +253,39 @@ const Chat = () => {
     localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
   };
 
+  const handleEditMessage = (messageId: number, newText: string) => {
+    const activeTab = getActiveTab();
+    if (!activeTab) return;
+
+    const updatedTabs = tabs.map(tab => {
+      if (tab.id === activeTabId) {
+        const updatedMessages = tab.messages.map(msg => {
+          if (msg.id === messageId) {
+            return {
+              ...msg,
+              text: newText
+            };
+          }
+          return msg;
+        });
+        
+        return {
+          ...tab,
+          messages: updatedMessages,
+        };
+      }
+      return tab;
+    });
+    
+    setTabs(updatedTabs);
+    localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
+    
+    toast({
+      title: "Message updated",
+      description: "Your message has been successfully edited",
+    });
+  };
+
   const handleNewTab = () => {
     const newTab: ChatTab = {
       id: String(Date.now()),
@@ -342,23 +369,19 @@ const Chat = () => {
   };
 
   const handleDeleteChat = (chatId: string) => {
-    // Remove from chatHistory
     const updatedHistory = chatHistory.filter(chat => chat.id !== chatId);
     setChatHistory(updatedHistory);
     localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
     
-    // Remove from tabs if it exists
     const tabExists = tabs.some(tab => tab.id === chatId);
     
     if (tabExists) {
       const updatedTabs = tabs.filter(tab => tab.id !== chatId);
       setTabs(updatedTabs);
       
-      // If the active tab was deleted, switch to another tab
       if (activeTabId === chatId && updatedTabs.length > 0) {
         setActiveTabId(updatedTabs[0].id);
       } else if (updatedTabs.length === 0) {
-        // If no tabs left, create a new one
         handleNewTab();
       }
       
@@ -471,7 +494,11 @@ const Chat = () => {
                       key={message.id} 
                       className="mb-6"
                     >
-                      <ChatBubble message={message} darkMode={userSettings.darkMode} />
+                      <ChatBubble 
+                        message={message} 
+                        darkMode={userSettings.darkMode} 
+                        onEditMessage={message.isUser ? handleEditMessage : undefined}
+                      />
                       {message.pdfUrl && !message.isUser && (
                         <div className="ml-10 mt-2 flex flex-wrap gap-2">
                           <button className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-sm backdrop-blur-sm">
@@ -494,17 +521,22 @@ const Chat = () => {
               </div>
             </div>
 
-            {/* Detached input field container */}
             <div className="absolute bottom-6 left-0 right-0 px-3 sm:px-6">
               <div className="w-full mx-auto" style={{ maxWidth: 'min(100%, 800px)', width: '100%', padding: '0 4px', boxSizing: 'border-box' }}>
                 <div className="bg-white/80 dark:bg-gray-900/80 border border-gray-200/80 dark:border-gray-800/50 backdrop-blur-md rounded-xl shadow-lg">
                   <form onSubmit={handleSubmit} className="relative">
-                    <input
-                      type="text"
+                    <textarea
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       placeholder="Ask anything"
-                      className="w-full px-4 py-3 sm:py-3.5 pr-24 bg-transparent rounded-xl focus:outline-none text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400"
+                      className="w-full px-4 py-3 sm:py-3.5 pr-24 bg-transparent rounded-xl focus:outline-none text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400 resize-none overflow-hidden"
+                      rows={Math.min(5, inputValue.split('\n').length + 1)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSubmit(e);
+                        }
+                      }}
                     />
                     <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 sm:space-x-2">
                       <button
