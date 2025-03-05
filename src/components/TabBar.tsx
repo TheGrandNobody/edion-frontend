@@ -23,95 +23,104 @@ const TabBar: React.FC<TabBarProps> = ({
   onTabClose,
   onNewTab,
 }) => {
-  const [visibleTabs, setVisibleTabs] = useState<ChatTab[]>(tabs);
+  const [visibleTabs, setVisibleTabs] = useState<ChatTab[]>([]);
   const [hiddenTabs, setHiddenTabs] = useState<ChatTab[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
   const plusButtonRef = useRef<HTMLButtonElement>(null);
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     // Force recalculation when tabs change
     setForceUpdate(prev => prev + 1);
   }, [tabs]);
 
+  // Run the calculation on component mount
   useEffect(() => {
-    const calculateVisibleTabs = () => {
-      if (!containerRef.current || !plusButtonRef.current || tabs.length === 0) return;
-      
-      const containerWidth = containerRef.current.offsetWidth;
-      const plusButtonWidth = plusButtonRef.current.offsetWidth;
-      const dropdownWidth = 32; // Width of chevron button
-      
-      // Reserve space for plus button and a bit of padding
-      let availableWidth = containerWidth - plusButtonWidth - 8; 
-      
-      // Always subtract the dropdown width to ensure a consistent layout
-      // This prevents layout shifts when the chevron appears/disappears
-      availableWidth -= dropdownWidth;
-      
-      // Create temporary divs to measure tab widths
-      const tabWidths: number[] = [];
-      const tempContainer = document.createElement('div');
-      tempContainer.style.position = 'absolute';
-      tempContainer.style.visibility = 'hidden';
-      tempContainer.style.display = 'flex';
-      document.body.appendChild(tempContainer);
-      
-      // Create and measure each tab
-      tabs.forEach((tab) => {
-        const tempTab = document.createElement('div');
-        tempTab.className = `flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg`;
-        
-        const dateSpan = document.createElement('span');
-        dateSpan.className = 'text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate max-w-[40px] sm:max-w-none';
-        dateSpan.textContent = tab.date;
-        
-        const titleSpan = document.createElement('span');
-        titleSpan.className = 'text-xs sm:text-sm text-gray-900 dark:text-gray-200 truncate max-w-[80px] sm:max-w-[120px] md:max-w-[160px]';
-        titleSpan.textContent = tab.title;
-        
-        const closeButton = document.createElement('button');
-        closeButton.className = 'p-0.5 rounded-full';
-        
-        tempTab.appendChild(dateSpan);
-        tempTab.appendChild(titleSpan);
-        tempTab.appendChild(closeButton);
-        tempContainer.appendChild(tempTab);
-        
-        tabWidths.push(tempTab.offsetWidth + 8); // 8px for margin
-      });
-      
-      // Clean up temporary elements
-      document.body.removeChild(tempContainer);
-      
-      // Calculate from the end (newest tabs), how many we can fit
-      let accumulatedWidth = 0;
-      let visibleCount = 0;
-      
-      for (let i = tabs.length - 1; i >= 0; i--) {
-        if (accumulatedWidth + tabWidths[i] > availableWidth) {
-          break;
-        }
-        accumulatedWidth += tabWidths[i];
-        visibleCount++;
-      }
-      
-      // Ensure at least one tab is visible
-      visibleCount = Math.max(1, visibleCount);
-      
-      if (visibleCount < tabs.length) {
-        // We need to hide some tabs - get the newest 'visibleCount' tabs
-        setVisibleTabs(tabs.slice(tabs.length - visibleCount));
-        setHiddenTabs(tabs.slice(0, tabs.length - visibleCount));
-      } else {
-        // All tabs fit
-        setVisibleTabs(tabs);
-        setHiddenTabs([]);
-      }
-    };
+    if (tabs.length > 0 && !isInitialized) {
+      calculateVisibleTabs();
+      setIsInitialized(true);
+    }
+  }, [tabs, isInitialized]);
+
+  const calculateVisibleTabs = () => {
+    if (!containerRef.current || !plusButtonRef.current || tabs.length === 0) return;
     
-    // Initial calculation
+    const containerWidth = containerRef.current.offsetWidth;
+    const plusButtonWidth = plusButtonRef.current.offsetWidth;
+    const dropdownWidth = 32; // Width of chevron button
+    
+    // Reserve space for plus button and a bit of padding
+    let availableWidth = containerWidth - plusButtonWidth - 8; 
+    
+    // Always subtract the dropdown width to ensure a consistent layout
+    // This prevents layout shifts when the chevron appears/disappears
+    availableWidth -= dropdownWidth;
+    
+    // Create temporary divs to measure tab widths
+    const tabWidths: number[] = [];
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.visibility = 'hidden';
+    tempContainer.style.display = 'flex';
+    document.body.appendChild(tempContainer);
+    
+    // Create and measure each tab
+    tabs.forEach((tab) => {
+      const tempTab = document.createElement('div');
+      tempTab.className = `flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg`;
+      
+      const dateSpan = document.createElement('span');
+      dateSpan.className = 'text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate max-w-[40px] sm:max-w-none';
+      dateSpan.textContent = tab.date;
+      
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'text-xs sm:text-sm text-gray-900 dark:text-gray-200 truncate max-w-[80px] sm:max-w-[120px] md:max-w-[160px]';
+      titleSpan.textContent = tab.title;
+      
+      const closeButton = document.createElement('button');
+      closeButton.className = 'p-0.5 rounded-full';
+      
+      tempTab.appendChild(dateSpan);
+      tempTab.appendChild(titleSpan);
+      tempTab.appendChild(closeButton);
+      tempContainer.appendChild(tempTab);
+      
+      tabWidths.push(tempTab.offsetWidth + 8); // 8px for margin
+    });
+    
+    // Clean up temporary elements
+    document.body.removeChild(tempContainer);
+    
+    // Calculate from the end (newest tabs), how many we can fit
+    let accumulatedWidth = 0;
+    let visibleCount = 0;
+    
+    for (let i = tabs.length - 1; i >= 0; i--) {
+      if (accumulatedWidth + tabWidths[i] > availableWidth) {
+        break;
+      }
+      accumulatedWidth += tabWidths[i];
+      visibleCount++;
+    }
+    
+    // Ensure at least one tab is visible
+    visibleCount = Math.max(1, visibleCount);
+    
+    if (visibleCount < tabs.length) {
+      // We need to hide some tabs - get the newest 'visibleCount' tabs
+      setVisibleTabs(tabs.slice(tabs.length - visibleCount));
+      setHiddenTabs(tabs.slice(0, tabs.length - visibleCount));
+    } else {
+      // All tabs fit
+      setVisibleTabs(tabs);
+      setHiddenTabs([]);
+    }
+  };
+
+  // Use useEffect to run the calculation when needed
+  useEffect(() => {
     calculateVisibleTabs();
     
     // Recalculate on window resize
