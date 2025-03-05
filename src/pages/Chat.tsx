@@ -10,6 +10,7 @@ import {
   Mic,
   Paperclip
 } from 'lucide-react';
+import { toast } from "sonner";
 import { 
   ChatMessage, 
   ChatTab, 
@@ -309,6 +310,28 @@ const Chat = () => {
     localStorage.setItem('userSettings', JSON.stringify(newSettings));
   };
 
+  const handleDeleteChat = (chatId: string) => {
+    const updatedHistory = chatHistory.filter(chat => chat.id !== chatId);
+    setChatHistory(updatedHistory);
+    localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
+    
+    if (tabs.some(tab => tab.id === chatId)) {
+      const updatedTabs = tabs.filter(tab => tab.id !== chatId);
+      
+      setTabs(updatedTabs);
+      localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
+      
+      if (activeTabId === chatId && updatedTabs.length > 0) {
+        setActiveTabId(updatedTabs[0].id);
+      } else if (updatedTabs.length === 0) {
+        handleNewTab();
+      }
+    }
+    
+    setShowHistory(false);
+    toast.success("Chat deleted successfully");
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -328,7 +351,13 @@ const Chat = () => {
 
   return (
     <div className="flex h-screen">
-      {showHistory && <ChatHistoryMenu history={chatHistory} onSelectChat={handleHistoryAction} />}
+      {showHistory && (
+        <ChatHistoryMenu 
+          history={chatHistory} 
+          onSelectChat={handleHistoryAction}
+          onDeleteChat={handleDeleteChat} 
+        />
+      )}
 
       <div className="flex-1 flex flex-col bg-gray-100 dark:bg-gray-950">
         <div className="navbar-container sticky top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 bg-transparent">
