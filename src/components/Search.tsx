@@ -58,7 +58,9 @@ const Search = () => {
       // Store the new tab in localStorage so Chat component can find it
       const existingTabs = localStorage.getItem('chatTabs');
       let chatTabs: ChatTab[] = existingTabs ? JSON.parse(existingTabs) : [];
-      chatTabs = [newTab, ...chatTabs];
+      
+      // Add new tab to the end of the array instead of the beginning
+      chatTabs = [...chatTabs, newTab];
       localStorage.setItem('chatTabs', JSON.stringify(chatTabs));
       
       // Navigate to chat page with the new chat ID
