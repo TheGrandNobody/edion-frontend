@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -160,6 +161,8 @@ const TabBar: React.FC<TabBarProps> = ({
   const handleTabClick = (tabId: string) => {
     if (preventTabClick || isTransitioning) return;
     onTabChange(tabId);
+    // Close dropdown when a tab is selected from it
+    setDropdownOpen(false);
   };
 
   const handleTabClose = (tabId: string, isHiddenTab: boolean = false) => {
