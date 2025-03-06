@@ -207,8 +207,8 @@ const TabBar: React.FC<TabBarProps> = ({
           >
             {activeTabId === tab.id && (
               <div className="absolute inset-x-2 inset-y-1 overflow-visible">
-                <div className="absolute inset-0 bg-indigo-100/70 dark:bg-blue-900/30 shadow-[0_0_10px_rgba(79,70,229,0.25)] dark:shadow-[0_0_10px_rgba(96,165,250,0.25)] 
-                     transform skew-x-[15deg] border-b-[2px] border-indigo-500/60 dark:border-blue-400/70"></div>
+                <div className="absolute inset-0 bg-indigo-50/40 dark:bg-blue-900/10 shadow-[0_0_8px_rgba(79,70,229,0.15)] dark:shadow-[0_0_8px_rgba(96,165,250,0.15)] 
+                     transform skew-x-[15deg] border-b-[1.5px] border-indigo-500/40 dark:border-blue-400/50"></div>
               </div>
             )}
             
