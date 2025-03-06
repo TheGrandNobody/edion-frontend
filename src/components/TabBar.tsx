@@ -38,6 +38,7 @@ const TabBar: React.FC<TabBarProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [lastTabsLength, setLastTabsLength] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [preventTabClick, setPreventTabClick] = useState(false);
 
   useEffect(() => {
     setForceUpdate(prev => prev + 1);
@@ -51,10 +52,16 @@ const TabBar: React.FC<TabBarProps> = ({
     
     if (tabs.length > lastTabsLength) {
       setIsTransitioning(true);
+      setPreventTabClick(true);
+      
       setTimeout(() => {
         calculateVisibleTabs();
         setIsTransitioning(false);
-      }, 10);
+        
+        setTimeout(() => {
+          setPreventTabClick(false);
+        }, 100);
+      }, 50);
     } else {
       calculateVisibleTabs();
     }
@@ -100,9 +107,15 @@ const TabBar: React.FC<TabBarProps> = ({
     
     const handleResize = () => {
       setIsTransitioning(true);
+      setPreventTabClick(true);
+      
       setTimeout(() => {
         calculateVisibleTabs();
         setIsTransitioning(false);
+        
+        setTimeout(() => {
+          setPreventTabClick(false);
+        }, 100);
       }, 100);
     };
     
@@ -112,6 +125,11 @@ const TabBar: React.FC<TabBarProps> = ({
       window.removeEventListener('resize', handleResize);
     };
   }, [tabs, forceUpdate]);
+
+  const handleTabClick = (tabId: string) => {
+    if (preventTabClick) return;
+    onTabChange(tabId);
+  };
 
   const handleDragStart = (e: React.DragEvent, tabId: string, isHidden: boolean = false) => {
     e.stopPropagation();
@@ -215,9 +233,10 @@ const TabBar: React.FC<TabBarProps> = ({
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100",
               draggedTabId === tab.id && "opacity-50",
               draggedOverTabId === tab.id && "bg-blue-100/30 dark:bg-blue-900/30",
-              index < visibleTabs.length - 1 && "after:absolute after:right-[-4px] after:top-1/2 after:h-2/3 after:w-px after:bg-gray-200 after:dark:bg-gray-700 after:transform after:rotate-[-15deg] after:translate-y-[-50%]"
+              index < visibleTabs.length - 1 && "after:absolute after:right-[-4px] after:top-1/2 after:h-2/3 after:w-px after:bg-gray-200 after:dark:bg-gray-700 after:transform after:rotate-[-15deg] after:translate-y-[-50%]",
+              preventTabClick && "pointer-events-none"
             )}
-            onClick={() => onTabChange(tab.id)}
+            onClick={() => handleTabClick(tab.id)}
             draggable
             onDragStart={(e) => handleDragStart(e, tab.id)}
             onDragOver={(e) => handleDragOver(e, tab.id)}
@@ -266,9 +285,10 @@ const TabBar: React.FC<TabBarProps> = ({
                     "flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70",
                     activeTabId === tab.id && "bg-gray-100/50 dark:bg-gray-800/50 font-medium border-l-2 border-blue-500 dark:border-blue-400",
                     draggedHiddenTabId === tab.id && "opacity-50",
-                    draggedOverTabId === tab.id && "bg-blue-100/30 dark:bg-blue-900/30"
+                    draggedOverTabId === tab.id && "bg-blue-100/30 dark:bg-blue-900/30",
+                    preventTabClick && "pointer-events-none"
                   )}
-                  onClick={() => onTabChange(tab.id)}
+                  onClick={() => handleTabClick(tab.id)}
                   draggable
                   onDragStart={(e) => handleDragStart(e, tab.id, true)}
                   onDragOver={(e) => handleDragOver(e, tab.id)}
