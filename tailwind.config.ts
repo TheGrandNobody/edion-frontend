@@ -122,19 +122,20 @@ export default {
             background: 'transparent',
           },
           '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(155, 155, 155, 0.4)',
+            backgroundColor: 'rgba(155, 155, 155, 0.2)',
+            backdropFilter: 'blur(10px)',
             borderRadius: '20px',
             border: '2px solid transparent',
             backgroundClip: 'padding-box',
             '&:hover': {
-              backgroundColor: 'rgba(155, 155, 155, 0.5)',
+              backgroundColor: 'rgba(155, 155, 155, 0.3)',
               width: '6px', /* Maintain consistent width */
             },
           },
           '&.dark::-webkit-scrollbar-thumb, .dark &::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(70, 70, 70, 0.5)',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
             '&:hover': {
-              backgroundColor: 'rgba(90, 90, 90, 0.6)',
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
               width: '6px', /* Maintain consistent width */
             },
           },

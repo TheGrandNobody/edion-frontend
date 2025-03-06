@@ -67,36 +67,36 @@
     --input: 0 0% 20%;
     --ring: 0 0% 28%;
   }
-  .dark ::-webkit-scrollbar {
-    width: 10px;
-    background: #222 !important; /* Keeps it dark */
-  }
-  
-  .dark ::-webkit-scrollbar-thumb {
-    background: #444 !important; /* Dark thumb */
-    border-radius: 5px;
-  }
-  
-  .dark ::-webkit-scrollbar-thumb:hover {
-    background: #666 !important; /* Ensures hover state stays dark */
-  }
-  
-  .dark::-webkit-scrollbar-track {
-    background: #111 !important; /* Ensures track stays dark */
-  }
-  .dark .overflow-y-auto::-webkit-scrollbar {
-    width: 8px;
-    background: #121212 !important;
 }
 
-  .dark .overflow-y-auto::-webkit-scrollbar-thumb {
-      background: #333 !important;
-      border-radius: 6px;
-  }
+/* Global scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  background: transparent;
+}
 
-  .dark .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-      background: #444 !important;
-  }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(155, 155, 155, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(155, 155, 155, 0.3);
+}
+
+/* Dark mode specific scrollbar styles */
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 @layer base {
