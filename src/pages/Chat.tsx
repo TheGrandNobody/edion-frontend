@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
@@ -19,6 +20,7 @@ import {
 } from '../types';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import ChatBubble from '../components/ChatBubble';
 import PDFViewer from '../components/PDFViewer';
 import TabBar from '../components/TabBar';
