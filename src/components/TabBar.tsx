@@ -36,6 +36,8 @@ const TabBar: React.FC<TabBarProps> = ({
   const [draggedOverTabId, setDraggedOverTabId] = useState<string | null>(null);
   const [draggedHiddenTabId, setDraggedHiddenTabId] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [lastTabsLength, setLastTabsLength] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     setForceUpdate(prev => prev + 1);
@@ -46,7 +48,19 @@ const TabBar: React.FC<TabBarProps> = ({
       calculateVisibleTabs();
       setIsInitialized(true);
     }
-  }, [tabs, isInitialized]);
+    
+    if (tabs.length > lastTabsLength) {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        calculateVisibleTabs();
+        setIsTransitioning(false);
+      }, 10);
+    } else {
+      calculateVisibleTabs();
+    }
+    
+    setLastTabsLength(tabs.length);
+  }, [tabs, isInitialized, lastTabsLength]);
 
   useEffect(() => {
     if (hiddenTabs.length === 0 && dropdownOpen) {
@@ -55,7 +69,7 @@ const TabBar: React.FC<TabBarProps> = ({
   }, [hiddenTabs, dropdownOpen]);
 
   const calculateVisibleTabs = () => {
-    if (!containerRef.current || !plusButtonRef.current || tabs.length === 0) return;
+    if (!containerRef.current || !plusButtonRef.current || tabs.length === 0 || isTransitioning) return;
     
     const containerWidth = containerRef.current.offsetWidth;
     const plusButtonWidth = plusButtonRef.current.offsetWidth;
@@ -66,25 +80,36 @@ const TabBar: React.FC<TabBarProps> = ({
     const maxVisibleTabs = Math.max(1, Math.floor(availableWidth / 120));
     
     if (maxVisibleTabs < tabs.length) {
-      // Show the newest tabs and move older tabs to the dropdown
       const visibleTabsArr = tabs.slice(tabs.length - maxVisibleTabs);
       const hiddenTabsArr = tabs.slice(0, tabs.length - maxVisibleTabs);
       
-      setVisibleTabs(visibleTabsArr);
-      setHiddenTabs(hiddenTabsArr);
+      if (JSON.stringify(visibleTabsArr.map(t => t.id)) !== JSON.stringify(visibleTabs.map(t => t.id))) {
+        setVisibleTabs(visibleTabsArr);
+        setHiddenTabs(hiddenTabsArr);
+      }
     } else {
-      setVisibleTabs(tabs);
-      setHiddenTabs([]);
+      if (hiddenTabs.length > 0 || visibleTabs.length !== tabs.length) {
+        setVisibleTabs(tabs);
+        setHiddenTabs([]);
+      }
     }
   };
 
   useEffect(() => {
     calculateVisibleTabs();
     
-    window.addEventListener('resize', calculateVisibleTabs);
+    const handleResize = () => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        calculateVisibleTabs();
+        setIsTransitioning(false);
+      }, 100);
+    };
+    
+    window.addEventListener('resize', handleResize);
     
     return () => {
-      window.removeEventListener('resize', calculateVisibleTabs);
+      window.removeEventListener('resize', handleResize);
     };
   }, [tabs, forceUpdate]);
 
@@ -146,7 +171,11 @@ const TabBar: React.FC<TabBarProps> = ({
     newTabs.splice(targetIndex, 0, movedTab);
     
     if (onReorderTabs) {
+      setIsTransitioning(true);
       onReorderTabs(newTabs);
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 150);
     }
     
     setDraggedTabId(null);
