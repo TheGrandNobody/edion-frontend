@@ -84,6 +84,19 @@
   .dark::-webkit-scrollbar-track {
     background: #111 !important; /* Ensures track stays dark */
   }
+  .dark .overflow-y-auto::-webkit-scrollbar {
+    width: 8px;
+    background: #121212 !important;
+}
+
+  .dark .overflow-y-auto::-webkit-scrollbar-thumb {
+      background: #333 !important;
+      border-radius: 6px;
+  }
+
+  .dark .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+      background: #444 !important;
+  }
 }
 
 @layer base {
