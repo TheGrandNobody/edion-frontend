@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -198,7 +197,7 @@ const TabBar: React.FC<TabBarProps> = ({
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100",
               draggedTabId === tab.id && "opacity-50",
               draggedOverTabId === tab.id && "bg-indigo-100/30 dark:bg-blue-900/30",
-              index < visibleTabs.length - 1 && "after:absolute after:right-[-4px] after:top-1/2 after:h-2/3 after:w-px after:bg-gray-200 after:dark:bg-gray-700 after:transform after:rotate-[-15deg] after:translate-y-[-50%]"
+              index < visibleTabs.length - 1 && "after:absolute after:right-[-4px] after:top-1/2 after:h-2/3 after:w-px after:bg-gray-200 after:dark:bg-gray-700 after:transform after:rotate-[-15deg] after:translate-y-[-50%] after:origin-bottom"
             )}
             onClick={() => handleTabClick(tab.id)}
             draggable
