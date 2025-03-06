@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -60,8 +61,12 @@ const TabBar: React.FC<TabBarProps> = ({
     const maxVisibleTabs = Math.max(1, Math.floor(availableWidth / 120));
     
     if (maxVisibleTabs < tabs.length) {
-      setVisibleTabs(tabs.slice(0, maxVisibleTabs));
-      setHiddenTabs(tabs.slice(maxVisibleTabs));
+      // Show the newest tabs and move older tabs to the dropdown
+      const visibleTabsArr = tabs.slice(tabs.length - maxVisibleTabs);
+      const hiddenTabsArr = tabs.slice(0, tabs.length - maxVisibleTabs);
+      
+      setVisibleTabs(visibleTabsArr);
+      setHiddenTabs(hiddenTabsArr);
     } else {
       setVisibleTabs(tabs);
       setHiddenTabs([]);
