@@ -36,9 +36,6 @@ const TabBar: React.FC<TabBarProps> = ({
   const [draggedOverTabId, setDraggedOverTabId] = useState<string | null>(null);
   const [draggedHiddenTabId, setDraggedHiddenTabId] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [lastTabsLength, setLastTabsLength] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [preventTabClick, setPreventTabClick] = useState(false);
 
   useEffect(() => {
     setForceUpdate(prev => prev + 1);
@@ -49,34 +46,10 @@ const TabBar: React.FC<TabBarProps> = ({
       calculateVisibleTabs();
       setIsInitialized(true);
     }
-    
-    if (tabs.length > lastTabsLength) {
-      setIsTransitioning(true);
-      setPreventTabClick(true);
-      
-      setTimeout(() => {
-        calculateVisibleTabs();
-        setIsTransitioning(false);
-        
-        setTimeout(() => {
-          setPreventTabClick(false);
-        }, 100);
-      }, 50);
-    } else {
-      calculateVisibleTabs();
-    }
-    
-    setLastTabsLength(tabs.length);
-  }, [tabs, isInitialized, lastTabsLength]);
-
-  useEffect(() => {
-    if (hiddenTabs.length === 0 && dropdownOpen) {
-      setDropdownOpen(false);
-    }
-  }, [hiddenTabs, dropdownOpen]);
+  }, [tabs, isInitialized]);
 
   const calculateVisibleTabs = () => {
-    if (!containerRef.current || !plusButtonRef.current || tabs.length === 0 || isTransitioning) return;
+    if (!containerRef.current || !plusButtonRef.current || tabs.length === 0) return;
     
     const containerWidth = containerRef.current.offsetWidth;
     const plusButtonWidth = plusButtonRef.current.offsetWidth;
@@ -87,49 +60,23 @@ const TabBar: React.FC<TabBarProps> = ({
     const maxVisibleTabs = Math.max(1, Math.floor(availableWidth / 120));
     
     if (maxVisibleTabs < tabs.length) {
-      const visibleTabsArr = tabs.slice(tabs.length - maxVisibleTabs);
-      const hiddenTabsArr = tabs.slice(0, tabs.length - maxVisibleTabs);
-      
-      if (JSON.stringify(visibleTabsArr.map(t => t.id)) !== JSON.stringify(visibleTabs.map(t => t.id))) {
-        setVisibleTabs(visibleTabsArr);
-        setHiddenTabs(hiddenTabsArr);
-      }
+      setVisibleTabs(tabs.slice(0, maxVisibleTabs));
+      setHiddenTabs(tabs.slice(maxVisibleTabs));
     } else {
-      if (hiddenTabs.length > 0 || visibleTabs.length !== tabs.length) {
-        setVisibleTabs(tabs);
-        setHiddenTabs([]);
-      }
+      setVisibleTabs(tabs);
+      setHiddenTabs([]);
     }
   };
 
   useEffect(() => {
     calculateVisibleTabs();
     
-    const handleResize = () => {
-      setIsTransitioning(true);
-      setPreventTabClick(true);
-      
-      setTimeout(() => {
-        calculateVisibleTabs();
-        setIsTransitioning(false);
-        
-        setTimeout(() => {
-          setPreventTabClick(false);
-        }, 100);
-      }, 100);
-    };
-    
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', calculateVisibleTabs);
     
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', calculateVisibleTabs);
     };
   }, [tabs, forceUpdate]);
-
-  const handleTabClick = (tabId: string) => {
-    if (preventTabClick) return;
-    onTabChange(tabId);
-  };
 
   const handleDragStart = (e: React.DragEvent, tabId: string, isHidden: boolean = false) => {
     e.stopPropagation();
@@ -189,11 +136,7 @@ const TabBar: React.FC<TabBarProps> = ({
     newTabs.splice(targetIndex, 0, movedTab);
     
     if (onReorderTabs) {
-      setIsTransitioning(true);
       onReorderTabs(newTabs);
-      setTimeout(() => {
-        setIsTransitioning(false);
-      }, 150);
     }
     
     setDraggedTabId(null);
@@ -204,14 +147,6 @@ const TabBar: React.FC<TabBarProps> = ({
     setDraggedTabId(null);
     setDraggedHiddenTabId(null);
     setDraggedOverTabId(null);
-  };
-
-  const handleTabClose = (tabId: string, isHidden: boolean = false) => {
-    onTabClose(tabId);
-    
-    if (isHidden && hiddenTabs.length === 1) {
-      setDropdownOpen(false);
-    }
   };
 
   return (
@@ -233,10 +168,9 @@ const TabBar: React.FC<TabBarProps> = ({
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100",
               draggedTabId === tab.id && "opacity-50",
               draggedOverTabId === tab.id && "bg-blue-100/30 dark:bg-blue-900/30",
-              index < visibleTabs.length - 1 && "after:absolute after:right-[-4px] after:top-1/2 after:h-2/3 after:w-px after:bg-gray-200 after:dark:bg-gray-700 after:transform after:rotate-[-15deg] after:translate-y-[-50%]",
-              preventTabClick && "pointer-events-none"
+              index < visibleTabs.length - 1 && "after:absolute after:right-[-4px] after:top-1/2 after:h-2/3 after:w-px after:bg-gray-200 after:dark:bg-gray-700 after:transform after:rotate-[-15deg] after:translate-y-[-50%]"
             )}
-            onClick={() => handleTabClick(tab.id)}
+            onClick={() => onTabChange(tab.id)}
             draggable
             onDragStart={(e) => handleDragStart(e, tab.id)}
             onDragOver={(e) => handleDragOver(e, tab.id)}
@@ -285,10 +219,9 @@ const TabBar: React.FC<TabBarProps> = ({
                     "flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70",
                     activeTabId === tab.id && "bg-gray-100/50 dark:bg-gray-800/50 font-medium border-l-2 border-blue-500 dark:border-blue-400",
                     draggedHiddenTabId === tab.id && "opacity-50",
-                    draggedOverTabId === tab.id && "bg-blue-100/30 dark:bg-blue-900/30",
-                    preventTabClick && "pointer-events-none"
+                    draggedOverTabId === tab.id && "bg-blue-100/30 dark:bg-blue-900/30"
                   )}
-                  onClick={() => handleTabClick(tab.id)}
+                  onClick={() => onTabChange(tab.id)}
                   draggable
                   onDragStart={(e) => handleDragStart(e, tab.id, true)}
                   onDragOver={(e) => handleDragOver(e, tab.id)}
@@ -303,7 +236,7 @@ const TabBar: React.FC<TabBarProps> = ({
                     className="p-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleTabClose(tab.id, true);
+                      onTabClose(tab.id);
                     }}
                   >
                     <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
