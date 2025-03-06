@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -68,11 +69,13 @@
   }
 }
 
+/* Reset all scrollbar styles first to avoid inheritance issues */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(155, 155, 155, 0.2) transparent;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(155, 155, 155, 0.2) transparent !important;
 }
 
+/* WebKit (Chrome, Safari, newer Edge) scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px !important;
   height: 6px !important;
@@ -102,14 +105,51 @@
   width: 6px !important;
 }
 
+/* Dark mode scrollbar adjustments */
 .dark * {
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent !important;
 }
 
 .dark ::-webkit-scrollbar-thumb,
 .dark ::-webkit-scrollbar-thumb:hover,
 .dark ::-webkit-scrollbar-thumb:active,
 .dark ::-webkit-scrollbar-thumb:window-inactive {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Ensure these styles are applied to the ChatHistory component specifically */
+.overflow-y-auto {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(155, 155, 155, 0.2) transparent !important;
+}
+
+.dark .overflow-y-auto {
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent !important;
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+  background-color: transparent !important;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background-color: transparent !important;
+  border-radius: 10px !important;
+  margin: 2px !important;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.2) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border-radius: 10px !important;
+  border: none !important;
+  background-clip: content-box !important;
+  min-height: 40px !important;
+}
+
+.dark .overflow-y-auto::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.1) !important;
 }
 

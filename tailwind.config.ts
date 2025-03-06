@@ -106,48 +106,48 @@ export default {
       const newUtilities = {
         '.scrollbar-hide': {
           /* Firefox */
-          'scrollbar-width': 'none',
+          'scrollbar-width': 'none !important',
           /* Safari and Chrome */
           '&::-webkit-scrollbar': {
-            display: 'none'
+            display: 'none !important'
           }
         },
         '.scrollbar-thin': {
           /* Firefox */
-          'scrollbar-width': 'thin',
-          'scrollbar-color': 'rgba(155, 155, 155, 0.2) transparent',
+          'scrollbar-width': 'thin !important',
+          'scrollbar-color': 'rgba(155, 155, 155, 0.2) transparent !important',
           
           /* Chrome, Edge, Safari */
           '&::-webkit-scrollbar': {
             width: '6px !important',
             height: '6px !important',
-            background-color: 'transparent !important',
+            backgroundColor: 'transparent !important',
           },
           '&::-webkit-scrollbar-track': {
-            background-color: 'transparent !important',
-            border-radius: '10px !important',
+            backgroundColor: 'transparent !important',
+            borderRadius: '10px !important',
             margin: '2px !important',
           },
           '&::-webkit-scrollbar-thumb': {
-            background-color: 'rgba(155, 155, 155, 0.2) !important',
-            backdrop-filter: 'blur(10px) !important',
+            backgroundColor: 'rgba(155, 155, 155, 0.2) !important',
+            backdropFilter: 'blur(10px) !important',
             '-webkit-backdrop-filter': 'blur(10px) !important',
-            border-radius: '10px !important',
+            borderRadius: '10px !important',
             border: 'none !important',
             'background-clip': 'content-box !important',
             'min-height': '40px !important',
           },
           '&::-webkit-scrollbar-thumb:hover, &::-webkit-scrollbar-thumb:active, &::-webkit-scrollbar-thumb:window-inactive': {
-            background-color: 'rgba(155, 155, 155, 0.2) !important',
+            backgroundColor: 'rgba(155, 155, 155, 0.2) !important',
             width: '6px !important',
           },
           
           /* Dark mode */
           '&.dark, .dark &': {
-            'scrollbar-color': 'rgba(255, 255, 255, 0.1) transparent',
+            'scrollbar-color': 'rgba(255, 255, 255, 0.1) transparent !important',
           },
           '&.dark::-webkit-scrollbar-thumb, .dark &::-webkit-scrollbar-thumb, &.dark::-webkit-scrollbar-thumb:hover, .dark &::-webkit-scrollbar-thumb:hover, &.dark::-webkit-scrollbar-thumb:active, .dark &::-webkit-scrollbar-thumb:active, &.dark::-webkit-scrollbar-thumb:window-inactive, .dark &::-webkit-scrollbar-thumb:window-inactive': {
-            background-color: 'rgba(255, 255, 255, 0.1) !important',
+            backgroundColor: 'rgba(255, 255, 255, 0.1) !important',
           },
         },
       };
