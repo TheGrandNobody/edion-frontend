@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -241,7 +240,9 @@ const TabBar: React.FC<TabBarProps> = ({
                   "p-1 rounded-lg flex-shrink-0 transition-colors duration-200",
                   isActiveTabHidden() 
                     ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/60" 
-                    : "hover:bg-gray-100/70 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-300"
+                    : dropdownOpen 
+                      ? "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300" 
+                      : "hover:bg-gray-100/70 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-300"
                 )}
               >
                 <ChevronRight className={cn(
