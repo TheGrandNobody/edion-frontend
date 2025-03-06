@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -192,9 +191,9 @@ const TabBar: React.FC<TabBarProps> = ({
           <div
             key={tab.id}
             className={cn(
-              "group relative flex items-center justify-between w-full max-w-[120px] px-2 py-0.5 mx-1 rounded-lg cursor-pointer transition-colors overflow-hidden",
+              "group relative flex items-center justify-between w-full max-w-[120px] mx-1 cursor-pointer transition-colors overflow-visible",
               activeTabId === tab.id
-                ? "text-gray-900 dark:text-gray-100 shadow-[0_0_8px_rgba(79,70,229,0.15)] dark:shadow-[0_0_8px_rgba(96,165,250,0.15)] bg-indigo-50/40 dark:bg-blue-900/10"
+                ? "text-gray-900 dark:text-gray-100"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100",
               draggedTabId === tab.id && "opacity-50",
               draggedOverTabId === tab.id && "bg-indigo-100/30 dark:bg-blue-900/30"
@@ -206,18 +205,14 @@ const TabBar: React.FC<TabBarProps> = ({
             onDrop={(e) => handleDrop(e, tab.id)}
             onDragEnd={handleDragEnd}
           >
-            {/* Active tab indicator with skewed edges */}
             {activeTabId === tab.id && (
-              <div className="absolute left-0 bottom-0 w-full h-[1.5px] overflow-visible">
-                <div className="absolute left-0 bottom-0 w-full h-[1.5px] bg-indigo-500/40 dark:bg-blue-400/50 transform -rotate-[-1deg]"></div>
-                {/* Left slanted edge */}
-                <div className="absolute left-[-5px] bottom-0 w-[10px] h-full bg-indigo-500/40 dark:bg-blue-400/50 transform rotate-[-15deg] origin-bottom-right"></div>
-                {/* Right slanted edge */}
-                <div className="absolute right-[-5px] bottom-0 w-[10px] h-full bg-indigo-500/40 dark:bg-blue-400/50 transform rotate-[15deg] origin-bottom-left"></div>
+              <div className="absolute inset-0 overflow-visible">
+                <div className="absolute inset-0 bg-indigo-50/40 dark:bg-blue-900/10 shadow-[0_0_8px_rgba(79,70,229,0.15)] dark:shadow-[0_0_8px_rgba(96,165,250,0.15)] 
+                     transform skew-x-[-15deg] border-b-[1.5px] border-indigo-500/40 dark:border-blue-400/50"></div>
               </div>
             )}
             
-            <div className="flex-grow overflow-hidden">
+            <div className="flex-grow overflow-hidden px-2 py-0.5 relative z-10">
               <div className="flex flex-col">
                 <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{tab.date}</span>
                 <span className={cn(
@@ -229,7 +224,7 @@ const TabBar: React.FC<TabBarProps> = ({
               </div>
             </div>
             <button
-              className="p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-100/70 dark:hover:bg-gray-900"
+              className="p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-100/70 dark:hover:bg-gray-900 relative z-10 mr-1"
               onClick={(e) => {
                 e.stopPropagation();
                 handleTabClose(tab.id);
@@ -238,9 +233,8 @@ const TabBar: React.FC<TabBarProps> = ({
               <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
             </button>
             
-            {/* Tab separator */}
-            {index < visibleTabs.length - 1 && (
-              <div className="absolute right-[-4px] top-1/2 h-2/3 w-px bg-gray-200 dark:bg-gray-700 transform rotate-[-15deg] translate-y-[-50%] origin-bottom"></div>
+            {index < visibleTabs.length - 1 && activeTabId !== tab.id && activeTabId !== visibleTabs[index + 1].id && (
+              <div className="absolute right-[-4px] top-1/2 h-2/3 w-px bg-gray-200 dark:bg-gray-700 transform rotate-[-15deg] translate-y-[-50%] origin-bottom z-20"></div>
             )}
           </div>
         ))}
