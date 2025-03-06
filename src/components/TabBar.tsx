@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -194,7 +195,7 @@ const TabBar: React.FC<TabBarProps> = ({
             className={cn(
               "group relative flex items-center justify-between w-full max-w-[120px] px-2 py-0.5 mx-1 rounded-lg cursor-pointer transition-colors",
               activeTabId === tab.id
-                ? "text-gray-900 dark:text-gray-100 before:absolute before:left-0 before:bottom-0 before:h-[3px] before:w-full before:bg-blue-500 dark:before:bg-blue-400 before:rounded-full before:transform before:rotate-[-1deg]"
+                ? "text-gray-900 dark:text-gray-100 before:absolute before:left-0 before:bottom-0 before:h-[3px] before:w-full before:bg-indigo-400 dark:before:bg-blue-400 before:rounded-full before:transform before:rotate-[-1deg]"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100",
               draggedTabId === tab.id && "opacity-50",
               draggedOverTabId === tab.id && "bg-blue-100/30 dark:bg-blue-900/30",
