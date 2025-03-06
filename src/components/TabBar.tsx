@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -191,13 +192,12 @@ const TabBar: React.FC<TabBarProps> = ({
           <div
             key={tab.id}
             className={cn(
-              "group relative flex items-center justify-between w-full max-w-[120px] px-2 py-0.5 mx-1 rounded-lg cursor-pointer transition-colors",
+              "group relative flex items-center justify-between w-full max-w-[120px] px-2 py-0.5 mx-1 rounded-lg cursor-pointer transition-colors overflow-hidden",
               activeTabId === tab.id
-                ? "text-gray-900 dark:text-gray-100 before:absolute before:left-0 before:bottom-0 before:h-[1.5px] before:w-full before:bg-indigo-500/40 dark:before:bg-blue-400/50 before:rounded-full before:transform before:rotate-[-1deg] shadow-[0_0_8px_rgba(79,70,229,0.15)] dark:shadow-[0_0_8px_rgba(96,165,250,0.15)] bg-indigo-50/40 dark:bg-blue-900/10"
+                ? "text-gray-900 dark:text-gray-100 shadow-[0_0_8px_rgba(79,70,229,0.15)] dark:shadow-[0_0_8px_rgba(96,165,250,0.15)] bg-indigo-50/40 dark:bg-blue-900/10"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100",
               draggedTabId === tab.id && "opacity-50",
-              draggedOverTabId === tab.id && "bg-indigo-100/30 dark:bg-blue-900/30",
-              index < visibleTabs.length - 1 && "after:absolute after:right-[-4px] after:top-1/2 after:h-2/3 after:w-px after:bg-gray-200 after:dark:bg-gray-700 after:transform after:rotate-[-15deg] after:translate-y-[-50%] after:origin-bottom"
+              draggedOverTabId === tab.id && "bg-indigo-100/30 dark:bg-blue-900/30"
             )}
             onClick={() => handleTabClick(tab.id)}
             draggable
@@ -206,6 +206,17 @@ const TabBar: React.FC<TabBarProps> = ({
             onDrop={(e) => handleDrop(e, tab.id)}
             onDragEnd={handleDragEnd}
           >
+            {/* Active tab indicator with skewed edges */}
+            {activeTabId === tab.id && (
+              <div className="absolute left-0 bottom-0 w-full h-[1.5px] overflow-visible">
+                <div className="absolute left-0 bottom-0 w-full h-[1.5px] bg-indigo-500/40 dark:bg-blue-400/50 transform -rotate-[-1deg]"></div>
+                {/* Left slanted edge */}
+                <div className="absolute left-[-5px] bottom-0 w-[10px] h-full bg-indigo-500/40 dark:bg-blue-400/50 transform rotate-[-15deg] origin-bottom-right"></div>
+                {/* Right slanted edge */}
+                <div className="absolute right-[-5px] bottom-0 w-[10px] h-full bg-indigo-500/40 dark:bg-blue-400/50 transform rotate-[15deg] origin-bottom-left"></div>
+              </div>
+            )}
+            
             <div className="flex-grow overflow-hidden">
               <div className="flex flex-col">
                 <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{tab.date}</span>
@@ -226,6 +237,11 @@ const TabBar: React.FC<TabBarProps> = ({
             >
               <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
             </button>
+            
+            {/* Tab separator */}
+            {index < visibleTabs.length - 1 && (
+              <div className="absolute right-[-4px] top-1/2 h-2/3 w-px bg-gray-200 dark:bg-gray-700 transform rotate-[-15deg] translate-y-[-50%] origin-bottom"></div>
+            )}
           </div>
         ))}
       </div>
