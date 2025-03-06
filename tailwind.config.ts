@@ -115,29 +115,30 @@ export default {
         '.scrollbar-thin': {
           scrollbarWidth: 'thin',
           '&::-webkit-scrollbar': {
-            width: '6px',
-            height: '6px',
+            width: '6px !important',
+            height: '6px !important',
+            background: 'transparent !important',
           },
           '&::-webkit-scrollbar-track': {
-            background: 'transparent',
+            background: 'transparent !important',
           },
           '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(155, 155, 155, 0.2)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: '20px',
-            border: '2px solid transparent',
-            backgroundClip: 'padding-box',
-            '&:hover': {
-              backgroundColor: 'rgba(155, 155, 155, 0.3)',
-              width: '6px', /* Maintain consistent width */
-            },
+            backgroundColor: 'rgba(155, 155, 155, 0.2) !important',
+            backdropFilter: 'blur(10px) !important',
+            borderRadius: '20px !important',
+            border: 'none !important', /* Remove border to prevent width changes */
+            backgroundClip: 'padding-box !important',
+          },
+          '&::-webkit-scrollbar-thumb:hover, &::-webkit-scrollbar-thumb:active': {
+            backgroundColor: 'rgba(155, 155, 155, 0.3) !important',
+            width: '6px !important', /* Force consistent width */
           },
           '&.dark::-webkit-scrollbar-thumb, .dark &::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              width: '6px', /* Maintain consistent width */
-            },
+            backgroundColor: 'rgba(255, 255, 255, 0.1) !important',
+          },
+          '&.dark::-webkit-scrollbar-thumb:hover, .dark &::-webkit-scrollbar-thumb:active, .dark &::-webkit-scrollbar-thumb:hover, .dark &::-webkit-scrollbar-thumb:active': {
+            backgroundColor: 'rgba(255, 255, 255, 0.15) !important',
+            width: '6px !important', /* Force consistent width */
           },
         },
       };

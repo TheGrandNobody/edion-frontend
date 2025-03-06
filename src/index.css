@@ -69,34 +69,47 @@
   }
 }
 
-/* Global scrollbar styles */
+/* Global scrollbar styles with !important to override any other styles */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-  background: transparent;
+  width: 6px !important;
+  height: 6px !important;
+  background: transparent !important;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: transparent !important;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(155, 155, 155, 0.2);
-  backdrop-filter: blur(10px);
-  border-radius: 10px;
+  background: rgba(155, 155, 155, 0.2) !important;
+  backdrop-filter: blur(10px) !important;
+  border-radius: 10px !important;
+  border: none !important; /* Prevent border from expanding width */
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(155, 155, 155, 0.3);
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background: rgba(155, 155, 155, 0.3) !important;
+  width: 6px !important; /* Force consistent width */
 }
 
 /* Dark mode specific scrollbar styles */
 .dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+.dark ::-webkit-scrollbar-thumb:hover,
+.dark ::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.15) !important;
+  width: 6px !important; /* Force consistent width */
+}
+
+/* Override any potential scrollbar width changes when hovering */
+::-webkit-scrollbar,
+::-webkit-scrollbar:hover,
+::-webkit-scrollbar:active {
+  width: 6px !important;
+  height: 6px !important;
 }
 
 @layer base {
