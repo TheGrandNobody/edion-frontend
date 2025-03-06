@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -193,7 +194,7 @@ const TabBar: React.FC<TabBarProps> = ({
             className={cn(
               "group relative flex items-center justify-between w-full max-w-[120px] px-2 py-0.5 mx-1 rounded-lg cursor-pointer transition-colors",
               activeTabId === tab.id
-                ? "text-gray-900 dark:text-gray-100 before:absolute before:left-0 before:bottom-0 before:h-[3px] before:w-full before:bg-indigo-500 dark:before:bg-blue-400 before:rounded-full before:transform before:rotate-[-1deg]"
+                ? "text-gray-900 dark:text-gray-100 before:absolute before:left-0 before:bottom-0 before:h-[2px] before:w-full before:bg-indigo-500/60 dark:before:bg-blue-400/70 before:rounded-full before:transform before:rotate-[-1deg]"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100",
               draggedTabId === tab.id && "opacity-50",
               draggedOverTabId === tab.id && "bg-indigo-100/30 dark:bg-blue-900/30",
@@ -238,7 +239,7 @@ const TabBar: React.FC<TabBarProps> = ({
                 className={cn(
                   "p-1 rounded-lg flex-shrink-0 transition-colors duration-200 flex items-center justify-center",
                   isActiveTabHidden() 
-                    ? "bg-indigo-100 dark:bg-blue-900/40 text-indigo-600 dark:text-blue-400 hover:bg-indigo-200 dark:hover:bg-blue-800/60" 
+                    ? "bg-indigo-100/80 dark:bg-blue-900/30 text-indigo-600/90 dark:text-blue-400/90 hover:bg-indigo-200/80 dark:hover:bg-blue-800/40" 
                     : dropdownOpen 
                       ? "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300" 
                       : "hover:bg-gray-100/70 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-300"
@@ -261,7 +262,7 @@ const TabBar: React.FC<TabBarProps> = ({
                   className={cn(
                     "flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer",
                     activeTabId === tab.id 
-                      ? "bg-gray-100/80 dark:bg-gray-800/80 font-medium border-l-2 border-indigo-500 dark:border-blue-400" 
+                      ? "bg-gray-100/80 dark:bg-gray-800/80 font-medium border-l-2 border-indigo-500/60 dark:border-blue-400/70" 
                       : "hover:bg-gray-100/70 dark:hover:bg-gray-800/70",
                     draggedHiddenTabId === tab.id && "opacity-50",
                     draggedOverTabId === tab.id && "bg-indigo-100/30 dark:bg-blue-900/30"
