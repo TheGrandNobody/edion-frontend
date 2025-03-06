@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -55,14 +54,11 @@ const TabBar: React.FC<TabBarProps> = ({
     const plusButtonWidth = plusButtonRef.current.offsetWidth;
     const dropdownWidth = 32; // Width of the dropdown button
     
-    let availableWidth = containerWidth - plusButtonWidth - 8;
+    let availableWidth = containerWidth - plusButtonWidth - dropdownWidth - 16; // Add extra margin
     
-    // Reduce by two tab widths (240px) compared to before
-    // This ensures we show the dropdown earlier and there's always space for it
-    const maxVisibleTabs = Math.max(1, Math.floor((availableWidth - dropdownWidth) / 120));
+    const maxVisibleTabs = Math.max(1, Math.floor(availableWidth / 120));
     
     if (maxVisibleTabs < tabs.length) {
-      // Change the slice to take tabs from the beginning instead of the end
       setVisibleTabs(tabs.slice(0, maxVisibleTabs));
       setHiddenTabs(tabs.slice(maxVisibleTabs));
     } else {
@@ -197,49 +193,47 @@ const TabBar: React.FC<TabBarProps> = ({
       </div>
       
       <div className="flex-none flex items-center">
-        {hiddenTabs.length > 0 && (
-          <div className="mr-1">
-            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-              <DropdownMenuTrigger asChild>
-                <button 
-                  className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm"
+        <div className={`mr-1 ${!hiddenTabs.length && 'invisible'}`}>
+          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <button 
+                className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800">
+              {hiddenTabs.map((tab) => (
+                <div
+                  key={tab.id}
+                  className={`flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70 ${
+                    draggedHiddenTabId === tab.id ? 'opacity-50' : ''
+                  } ${draggedOverTabId === tab.id ? 'bg-blue-100/30 dark:bg-blue-900/30' : ''}`}
+                  onClick={() => onTabChange(tab.id)}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, tab.id, true)}
+                  onDragOver={(e) => handleDragOver(e, tab.id)}
+                  onDrop={(e) => handleDrop(e, tab.id)}
+                  onDragEnd={handleDragEnd}
                 >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800">
-                {hiddenTabs.map((tab) => (
-                  <div
-                    key={tab.id}
-                    className={`flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70 ${
-                      draggedHiddenTabId === tab.id ? 'opacity-50' : ''
-                    } ${draggedOverTabId === tab.id ? 'bg-blue-100/30 dark:bg-blue-900/30' : ''}`}
-                    onClick={() => onTabChange(tab.id)}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, tab.id, true)}
-                    onDragOver={(e) => handleDragOver(e, tab.id)}
-                    onDrop={(e) => handleDrop(e, tab.id)}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">{tab.date}</span>
-                      <span className="text-sm text-gray-900 dark:text-gray-200 truncate max-w-[150px]">{tab.title}</span>
-                    </div>
-                    <button
-                      className="p-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onTabClose(tab.id);
-                      }}
-                    >
-                      <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
-                    </button>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">{tab.date}</span>
+                    <span className="text-sm text-gray-900 dark:text-gray-200 truncate max-w-[150px]">{tab.title}</span>
                   </div>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
+                  <button
+                    className="p-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTabClose(tab.id);
+                    }}
+                  >
+                    <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                  </button>
+                </div>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         
         <button
           ref={plusButtonRef}
