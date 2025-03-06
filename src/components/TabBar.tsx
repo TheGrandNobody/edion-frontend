@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -48,6 +47,12 @@ const TabBar: React.FC<TabBarProps> = ({
       setIsInitialized(true);
     }
   }, [tabs, isInitialized]);
+
+  useEffect(() => {
+    if (hiddenTabs.length === 0 && dropdownOpen) {
+      setDropdownOpen(false);
+    }
+  }, [hiddenTabs, dropdownOpen]);
 
   const calculateVisibleTabs = () => {
     if (!containerRef.current || !plusButtonRef.current || tabs.length === 0) return;
@@ -154,6 +159,14 @@ const TabBar: React.FC<TabBarProps> = ({
     setDraggedOverTabId(null);
   };
 
+  const handleTabClose = (tabId: string, isHidden: boolean = false) => {
+    onTabClose(tabId);
+    
+    if (isHidden && hiddenTabs.length === 1) {
+      setDropdownOpen(false);
+    }
+  };
+
   return (
     <div 
       ref={containerRef}
@@ -241,7 +254,7 @@ const TabBar: React.FC<TabBarProps> = ({
                     className="p-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onTabClose(tab.id);
+                      handleTabClose(tab.id, true);
                     }}
                   >
                     <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
