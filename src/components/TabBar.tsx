@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -161,7 +160,6 @@ const TabBar: React.FC<TabBarProps> = ({
   const handleTabClick = (tabId: string) => {
     if (preventTabClick || isTransitioning) return;
     onTabChange(tabId);
-    // Close dropdown when a tab is selected from it
     setDropdownOpen(false);
   };
 
@@ -261,8 +259,10 @@ const TabBar: React.FC<TabBarProps> = ({
                 <div
                   key={tab.id}
                   className={cn(
-                    "flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70",
-                    activeTabId === tab.id && "bg-gray-100/50 dark:bg-gray-800/50 font-medium border-l-2 border-indigo-500 dark:border-blue-400",
+                    "flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer",
+                    activeTabId === tab.id 
+                      ? "bg-gray-100/80 dark:bg-gray-800/80 font-medium border-l-2 border-indigo-500 dark:border-blue-400" 
+                      : "hover:bg-gray-100/70 dark:hover:bg-gray-800/70",
                     draggedHiddenTabId === tab.id && "opacity-50",
                     draggedOverTabId === tab.id && "bg-indigo-100/30 dark:bg-blue-900/30"
                   )}

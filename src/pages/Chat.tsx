@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
@@ -514,9 +513,6 @@ const Chat = () => {
               <div className="w-full mx-auto" style={{ maxWidth: 'min(100%, 800px)', width: '100%', padding: '0 4px', boxSizing: 'border-box' }}>
                 {activeTab.messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full py-20">
-                    <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
-                      <Send className="w-8 h-8 text-blue-500 dark:text-blue-400" />
-                    </div>
                     <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Welcome to EduChat</h2>
                     <p className="text-gray-600 dark:text-gray-400 text-center max-w-md mb-6">
                       I'm your AI assistant ready to help with teaching tasks, creating reports, and answering questions.
