@@ -52,9 +52,9 @@ const TabBar: React.FC<TabBarProps> = ({
     
     const containerWidth = containerRef.current.offsetWidth;
     const plusButtonWidth = plusButtonRef.current.offsetWidth;
-    const dropdownWidth = 32; // Width of the dropdown button
+    const dropdownWidth = 32; 
     
-    let availableWidth = containerWidth - plusButtonWidth - dropdownWidth - 16; // Add extra margin
+    let availableWidth = containerWidth - plusButtonWidth - dropdownWidth - 16; 
     
     const maxVisibleTabs = Math.max(1, Math.floor(availableWidth / 120));
     
@@ -162,8 +162,8 @@ const TabBar: React.FC<TabBarProps> = ({
             key={tab.id}
             className={`group flex items-center justify-between w-full max-w-[120px] px-2 py-0.5 mx-1 rounded-lg cursor-pointer transition-colors ${
               activeTabId === tab.id
-                ? 'bg-white/80 dark:bg-black shadow-sm dark:border dark:border-gray-800'
-                : 'hover:bg-white/40 dark:hover:bg-gray-900/80'
+                ? 'text-gray-900 dark:text-gray-100'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
             } ${draggedTabId === tab.id ? 'opacity-50' : ''} 
               ${draggedOverTabId === tab.id ? 'bg-blue-100/30 dark:bg-blue-900/30' : ''}`}
             onClick={() => onTabChange(tab.id)}
@@ -176,7 +176,7 @@ const TabBar: React.FC<TabBarProps> = ({
             <div className="flex-grow overflow-hidden">
               <div className="flex flex-col">
                 <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{tab.date}</span>
-                <span className="text-xs text-gray-900 dark:text-gray-200 truncate">{tab.title}</span>
+                <span className="text-xs font-medium truncate">{tab.title}</span>
               </div>
             </div>
             <button
@@ -197,7 +197,7 @@ const TabBar: React.FC<TabBarProps> = ({
           <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <button 
-                className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm"
+                className="p-1 hover:bg-gray-100/70 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 text-gray-700 dark:text-gray-300"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -218,7 +218,7 @@ const TabBar: React.FC<TabBarProps> = ({
                 >
                   <div className="flex items-center space-x-2">
                     <span className="text-xs text-gray-600 dark:text-gray-400">{tab.date}</span>
-                    <span className="text-sm text-gray-900 dark:text-gray-200 truncate max-w-[150px]">{tab.title}</span>
+                    <span className="text-sm truncate max-w-[150px]">{tab.title}</span>
                   </div>
                   <button
                     className="p-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
@@ -237,10 +237,10 @@ const TabBar: React.FC<TabBarProps> = ({
         
         <button
           ref={plusButtonRef}
-          className="p-1 hover:bg-white/40 dark:hover:bg-gray-900/80 rounded-lg flex-shrink-0"
+          className="p-1 hover:bg-gray-100/70 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 text-gray-700 dark:text-gray-300"
           onClick={onNewTab}
         >
-          <Plus className="w-3.5 h-3.5 text-gray-700 dark:text-gray-300" />
+          <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
