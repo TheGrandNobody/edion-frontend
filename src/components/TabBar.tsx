@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -56,7 +57,7 @@ const TabBar: React.FC<TabBarProps> = ({
     
     let availableWidth = containerWidth - plusButtonWidth - 8;
     
-    // Reduce by one more tab width (120px) compared to before
+    // Reduce by two tab widths (240px) compared to before
     // This ensures we show the dropdown earlier and there's always space for it
     const maxVisibleTabs = Math.max(1, Math.floor((availableWidth - dropdownWidth) / 120));
     
@@ -158,7 +159,7 @@ const TabBar: React.FC<TabBarProps> = ({
     >
       <div
         ref={tabsRef}
-        className={`flex items-center overflow-hidden flex-grow ${hiddenTabs.length > 0 ? 'px-8' : 'px-0'}`}
+        className="flex items-center overflow-hidden flex-grow"
       >
         {visibleTabs.map((tab) => (
           <div
@@ -197,7 +198,7 @@ const TabBar: React.FC<TabBarProps> = ({
       
       <div className="flex-none flex items-center">
         {hiddenTabs.length > 0 && (
-          <div className="flex items-center z-10 mr-1">
+          <div className="mr-1">
             <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <button 
