@@ -67,24 +67,22 @@
     --input: 0 0% 20%;
     --ring: 0 0% 28%;
   }
-    .dark ::-webkit-scrollbar {
-      width: 8px !important;
-      background: #121212 !important;  /* Keeps dark background */
+  .dark ::-webkit-scrollbar {
+    width: 10px;
+    background: #ff1a1a !important; /* Keeps it dark */
   }
-
-  .dark ::-webkit-scrollbar-track {
-      background: #121212 !important;  /* Ensures the track stays dark */
-  }
-
+  
   .dark ::-webkit-scrollbar-thumb {
-      background: #333 !important; 
-      border-radius: 6px;
-      transition: background 0.2s ease-in-out; /* Smooth color change */
+    background: hsl(0, 71%, 37%) !important; /* Dark thumb */
+    border-radius: 5px;
   }
-
+  
   .dark ::-webkit-scrollbar-thumb:hover {
-      background: #444 !important;
-      width: 8px !important; /* Prevents the expansion */
+    background: #ff0000 !important; /* Ensures hover state stays dark */
+  }
+  
+  .dark ::-webkit-scrollbar-track {
+    background: #b7ff00 !important; /* Ensures track stays dark */
   }
 }
 
