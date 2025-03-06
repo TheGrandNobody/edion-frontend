@@ -233,12 +233,12 @@ const TabBar: React.FC<TabBarProps> = ({
       </div>
       
       <div className="flex-none flex items-center">
-        <div className={`mr-1 ${!hiddenTabs.length && 'invisible'}`}>
+        <div className={`mr-1 flex items-center ${!hiddenTabs.length && 'invisible'}`}>
           <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <button 
                 className={cn(
-                  "p-1 rounded-lg flex-shrink-0 transition-colors duration-200",
+                  "p-1 rounded-lg flex-shrink-0 transition-colors duration-200 flex items-center justify-center",
                   isActiveTabHidden() 
                     ? "bg-indigo-100 dark:bg-blue-900/40 text-indigo-600 dark:text-blue-400 hover:bg-indigo-200 dark:hover:bg-blue-800/60" 
                     : dropdownOpen 
@@ -247,7 +247,7 @@ const TabBar: React.FC<TabBarProps> = ({
                 )}
               >
                 <ChevronRight className={cn(
-                  "w-4 h-4",
+                  "w-3.5 h-3.5",
                   isActiveTabHidden() && "animate-pulse"
                 )} />
               </button>
@@ -294,7 +294,7 @@ const TabBar: React.FC<TabBarProps> = ({
         
         <button
           ref={plusButtonRef}
-          className="p-1 hover:bg-gray-100/70 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 text-gray-700 dark:text-gray-300"
+          className="p-1 hover:bg-gray-100/70 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 text-gray-700 dark:text-gray-300 flex items-center justify-center"
           onClick={() => {
             setPreventTabClick(true);
             onNewTab();
