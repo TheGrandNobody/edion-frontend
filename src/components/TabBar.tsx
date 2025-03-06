@@ -6,6 +6,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from '@/lib/utils';
 
 interface TabBarProps {
   tabs: ChatTab[];
@@ -157,15 +158,18 @@ const TabBar: React.FC<TabBarProps> = ({
         ref={tabsRef}
         className="flex items-center overflow-hidden flex-grow"
       >
-        {visibleTabs.map((tab) => (
+        {visibleTabs.map((tab, index) => (
           <div
             key={tab.id}
-            className={`group flex items-center justify-between w-full max-w-[120px] px-2 py-0.5 mx-1 rounded-lg cursor-pointer transition-colors ${
+            className={cn(
+              "group relative flex items-center justify-between w-full max-w-[120px] px-2 py-0.5 mx-1 rounded-lg cursor-pointer transition-colors",
               activeTabId === tab.id
-                ? 'text-gray-900 dark:text-gray-100'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-            } ${draggedTabId === tab.id ? 'opacity-50' : ''} 
-              ${draggedOverTabId === tab.id ? 'bg-blue-100/30 dark:bg-blue-900/30' : ''}`}
+                ? "text-gray-900 dark:text-gray-100 before:absolute before:left-0 before:top-0 before:h-full before:w-[3px] before:bg-blue-500 dark:before:bg-blue-400 before:rounded-l-lg"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100",
+              draggedTabId === tab.id && "opacity-50",
+              draggedOverTabId === tab.id && "bg-blue-100/30 dark:bg-blue-900/30",
+              index < visibleTabs.length - 1 && "after:absolute after:right-[-4px] after:top-1/2 after:h-2/3 after:w-px after:bg-gray-200 after:dark:bg-gray-700 after:transform after:rotate-[-15deg] after:translate-y-[-50%]"
+            )}
             onClick={() => onTabChange(tab.id)}
             draggable
             onDragStart={(e) => handleDragStart(e, tab.id)}
@@ -176,7 +180,12 @@ const TabBar: React.FC<TabBarProps> = ({
             <div className="flex-grow overflow-hidden">
               <div className="flex flex-col">
                 <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{tab.date}</span>
-                <span className="text-xs font-medium truncate">{tab.title}</span>
+                <span className={cn(
+                  "text-xs truncate", 
+                  activeTabId === tab.id ? "font-semibold" : "font-medium"
+                )}>
+                  {tab.title}
+                </span>
               </div>
             </div>
             <button
@@ -206,9 +215,12 @@ const TabBar: React.FC<TabBarProps> = ({
               {hiddenTabs.map((tab) => (
                 <div
                   key={tab.id}
-                  className={`flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70 ${
-                    draggedHiddenTabId === tab.id ? 'opacity-50' : ''
-                  } ${draggedOverTabId === tab.id ? 'bg-blue-100/30 dark:bg-blue-900/30' : ''}`}
+                  className={cn(
+                    "flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70",
+                    activeTabId === tab.id && "bg-gray-100/50 dark:bg-gray-800/50 font-medium border-l-2 border-blue-500 dark:border-blue-400",
+                    draggedHiddenTabId === tab.id && "opacity-50",
+                    draggedOverTabId === tab.id && "bg-blue-100/30 dark:bg-blue-900/30"
+                  )}
                   onClick={() => onTabChange(tab.id)}
                   draggable
                   onDragStart={(e) => handleDragStart(e, tab.id, true)}
