@@ -248,8 +248,11 @@ const TabBar: React.FC<TabBarProps> = ({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
-              align="end" 
-              sideOffset={5}
+              align="end"
+              alignOffset={0}
+              side="bottom"
+              sideOffset={0}
+              avoidCollisions={false}
               className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800 w-[220px] max-h-[300px] overflow-y-auto"
             >
               {hiddenTabs.map((tab) => (
