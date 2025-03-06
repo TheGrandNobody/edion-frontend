@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -50,13 +49,6 @@ const TabBar: React.FC<TabBarProps> = ({
       setIsInitialized(true);
     }
   }, [tabs, isInitialized]);
-
-  // Close dropdown when hidden tabs are empty
-  useEffect(() => {
-    if (hiddenTabs.length === 0 && dropdownOpen) {
-      setDropdownOpen(false);
-    }
-  }, [hiddenTabs, dropdownOpen]);
 
   const calculateVisibleTabs = () => {
     if (!containerRef.current || !plusButtonRef.current || tabs.length === 0) return;
@@ -171,12 +163,15 @@ const TabBar: React.FC<TabBarProps> = ({
   };
 
   const handleTabClose = (tabId: string, isHiddenTab: boolean = false) => {
-    // If closing a hidden tab and it's the last one, prepare to close dropdown
     if (isHiddenTab && hiddenTabs.length === 1) {
       setDropdownOpen(false);
     }
     
     onTabClose(tabId);
+  };
+
+  const isActiveTabHidden = () => {
+    return hiddenTabs.some(tab => tab.id === activeTabId);
   };
 
   return (
@@ -239,12 +234,24 @@ const TabBar: React.FC<TabBarProps> = ({
           <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <button 
-                className="p-1 hover:bg-gray-100/70 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 text-gray-700 dark:text-gray-300"
+                className={cn(
+                  "p-1 rounded-lg flex-shrink-0 transition-colors duration-200",
+                  isActiveTabHidden() 
+                    ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/60" 
+                    : "hover:bg-gray-100/70 dark:hover:bg-gray-800/80 text-gray-700 dark:text-gray-300"
+                )}
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className={cn(
+                  "w-4 h-4",
+                  isActiveTabHidden() && "animate-pulse"
+                )} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800">
+            <DropdownMenuContent 
+              align="end" 
+              sideOffset={5}
+              className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800 w-[220px] max-h-[300px] overflow-y-auto"
+            >
               {hiddenTabs.map((tab) => (
                 <div
                   key={tab.id}
