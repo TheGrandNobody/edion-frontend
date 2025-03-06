@@ -36,7 +36,6 @@
     --ring: 0 0% 80%;
 
     --radius: 0.5rem;
-
   }
 
   .dark {
@@ -69,25 +68,24 @@
     --ring: 0 0% 28%;
   }
   
-  /* Apply only when dark mode is active */
-  .dark ::-webkit-scrollbar {
-    width: 8px; /* Adjust scrollbar width */
+  /* Remove these dark mode specific scrollbar styles that are causing the issue */
+  /* .dark ::-webkit-scrollbar {
+    width: 8px;
   }
 
   .dark ::-webkit-scrollbar-track {
-    background: #121212; /* Match dark mode background */
+    background: #121212;
   }
 
   .dark ::-webkit-scrollbar-thumb {
-    background: #333; /* Dark grey scrollbar */
+    background: #333;
     border-radius: 6px;
   }
 
-  /* Prevent it from becoming wider on hover */
   .dark ::-webkit-scrollbar-thumb:hover {
     background: #444;
-    width: 8px; /* Ensure it doesn’t expand */
-  }
+    width: 8px;
+  } */
 }
 
 @layer base {
