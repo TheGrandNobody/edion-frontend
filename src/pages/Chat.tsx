@@ -599,7 +599,10 @@ const Chat = () => {
                       </button>
                       <button
                         type="submit"
-                        className="p-1.5 sm:p-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white"
+                        className={cn(
+                          "p-1.5 sm:p-2 rounded-lg text-white",
+                          "bg-indigo-500 hover:bg-indigo-600 dark:bg-blue-500 dark:hover:bg-blue-600"
+                        )}
                       >
                         <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                       </button>

@@ -5,6 +5,7 @@ import { ArrowRight, Paperclip, Mic } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatHistoryItem, ChatTab } from '../types';
+import { cn } from '@/lib/utils';
 
 const Search = () => {
   const [searchInput, setSearchInput] = useState("");
@@ -106,7 +107,10 @@ const Search = () => {
           </button>
           <button 
             type="submit" 
-            className="p-1.5 sm:p-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white"
+            className={cn(
+              "p-1.5 sm:p-2 rounded-lg text-white",
+              "bg-indigo-500 hover:bg-indigo-600 dark:bg-blue-500 dark:hover:bg-blue-600"
+            )}
             aria-label="Submit search"
           >
             <ArrowRight className="h-4 w-4 sm:w-5 sm:h-5" />
