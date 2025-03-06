@@ -59,7 +59,7 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
         </div>
 
         {/* Scrollable content area with custom scrollbar styles */}
-        <div className="overflow-y-auto flex-1 text-sm scrollbar-thin">
+        <div className="overflow-y-auto flex-1 text-sm scrollbar-thin scrollbar-track-gray-900 scrollbar-thumb-gray-600">
           {/* Categories */}
           <div className="space-y-3 sm:space-y-4">
             {/* Reports */}

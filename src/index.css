@@ -69,20 +69,20 @@
   }
   .dark ::-webkit-scrollbar {
     width: 10px;
-    background: #ff1a1a !important; /* Keeps it dark */
+    background: #222 !important; /* Keeps it dark */
   }
   
   .dark ::-webkit-scrollbar-thumb {
-    background: hsl(0, 71%, 37%) !important; /* Dark thumb */
+    background: #444 !important; /* Dark thumb */
     border-radius: 5px;
   }
   
   .dark ::-webkit-scrollbar-thumb:hover {
-    background: #ff0000 !important; /* Ensures hover state stays dark */
+    background: #666 !important; /* Ensures hover state stays dark */
   }
   
-  .dark ::-webkit-scrollbar-track {
-    background: #b7ff00 !important; /* Ensures track stays dark */
+  .dark::-webkit-scrollbar-track {
+    background: #111 !important; /* Ensures track stays dark */
   }
 }
 
