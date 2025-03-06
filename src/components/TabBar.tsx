@@ -1,6 +1,5 @@
-
 import React, { useEffect, useRef, useState } from 'react';
-import { Plus, X, ChevronLeft } from 'lucide-react';
+import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
 import { 
   DropdownMenu,
@@ -62,8 +61,9 @@ const TabBar: React.FC<TabBarProps> = ({
     const maxVisibleTabs = Math.max(1, Math.floor((availableWidth - dropdownWidth) / 120));
     
     if (maxVisibleTabs < tabs.length) {
-      setVisibleTabs(tabs.slice(tabs.length - maxVisibleTabs));
-      setHiddenTabs(tabs.slice(0, tabs.length - maxVisibleTabs));
+      // Change the slice to take tabs from the beginning instead of the end
+      setVisibleTabs(tabs.slice(0, maxVisibleTabs));
+      setHiddenTabs(tabs.slice(maxVisibleTabs));
     } else {
       setVisibleTabs(tabs);
       setHiddenTabs([]);
@@ -156,50 +156,6 @@ const TabBar: React.FC<TabBarProps> = ({
       ref={containerRef}
       className="flex items-center w-full relative overflow-hidden"
     >
-      {hiddenTabs.length > 0 && (
-        <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center">
-          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-            <DropdownMenuTrigger asChild>
-              <button 
-                className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800">
-              {hiddenTabs.map((tab) => (
-                <div
-                  key={tab.id}
-                  className={`flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70 ${
-                    draggedHiddenTabId === tab.id ? 'opacity-50' : ''
-                  } ${draggedOverTabId === tab.id ? 'bg-blue-100/30 dark:bg-blue-900/30' : ''}`}
-                  onClick={() => onTabChange(tab.id)}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, tab.id, true)}
-                  onDragOver={(e) => handleDragOver(e, tab.id)}
-                  onDrop={(e) => handleDrop(e, tab.id)}
-                  onDragEnd={handleDragEnd}
-                >
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">{tab.date}</span>
-                    <span className="text-sm text-gray-900 dark:text-gray-200 truncate max-w-[150px]">{tab.title}</span>
-                  </div>
-                  <button
-                    className="p-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onTabClose(tab.id);
-                    }}
-                  >
-                    <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
-                  </button>
-                </div>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )}
-      
       <div
         ref={tabsRef}
         className={`flex items-center overflow-hidden flex-grow ${hiddenTabs.length > 0 ? 'px-8' : 'px-0'}`}
@@ -239,7 +195,51 @@ const TabBar: React.FC<TabBarProps> = ({
         ))}
       </div>
       
-      <div className="flex-none">
+      <div className="flex-none flex items-center">
+        {hiddenTabs.length > 0 && (
+          <div className="flex items-center z-10 mr-1">
+            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+              <DropdownMenuTrigger asChild>
+                <button 
+                  className="p-1 hover:bg-white/40 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 dark:text-white bg-white/30 dark:bg-gray-900/30 backdrop-blur-sm"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800">
+                {hiddenTabs.map((tab) => (
+                  <div
+                    key={tab.id}
+                    className={`flex items-center justify-between space-x-2 px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100/70 dark:hover:bg-gray-800/70 ${
+                      draggedHiddenTabId === tab.id ? 'opacity-50' : ''
+                    } ${draggedOverTabId === tab.id ? 'bg-blue-100/30 dark:bg-blue-900/30' : ''}`}
+                    onClick={() => onTabChange(tab.id)}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, tab.id, true)}
+                    onDragOver={(e) => handleDragOver(e, tab.id)}
+                    onDrop={(e) => handleDrop(e, tab.id)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">{tab.date}</span>
+                      <span className="text-sm text-gray-900 dark:text-gray-200 truncate max-w-[150px]">{tab.title}</span>
+                    </div>
+                    <button
+                      className="p-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTabClose(tab.id);
+                      }}
+                    >
+                      <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                    </button>
+                  </div>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+        
         <button
           ref={plusButtonRef}
           className="p-1 hover:bg-white/40 dark:hover:bg-gray-900/80 rounded-lg flex-shrink-0"
