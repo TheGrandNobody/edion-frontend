@@ -59,6 +59,12 @@ const Chat = () => {
 
   const getActiveTab = () => tabs.find(tab => tab.id === activeTabId);
 
+  const scrollToBottom = () => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  };
+
   useEffect(() => {
     const storedHistory = localStorage.getItem('chatHistory');
     if (storedHistory) {
@@ -185,6 +191,13 @@ const Chat = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const activeTab = getActiveTab();
+    if (activeTab && activeTab.messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [tabs, activeTabId]);
+
   const generatePDF = async (tabId: string) => {
     await generateStudentReportPDF(tabId, tabs, setTabs);
   };
@@ -216,6 +229,8 @@ const Chat = () => {
     setTabs(updatedTabs);
     setInputValue('');
 
+    setTimeout(scrollToBottom, 50);
+
     setTimeout(() => {
       setTabs(prevTabs => prevTabs.map(tab => {
         if (tab.id === activeTabId) {
@@ -233,6 +248,8 @@ const Chat = () => {
         }
         return tab;
       }));
+      
+      setTimeout(scrollToBottom, 50);
     }, 1000);
 
     if (inputValue.toLowerCase().includes('generate') || inputValue.toLowerCase().includes('report')) {
