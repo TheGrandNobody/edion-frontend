@@ -41,6 +41,11 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
     }
   };
 
+  const scrollbarStyle = {
+    scrollbarWidth: 'thin',
+    scrollbarColor: 'rgba(0, 0, 0, 0.5) transparent',
+  };
+
   return (
     <div className="fixed inset-y-0 left-0 w-64 sm:w-80 bg-transparent backdrop-blur-xl z-10">
       {/* Semi-transparent overlay */}
@@ -58,13 +63,10 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
           <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         </div>
 
-        {/* Scrollable content area - Fixing the scrollbar styling */}
+        {/* Scrollable content area with glassy black scrollbar */}
         <div 
-          className="overflow-y-auto flex-1 text-sm"
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(155, 155, 155, 0.2) transparent',
-          }}
+          className="overflow-y-auto scrollbar-thin flex-1 text-sm"
+          style={scrollbarStyle}
         >
           {/* Categories */}
           <div className="space-y-3 sm:space-y-4">

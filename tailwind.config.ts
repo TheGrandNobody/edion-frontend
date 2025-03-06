@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -115,7 +114,7 @@ export default {
         '.scrollbar-thin': {
           /* Firefox */
           'scrollbar-width': 'thin !important',
-          'scrollbar-color': 'rgba(155, 155, 155, 0.2) transparent !important',
+          'scrollbar-color': 'rgba(0, 0, 0, 0.5) transparent !important',
           
           /* Chrome, Edge, Safari */
           '&::-webkit-scrollbar': {
@@ -129,7 +128,7 @@ export default {
             margin: '2px !important',
           },
           '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(155, 155, 155, 0.2) !important',
+            backgroundColor: 'rgba(0, 0, 0, 0.5) !important',
             backdropFilter: 'blur(10px) !important',
             '-webkit-backdrop-filter': 'blur(10px) !important',
             borderRadius: '10px !important',
@@ -138,16 +137,16 @@ export default {
             'min-height': '40px !important',
           },
           '&::-webkit-scrollbar-thumb:hover, &::-webkit-scrollbar-thumb:active, &::-webkit-scrollbar-thumb:window-inactive': {
-            backgroundColor: 'rgba(155, 155, 155, 0.2) !important',
+            backgroundColor: 'rgba(0, 0, 0, 0.6) !important',
             width: '6px !important',
           },
           
           /* Dark mode */
           '&.dark, .dark &': {
-            'scrollbar-color': 'rgba(255, 255, 255, 0.1) transparent !important',
+            'scrollbar-color': 'rgba(0, 0, 0, 0.7) transparent !important',
           },
           '&.dark::-webkit-scrollbar-thumb, .dark &::-webkit-scrollbar-thumb, &.dark::-webkit-scrollbar-thumb:hover, .dark &::-webkit-scrollbar-thumb:hover, &.dark::-webkit-scrollbar-thumb:active, .dark &::-webkit-scrollbar-thumb:active, &.dark::-webkit-scrollbar-thumb:window-inactive, .dark &::-webkit-scrollbar-thumb:window-inactive': {
-            backgroundColor: 'rgba(255, 255, 255, 0.1) !important',
+            backgroundColor: 'rgba(0, 0, 0, 0.7) !important',
           },
         },
       };
