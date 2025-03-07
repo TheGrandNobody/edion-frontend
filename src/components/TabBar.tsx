@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -207,9 +206,9 @@ const TabBar: React.FC<TabBarProps> = ({
             onDragEnd={handleDragEnd}
           >
             {activeTabId === tab.id && (
-              <div className="absolute inset-y-1 left-0 right-1.5 overflow-visible">
+              <div className="absolute inset-y-0.5 left-0 right-1.5 overflow-visible">
                 <div className="absolute inset-0 bg-indigo-50/40 dark:bg-blue-900/10 shadow-[0_0_8px_rgba(79,70,229,0.15)] dark:shadow-[0_0_8px_rgba(96,165,250,0.15)] 
-                     transform skew-x-[15deg] border-b-[1.5px] border-indigo-500/40 dark:border-blue-400/50"></div>
+                     transform skew-x-[15deg] border-b-[1.5px] border-indigo-500/40 dark:border-blue-400/50 translate-y-1"></div>
               </div>
             )}
             
