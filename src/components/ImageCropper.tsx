@@ -2,6 +2,8 @@
 import React, { useState, useRef } from 'react';
 import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { RotateCw, RotateCcw } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 
 interface ImageCropperProps {
   src: string;
@@ -19,7 +21,13 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ src, onCrop, onCancel }) =>
   });
   
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
+  const [rotation, setRotation] = useState(0);
   const imgRef = useRef<HTMLImageElement>(null);
+
+  const rotateImage = (direction: 'clockwise' | 'counterclockwise') => {
+    const increment = direction === 'clockwise' ? 90 : -90;
+    setRotation((prev) => (prev + increment) % 360);
+  };
 
   const getCroppedImg = () => {
     if (!completedCrop || !imgRef.current) return;
@@ -34,6 +42,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ src, onCrop, onCancel }) =>
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Draw the cropped image to the canvas
     ctx.drawImage(
       imgRef.current,
       completedCrop.x * scaleX,
@@ -51,35 +60,64 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ src, onCrop, onCancel }) =>
   };
 
   return (
-    <div className="p-4 bg-white dark:bg-gray-800 rounded-lg">
-      <h3 className="text-lg font-medium mb-4">Crop Image</h3>
-      <ReactCrop
-        crop={crop}
-        onChange={(c) => setCrop(c)}
-        onComplete={(c) => setCompletedCrop(c)}
-        aspect={1}
-        circularCrop
-      >
-        <img
-          ref={imgRef}
-          src={src}
-          alt="Crop preview"
-          className="max-h-[400px] object-contain"
-        />
-      </ReactCrop>
+    <div className="p-4 bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[90vh] overflow-auto">
+      <h3 className="text-lg font-medium mb-4">Crop & Rotate Image</h3>
+      
+      <div className="max-h-[60vh] overflow-hidden">
+        <ReactCrop
+          crop={crop}
+          onChange={(c) => setCrop(c)}
+          onComplete={(c) => setCompletedCrop(c)}
+          aspect={1}
+          circularCrop
+        >
+          <img
+            ref={imgRef}
+            src={src}
+            alt="Crop preview"
+            style={{ 
+              maxHeight: '50vh',
+              maxWidth: '100%', 
+              transform: `rotate(${rotation}deg)`,
+              transformOrigin: 'center center'
+            }}
+            className="object-contain mx-auto"
+          />
+        </ReactCrop>
+      </div>
+      
+      <div className="flex justify-center mt-2 mb-4 space-x-4">
+        <Button 
+          onClick={() => rotateImage('counterclockwise')} 
+          variant="outline" 
+          size="sm"
+          className="flex items-center"
+        >
+          <RotateCcw className="h-4 w-4 mr-1" /> Rotate Left
+        </Button>
+        <Button 
+          onClick={() => rotateImage('clockwise')} 
+          variant="outline" 
+          size="sm"
+          className="flex items-center"
+        >
+          <RotateCw className="h-4 w-4 mr-1" /> Rotate Right
+        </Button>
+      </div>
+      
       <div className="flex justify-end mt-4 space-x-2">
-        <button
+        <Button
           onClick={onCancel}
-          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-md"
+          variant="outline"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={getCroppedImg}
-          className="px-4 py-2 bg-blue-500 text-white rounded-md"
+          variant="default"
         >
           Apply
-        </button>
+        </Button>
       </div>
     </div>
   );
