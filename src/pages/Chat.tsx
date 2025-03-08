@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutGrid, 
   Folder, 
@@ -42,6 +42,7 @@ const getUserSettingsFromStorage = (): UserSettingsType => {
 
 const Chat = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const initialState = location.state || {};
   const { toast } = useToast();
   
@@ -444,6 +445,10 @@ const Chat = () => {
     localStorage.setItem('chatTabs', JSON.stringify(newTabOrder));
   };
 
+  const goToSettings = () => {
+    navigate('/settings');
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -487,7 +492,7 @@ const Chat = () => {
           
           <button
             className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg ml-3"
-            onClick={() => navigate('/settings')}
+            onClick={goToSettings}
           >
             <Avatar>
               <AvatarImage src={userSettings.profilePicture} alt={userSettings.fullName} />
@@ -615,3 +620,4 @@ const Chat = () => {
 };
 
 export default Chat;
+
