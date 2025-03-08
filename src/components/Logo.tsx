@@ -1,8 +1,12 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useTheme } from 'next-themes';
 
 const Logo = () => {
+  const { theme } = useTheme();
+  const logoSrc = theme === 'dark' ? "/white_on_trans.svg" : "/black_on_trans.svg";
+
   return (
     <motion.div 
       className="flex items-center justify-center"
@@ -13,7 +17,7 @@ const Logo = () => {
       <div className="logo-container">
         <div className="flex items-center">
           <img 
-            src="/black_on_trans.svg" 
+            src={logoSrc} 
             alt="edion logo" 
             className="h-12 w-auto mr-2" 
           />
