@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ChatHistoryMenu from './ChatHistory';
-import UserSettingsModal from './UserSettings';
 import { UserSettings as UserSettingsType, ChatHistoryItem } from '../types';
 import { useToast } from "@/hooks/use-toast";
 
@@ -35,7 +35,6 @@ const Header = () => {
   const location = useLocation();
   const { toast } = useToast();
   const [showHistory, setShowHistory] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>(getChatHistoryFromStorage());
   
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
@@ -51,6 +50,7 @@ const Header = () => {
   useEffect(() => {
     const handleStorageChange = () => {
       setChatHistory(getChatHistoryFromStorage());
+      setUserSettings(getUserSettingsFromStorage());
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -84,13 +84,12 @@ const Header = () => {
     window.dispatchEvent(new CustomEvent('chatDeleted', { detail: { chatId } }));
   };
 
-  const handleSaveSettings = (newSettings: UserSettingsType) => {
-    setUserSettings(newSettings);
-    localStorage.setItem('userSettings', JSON.stringify(newSettings));
-  };
-
   const toggleHistory = () => {
     setShowHistory(!showHistory);
+  };
+
+  const goToSettings = () => {
+    navigate('/settings');
   };
 
   return (
@@ -116,10 +115,7 @@ const Header = () => {
         >
           <Avatar 
             className="h-10 w-10 cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowSettings(true);
-            }}
+            onClick={goToSettings}
           >
             <AvatarImage src={userSettings.profilePicture} alt="User" />
             <AvatarFallback>{userSettings.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
@@ -132,14 +128,6 @@ const Header = () => {
           history={chatHistory} 
           onSelectChat={handleHistoryAction}
           onDeleteChat={handleDeleteChat}
-        />
-      )}
-
-      {showSettings && (
-        <UserSettingsModal
-          settings={userSettings}
-          onClose={() => setShowSettings(false)}
-          onSave={handleSaveSettings}
         />
       )}
     </>
