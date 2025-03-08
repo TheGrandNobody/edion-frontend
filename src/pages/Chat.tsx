@@ -24,7 +24,6 @@ import ChatBubble from '../components/ChatBubble';
 import PDFViewer from '../components/PDFViewer';
 import TabBar from '../components/TabBar';
 import ChatHistoryMenu from '../components/ChatHistory';
-import UserSettingsModal from '../components/UserSettings';
 import { generateStudentReportPDF } from '../utils/pdfUtils';
 
 const getUserSettingsFromStorage = (): UserSettingsType => {
@@ -47,7 +46,6 @@ const Chat = () => {
   const { toast } = useToast();
   
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
-  const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
   const [tabs, setTabs] = useState<ChatTab[]>([]);
@@ -489,7 +487,7 @@ const Chat = () => {
           
           <button
             className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 shadow-lg ml-3"
-            onClick={() => setShowSettings(true)}
+            onClick={() => navigate('/settings')}
           >
             <Avatar>
               <AvatarImage src={userSettings.profilePicture} alt={userSettings.fullName} />
@@ -612,14 +610,6 @@ const Chat = () => {
           </div>
         </div>
       </div>
-
-      {showSettings && (
-        <UserSettingsModal
-          settings={userSettings}
-          onClose={() => setShowSettings(false)}
-          onSave={handleSaveSettings}
-        />
-      )}
     </div>
   );
 };
