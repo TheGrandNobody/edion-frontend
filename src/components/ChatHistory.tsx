@@ -41,8 +41,16 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
     }
   };
 
+  // Handle stopping propagation to prevent closing menu when clicking inside
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <div className="fixed inset-y-0 left-0 w-64 sm:w-80 bg-transparent backdrop-blur-xl z-10">
+    <div 
+      className="fixed inset-y-0 left-0 w-64 sm:w-80 bg-transparent backdrop-blur-xl z-10"
+      onClick={handleMenuClick}
+    >
       {/* Semi-transparent overlay */}
       <div className="absolute inset-0 bg-white/30 dark:bg-gray-900/30" />
 

@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import Header from '../components/Header';
+// Remove the Header import since we no longer need it
 
 const getUserSettingsFromStorage = (): UserSettingsType => {
   const storedSettings = localStorage.getItem('userSettings');
@@ -239,7 +239,7 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* We no longer need to include the Header component here */}
       
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="flex justify-between items-center mb-8">

@@ -449,6 +449,10 @@ const Chat = () => {
     navigate('/settings');
   };
 
+  const toggleHistory = () => {
+    setShowHistory(!showHistory);
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -468,13 +472,21 @@ const Chat = () => {
 
   return (
     <div className="flex h-screen">
-      {showHistory && <ChatHistoryMenu history={chatHistory} onSelectChat={handleHistoryAction} onDeleteChat={handleDeleteChat} />}
+      {showHistory && (
+        <>
+          <div 
+            className="fixed inset-0 z-5" 
+            onClick={handleOutsideClick}
+          />
+          <ChatHistoryMenu history={chatHistory} onSelectChat={handleHistoryAction} onDeleteChat={handleDeleteChat} />
+        </>
+      )}
 
       <div className="flex-1 flex flex-col bg-gray-100 dark:bg-gray-950">
         <div className="navbar-container sticky top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-3 bg-transparent">
           <button
             className="p-2 hover:bg-white/40 dark:hover:bg-gray-900 rounded-lg text-gray-700 dark:text-gray-200 flex items-center justify-center"
-            onClick={() => setShowHistory(!showHistory)}
+            onClick={toggleHistory}
           >
             <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
@@ -620,4 +632,3 @@ const Chat = () => {
 };
 
 export default Chat;
-

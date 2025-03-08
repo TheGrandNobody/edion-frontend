@@ -39,6 +39,11 @@ const Header = () => {
   
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
 
+  // Hide header on settings page
+  if (location.pathname === '/settings') {
+    return null;
+  }
+
   useEffect(() => {
     if (userSettings.darkMode) {
       document.documentElement.classList.add('dark');
@@ -92,6 +97,13 @@ const Header = () => {
     navigate('/settings');
   };
 
+  // Handle closing the history menu when clicking outside
+  const handleOutsideClick = (e: React.MouseEvent) => {
+    if (showHistory) {
+      setShowHistory(false);
+    }
+  };
+
   return (
     <>
       <motion.header 
@@ -124,11 +136,17 @@ const Header = () => {
       </motion.header>
 
       {showHistory && (
-        <ChatHistoryMenu 
-          history={chatHistory} 
-          onSelectChat={handleHistoryAction}
-          onDeleteChat={handleDeleteChat}
-        />
+        <>
+          <div 
+            className="fixed inset-0 z-5" 
+            onClick={() => setShowHistory(false)}
+          />
+          <ChatHistoryMenu 
+            history={chatHistory} 
+            onSelectChat={handleHistoryAction}
+            onDeleteChat={handleDeleteChat}
+          />
+        </>
       )}
     </>
   );
