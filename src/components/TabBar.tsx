@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, ChevronRight } from 'lucide-react';
 import { ChatTab } from '../types';
@@ -286,7 +285,7 @@ const TabBar: React.FC<TabBarProps> = ({
                 >
                   <div className="flex items-center space-x-2">
                     <span className="text-xs text-gray-600 dark:text-gray-400">{tab.date}</span>
-                    <span className="text-sm truncate max-w-[150px]">{tab.title}</span>
+                    <span className="text-xs truncate max-w-[150px]">{tab.title}</span>
                   </div>
                   <button
                     className="p-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
