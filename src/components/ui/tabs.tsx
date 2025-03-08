@@ -16,10 +16,6 @@ const TabsList = React.forwardRef<
       "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
       className
     )}
-    onClick={(e) => {
-      // Prevent clicks in the tabs list from propagating to parent containers
-      e.stopPropagation();
-    }}
     {...props}
   />
 ))
@@ -36,14 +32,9 @@ const TabsTrigger = React.forwardRef<
       className
     )}
     onClick={(e) => {
-      // First, stop propagation to prevent the event from bubbling up
+      // Prevent the click from bubbling up to parent components
       e.stopPropagation();
-      
-      // Then log to help us debug
-      console.log('TabsTrigger clicked', e.currentTarget.getAttribute('value'));
-      
-      // We're no longer using automatic handling, so we need to manually stop here
-      // This ensures no parent handlers will receive this event
+      // Additionally prevent any other handlers on this element from executing
       e.nativeEvent.stopImmediatePropagation();
     }}
     {...props}
