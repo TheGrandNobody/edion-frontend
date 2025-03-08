@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Lock, Mail, Shield, Check, RefreshCw } from 'lucide-react';
 import ImageCropper from './ImageCropper';
@@ -255,6 +256,10 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
     >
       <div 
         className="bg-white dark:bg-gray-900 rounded-lg shadow-xl p-6 w-full max-w-md" 
+        onClick={(e) => {
+          // Prevent clicks inside the modal from closing it
+          e.stopPropagation();
+        }}
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">User Settings</h2>
@@ -289,7 +294,6 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
             <TabsTrigger 
               value="preferences" 
               className="rounded-md data-[state=active]:bg-indigo-50 dark:data-[state=active]:bg-blue-900/20"
-              onClick={handlePreferencesTabClick}
             >
               Preferences
             </TabsTrigger>
@@ -754,4 +758,3 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
 };
 
 export default UserSettings;
-
