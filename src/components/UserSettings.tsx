@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, Lock, Mail, Shield, Check, RefreshCw } from 'lucide-react';
 import ImageCropper from './ImageCropper';
@@ -236,8 +235,23 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
     });
   };
 
+  const handleTabClick = (e: React.MouseEvent) => {
+    console.log('Tab container clicked');
+    e.stopPropagation();
+  };
+
+  const handlePreferencesTabClick = (e: React.MouseEvent) => {
+    console.log('Preferences tab clicked');
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+    setActiveTab("preferences");
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={handleBackdropClick}>
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" 
+      onClick={handleBackdropClick}
+    >
       <div 
         className="bg-white dark:bg-gray-900 rounded-lg shadow-xl p-6 w-full max-w-md" 
         onClick={(e) => {
@@ -261,18 +275,38 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
         <Tabs 
           value={activeTab} 
           onValueChange={setActiveTab} 
-          onClick={(e) => {
-            // Extra protection to prevent clicks from bubbling up
-            e.stopPropagation();
-          }}
+          onClick={handleTabClick}
         >
           <TabsList className="grid grid-cols-3 mb-4 rounded-md">
-            <TabsTrigger value="profile" className="rounded-md data-[state=active]:bg-indigo-50 dark:data-[state=active]:bg-blue-900/20">Profile</TabsTrigger>
-            <TabsTrigger value="security" className="rounded-md data-[state=active]:bg-indigo-50 dark:data-[state=active]:bg-blue-900/20">Security</TabsTrigger>
-            <TabsTrigger value="preferences" className="rounded-md data-[state=active]:bg-indigo-50 dark:data-[state=active]:bg-blue-900/20">Preferences</TabsTrigger>
+            <TabsTrigger 
+              value="profile" 
+              className="rounded-md data-[state=active]:bg-indigo-50 dark:data-[state=active]:bg-blue-900/20"
+            >
+              Profile
+            </TabsTrigger>
+            <TabsTrigger 
+              value="security" 
+              className="rounded-md data-[state=active]:bg-indigo-50 dark:data-[state=active]:bg-blue-900/20"
+            >
+              Security
+            </TabsTrigger>
+            <TabsTrigger 
+              value="preferences" 
+              className="rounded-md data-[state=active]:bg-indigo-50 dark:data-[state=active]:bg-blue-900/20"
+              onClick={handlePreferencesTabClick}
+            >
+              Preferences
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="profile" className="space-y-4">
+          <TabsContent 
+            value="profile" 
+            className="space-y-4"
+            onClick={(e) => {
+              console.log('Profile content clicked');
+              e.stopPropagation();
+            }}
+          >
             <div className="mb-4">
               <label htmlFor="profilePicture" className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
                 Profile Picture
@@ -346,7 +380,14 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
             </div>
           </TabsContent>
 
-          <TabsContent value="security" className="space-y-4">
+          <TabsContent 
+            value="security" 
+            className="space-y-4"
+            onClick={(e) => {
+              console.log('Security content clicked');
+              e.stopPropagation();
+            }}
+          >
             {!showPasswordChange && !showEmailChange && !showQRCode && (
               <>
                 <div className="mb-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -660,13 +701,24 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
             )}
           </TabsContent>
 
-          <TabsContent value="preferences" className="space-y-4">
+          <TabsContent 
+            value="preferences" 
+            className="space-y-4"
+            onClick={(e) => {
+              console.log('Preferences content clicked');
+              e.stopPropagation();
+            }}
+          >
             <div className="mb-6">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Dark Mode</span>
                 <Switch
                   checked={darkMode}
-                  onCheckedChange={setDarkMode}
+                  onCheckedChange={(value) => {
+                    setDarkMode(value);
+                    // Prevent any potential parent click handlers
+                    setTimeout(() => {}, 0);
+                  }}
                 />
               </div>
             </div>

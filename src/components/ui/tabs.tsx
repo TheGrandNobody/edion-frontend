@@ -36,9 +36,15 @@ const TabsTrigger = React.forwardRef<
       className
     )}
     onClick={(e) => {
-      // Prevent the event from propagating up to parent containers
+      // First, stop propagation to prevent the event from bubbling up
       e.stopPropagation();
-      // The TabsPrimitive.Trigger will handle the tab switching automatically
+      
+      // Then log to help us debug
+      console.log('TabsTrigger clicked', e.currentTarget.getAttribute('value'));
+      
+      // We're no longer using automatic handling, so we need to manually stop here
+      // This ensures no parent handlers will receive this event
+      e.nativeEvent.stopImmediatePropagation();
     }}
     {...props}
   />
