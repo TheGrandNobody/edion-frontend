@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Lock, Mail, Shield, Check, RefreshCw } from 'lucide-react';
 import ImageCropper from './ImageCropper';
@@ -237,15 +238,34 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={handleBackdropClick}>
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div 
+        className="bg-white dark:bg-gray-900 rounded-lg shadow-xl p-6 w-full max-w-md" 
+        onClick={(e) => {
+          // Prevent clicks inside the modal from closing it
+          e.stopPropagation();
+        }}
+      >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">User Settings</h2>
-          <button onClick={handleClose} className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClose();
+            }} 
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+          >
             <X className="h-6 w-6" />
           </button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs 
+          value={activeTab} 
+          onValueChange={setActiveTab} 
+          onClick={(e) => {
+            // Extra protection to prevent clicks from bubbling up
+            e.stopPropagation();
+          }}
+        >
           <TabsList className="grid grid-cols-3 mb-4 rounded-md">
             <TabsTrigger value="profile" className="rounded-md data-[state=active]:bg-indigo-50 dark:data-[state=active]:bg-blue-900/20">Profile</TabsTrigger>
             <TabsTrigger value="security" className="rounded-md data-[state=active]:bg-indigo-50 dark:data-[state=active]:bg-blue-900/20">Security</TabsTrigger>
@@ -665,13 +685,19 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
 
         <div className="flex justify-end space-x-3 mt-6">
           <Button 
-            onClick={handleClose} 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClose();
+            }} 
             variant="outline"
           >
             Cancel
           </Button>
           <Button 
-            onClick={handleSave}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSave();
+            }}
           >
             Save
           </Button>
