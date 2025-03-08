@@ -1,11 +1,19 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 
 const Logo = () => {
-  const { theme } = useTheme();
-  const logoSrc = theme === 'dark' ? "/white_on_trans.svg" : "/black_on_trans.svg";
+  const { theme, resolvedTheme } = useTheme();
+  const [currentTheme, setCurrentTheme] = useState<string | undefined>(undefined);
+  
+  useEffect(() => {
+    // Use resolvedTheme which properly detects the system preference
+    setCurrentTheme(resolvedTheme);
+  }, [theme, resolvedTheme]);
+
+  // Only render the correct logo once we've determined the theme
+  const logoSrc = currentTheme === 'dark' ? "/white_on_trans.svg" : "/black_on_trans.svg";
 
   return (
     <motion.div 
