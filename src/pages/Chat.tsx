@@ -87,6 +87,7 @@ const Chat = () => {
       setTabs(loadedTabs);
       setActiveTabId(loadedTabs[0].id);
     } else {
+      // Create a default tab if no tabs exist - this is the key fix
       const defaultTab: ChatTab = {
         id: String(Date.now()),
         title: 'New Chat',
@@ -98,10 +99,22 @@ const Chat = () => {
       setActiveTabId(defaultTab.id);
       
       localStorage.setItem('chatTabs', JSON.stringify([defaultTab]));
+      
+      // Add to history as well
+      const newHistoryItem: ChatHistoryItem = {
+        id: defaultTab.id,
+        title: 'New Chat',
+        date: defaultTab.date,
+        lastMessage: '',
+      };
+      
+      const updatedHistory = [newHistoryItem, ...chatHistory];
+      setChatHistory(updatedHistory);
+      localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
     }
     
     setIsLoading(false);
-  }, [initialState.selectedChatId, initialState.initialQuery]);
+  }, [initialState.selectedChatId, initialState.initialQuery, chatHistory]);
 
   if (isLoading) {
     return (
