@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -50,14 +49,12 @@ const Header = () => {
   }, [userSettings.darkMode]);
 
   useEffect(() => {
-    // Update chat history when localStorage changes
     const handleStorageChange = () => {
       setChatHistory(getChatHistoryFromStorage());
     };
 
     window.addEventListener('storage', handleStorageChange);
     
-    // Also check for updates on mount and when returning to the page
     setChatHistory(getChatHistoryFromStorage());
     
     return () => {
@@ -68,18 +65,15 @@ const Header = () => {
   const handleHistoryAction = (chatId: string) => {
     if (chatId !== '') {
       console.log(`Selected chat with ID: ${chatId}`);
-      // Only navigate, don't close the history panel
       navigate('/chat', { state: { selectedChatId: chatId } });
     }
   };
 
   const handleDeleteChat = (chatId: string) => {
-    // Remove from chatHistory
     const updatedHistory = chatHistory.filter(chat => chat.id !== chatId);
     setChatHistory(updatedHistory);
     localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
     
-    // Also remove from tabs if present
     const storedTabs = localStorage.getItem('chatTabs');
     if (storedTabs) {
       const tabs = JSON.parse(storedTabs);
@@ -87,7 +81,6 @@ const Header = () => {
       localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
     }
 
-    // Create a custom event to notify other components
     window.dispatchEvent(new CustomEvent('chatDeleted', { detail: { chatId } }));
   };
 
@@ -123,7 +116,10 @@ const Header = () => {
         >
           <Avatar 
             className="h-10 w-10 cursor-pointer"
-            onClick={() => setShowSettings(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowSettings(true);
+            }}
           >
             <AvatarImage src={userSettings.profilePicture} alt="User" />
             <AvatarFallback>{userSettings.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>

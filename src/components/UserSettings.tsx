@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Lock, Mail, Shield, Check, RefreshCw } from 'lucide-react';
 import ImageCropper from './ImageCropper';
 import { UserSettings as UserSettingsType } from '../types';
@@ -105,12 +104,13 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
     onClose();
   };
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Only close if user clicks the backdrop (not the modal content)
+  const handleBackdropClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Only close if user clicks the actual backdrop (not any children)
     if (e.target === e.currentTarget) {
+      e.preventDefault();
       handleClose();
     }
-  };
+  }, []);
 
   const handleSave = () => {
     const newSettings = {
@@ -255,10 +255,6 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
     >
       <div 
         className="bg-white dark:bg-gray-900 rounded-lg shadow-xl p-6 w-full max-w-md" 
-        onClick={(e) => {
-          // Prevent clicks inside the modal from closing it
-          e.stopPropagation();
-        }}
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">User Settings</h2>
@@ -275,8 +271,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
 
         <Tabs 
           value={activeTab} 
-          onValueChange={setActiveTab} 
-          onClick={handleTabClick}
+          onValueChange={setActiveTab}
         >
           <TabsList className="grid grid-cols-3 mb-4 rounded-md">
             <TabsTrigger 
@@ -759,3 +754,4 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
 };
 
 export default UserSettings;
+
