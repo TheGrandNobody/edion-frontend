@@ -1,4 +1,4 @@
-<lov-code>
+
 import React, { useState, useEffect } from 'react';
 import { X, Lock, Mail, Shield, Check, RefreshCw } from 'lucide-react';
 import ImageCropper from './ImageCropper';
@@ -717,4 +717,45 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
                   checked={darkMode}
                   onCheckedChange={(value) => {
                     setDarkMode(value);
-                    // Prevent any
+                  }}
+                />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {showCropper && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <ImageCropper
+              src={tempImageSrc}
+              onCrop={setCroppedImage}
+              onCancel={() => setShowCropper(false)}
+            />
+          </div>
+        )}
+
+        <div className="flex justify-end space-x-3 mt-6">
+          <Button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClose();
+            }} 
+            variant="outline"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSave();
+            }}
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default UserSettings;
