@@ -453,6 +453,12 @@ const Chat = () => {
     setShowHistory(!showHistory);
   };
 
+  const handleOutsideClick = (e: React.MouseEvent) => {
+    if (showHistory) {
+      setShowHistory(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
