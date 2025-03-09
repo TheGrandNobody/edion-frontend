@@ -10,10 +10,13 @@ const Logo = () => {
   useEffect(() => {
     // Use resolvedTheme which properly detects the system preference
     setCurrentTheme(resolvedTheme);
+    console.log('Theme updated in Logo:', { resolvedTheme, theme, currentTheme: resolvedTheme });
   }, [theme, resolvedTheme]);
 
   // Only render the correct logo once we've determined the theme
   const logoSrc = currentTheme === 'dark' ? "/white_on_trans.svg" : "/black_on_trans.svg";
+  
+  console.log('Logo rendering with:', { currentTheme, logoSrc });
 
   return (
     <motion.div 

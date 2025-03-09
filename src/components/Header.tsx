@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid } from 'lucide-react';
@@ -7,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ChatHistoryMenu from './ChatHistory';
 import { UserSettings as UserSettingsType, ChatHistoryItem } from '../types';
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from 'next-themes';
 
 const getUserSettingsFromStorage = (): UserSettingsType => {
   const storedSettings = localStorage.getItem('userSettings');
@@ -34,6 +34,7 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { setTheme } = useTheme();
   const [showHistory, setShowHistory] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>(getChatHistoryFromStorage());
   
@@ -45,17 +46,30 @@ const Header = () => {
   }
 
   useEffect(() => {
+    // Apply theme from user settings
     if (userSettings.darkMode) {
       document.documentElement.classList.add('dark');
+      setTheme('dark');
+      console.log('Setting theme to dark from Header');
     } else {
       document.documentElement.classList.remove('dark');
+      setTheme('light');
+      console.log('Setting theme to light from Header');
     }
-  }, [userSettings.darkMode]);
+  }, [userSettings.darkMode, setTheme]);
 
   useEffect(() => {
     const handleStorageChange = () => {
+      const newSettings = getUserSettingsFromStorage();
       setChatHistory(getChatHistoryFromStorage());
-      setUserSettings(getUserSettingsFromStorage());
+      setUserSettings(newSettings);
+      
+      // Ensure theme is updated if settings change in another tab/window
+      if (newSettings.darkMode) {
+        setTheme('dark');
+      } else {
+        setTheme('light');
+      }
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -65,7 +79,7 @@ const Header = () => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [location.pathname]);
+  }, [location.pathname, setTheme]);
 
   const handleHistoryAction = (chatId: string) => {
     if (chatId !== '') {
