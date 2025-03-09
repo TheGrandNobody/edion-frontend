@@ -13,8 +13,10 @@ const Logo = () => {
       const userSettings = localStorage.getItem('userSettings');
       const darkModePreference = userSettings ? JSON.parse(userSettings).darkMode : false;
       
-      // Priority: 1. resolvedTheme from next-themes, 2. user settings, 3. theme from next-themes
-      const effectiveTheme = resolvedTheme || (darkModePreference ? 'dark' : 'light') || theme;
+      // Use document class directly for most immediate response
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      const effectiveTheme = isDarkMode ? 'dark' : 'light';
+      
       setCurrentTheme(effectiveTheme);
       
       console.log('Logo theme check:', { 
@@ -26,7 +28,7 @@ const Logo = () => {
       });
     };
     
-    // Update initially
+    // Update initially and on every render
     updateTheme();
     
     // Listen for storage events (when settings change)
@@ -42,9 +44,7 @@ const Logo = () => {
   }, [theme, resolvedTheme]);
 
   // Use document class directly for immediate feedback
-  const isDarkMode = 
-    currentTheme === 'dark' || 
-    document.documentElement.classList.contains('dark');
+  const isDarkMode = document.documentElement.classList.contains('dark');
   
   // Choose logo based on theme
   const logoSrc = isDarkMode ? "/white_on_trans.svg" : "/black_on_trans.svg";

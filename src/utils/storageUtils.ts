@@ -25,5 +25,9 @@ export const getChatHistoryFromStorage = (): ChatHistoryItem[] => {
 
 export const updateUserSettings = (newSettings: UserSettings): void => {
   localStorage.setItem('userSettings', JSON.stringify(newSettings));
-  window.dispatchEvent(new Event('storage'));
+  
+  // Use requestAnimationFrame to ensure DOM updates have occurred
+  requestAnimationFrame(() => {
+    window.dispatchEvent(new Event('storage'));
+  });
 };
