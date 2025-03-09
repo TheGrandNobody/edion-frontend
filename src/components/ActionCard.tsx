@@ -1,7 +1,6 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { LucideIcon } from 'lucide-react';
 
 interface ActionCardProps {
   icon: string | React.ReactNode;
@@ -10,9 +9,35 @@ interface ActionCardProps {
 }
 
 const ActionCard: React.FC<ActionCardProps> = ({ icon, title, delay = 0 }) => {
+  const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
+
+  // Update theme state on any theme change
+  useEffect(() => {
+    const updateTheme = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    };
+    
+    // Check initially and on every render
+    updateTheme();
+    
+    // Listen for storage events
+    window.addEventListener('storage', updateTheme);
+    
+    // Listen for custom theme change events with higher priority
+    window.addEventListener('themeChange', updateTheme);
+    
+    return () => {
+      window.removeEventListener('storage', updateTheme);
+      window.removeEventListener('themeChange', updateTheme);
+    };
+  }, []);
+
+  // Adjust card styling based on theme
+  const cardClass = `action-card ${isDarkMode ? 'dark-card' : 'light-card'}`;
+
   return (
     <motion.div 
-      className="action-card"
+      className={cardClass}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: delay, ease: "easeOut" }}
