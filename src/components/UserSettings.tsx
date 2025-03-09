@@ -67,16 +67,6 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
     } else {
       document.documentElement.classList.remove('dark');
     }
-
-    // Cleanup function to handle component unmount or changes
-    return () => {
-      // Restore original dark mode setting if user hasn't saved
-      if (originalDarkMode) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    };
   }, [darkMode, originalDarkMode]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
