@@ -188,8 +188,15 @@
     @apply bg-secondary/90 hover:bg-secondary/70;
   }
 
-  /* New class to ensure immediate theme changes without transitions */
+  /* Class to ensure immediate theme changes without transitions */
   .theme-change-immediate {
+    transition: none !important;
+  }
+  
+  /* Make sure all SVG elements inside theme-change-immediate also have no transitions */
+  .theme-change-immediate svg,
+  .theme-change-immediate path,
+  .theme-change-immediate * {
     transition: none !important;
   }
   
@@ -205,4 +212,3 @@
     @apply transform scale-105;
   }
 }
-
