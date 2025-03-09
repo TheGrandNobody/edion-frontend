@@ -7,22 +7,38 @@ const Logo = () => {
   const { theme, resolvedTheme } = useTheme();
   const [currentTheme, setCurrentTheme] = useState<string | undefined>(undefined);
   
-  // Check for user's dark mode preference in local storage
+  // Listen for theme changes from multiple sources
   useEffect(() => {
-    const userSettings = localStorage.getItem('userSettings');
-    const darkModePreference = userSettings ? JSON.parse(userSettings).darkMode : false;
+    const updateTheme = () => {
+      const userSettings = localStorage.getItem('userSettings');
+      const darkModePreference = userSettings ? JSON.parse(userSettings).darkMode : false;
+      
+      // Priority: 1. resolvedTheme from next-themes, 2. user settings, 3. theme from next-themes
+      const effectiveTheme = resolvedTheme || (darkModePreference ? 'dark' : 'light') || theme;
+      setCurrentTheme(effectiveTheme);
+      
+      console.log('Logo theme check:', { 
+        resolvedTheme, 
+        theme, 
+        darkModePreference,
+        effectiveTheme,
+        documentClassList: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+      });
+    };
     
-    // Priority: 1. resolvedTheme from next-themes, 2. user settings, 3. theme from next-themes
-    const effectiveTheme = resolvedTheme || (darkModePreference ? 'dark' : 'light') || theme;
-    setCurrentTheme(effectiveTheme);
+    // Update initially
+    updateTheme();
     
-    console.log('Logo theme check:', { 
-      resolvedTheme, 
-      theme, 
-      darkModePreference,
-      effectiveTheme,
-      documentClassList: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
-    });
+    // Listen for storage events (when settings change)
+    window.addEventListener('storage', updateTheme);
+    
+    // Also listen for custom theme change events
+    window.addEventListener('themeChange', updateTheme);
+    
+    return () => {
+      window.removeEventListener('storage', updateTheme);
+      window.removeEventListener('themeChange', updateTheme);
+    };
   }, [theme, resolvedTheme]);
 
   // Force check document class as a fallback

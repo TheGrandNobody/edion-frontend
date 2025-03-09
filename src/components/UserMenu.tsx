@@ -30,6 +30,9 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
     
     updateUserSettings(newSettings);
     setUserSettings(newSettings);
+    
+    // Dispatch a custom event to notify the Logo component about the theme change
+    window.dispatchEvent(new Event('themeChange'));
   };
 
   const goToSettings = () => {
