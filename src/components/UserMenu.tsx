@@ -38,7 +38,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
       document.documentElement.classList.remove('dark');
     }
     
-    // Save to storage
+    // Save to storage immediately without requiring "Save Changes"
     updateUserSettings(newSettings);
     
     // Notify components that need to respond to theme changes

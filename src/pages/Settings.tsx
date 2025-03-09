@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { getUserSettingsFromStorage, updateUserSettings } from '../utils/storageUtils';
 
 const getUserSettingsFromStorage = (): UserSettingsType => {
   const storedSettings = localStorage.getItem('userSettings');
@@ -65,16 +66,26 @@ const Settings = () => {
     if (croppedImage) {
       setProfilePicture(croppedImage);
       setShowCropper(false);
+
+      const newSettings = getUserSettingsFromStorage();
+      updateUserSettings({
+        ...newSettings,
+        profilePicture: croppedImage
+      });
     }
   }, [croppedImage]);
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
+    const handleStorageChange = () => {
+      const settings = getUserSettingsFromStorage();
+      setDarkMode(settings.darkMode);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -90,13 +101,6 @@ const Settings = () => {
 
   const handleCancel = () => {
     const originalSettings = getUserSettingsFromStorage();
-    
-    if (originalSettings.darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
     navigate(-1);
   };
 
@@ -109,7 +113,7 @@ const Settings = () => {
       darkMode,
     };
     
-    localStorage.setItem('userSettings', JSON.stringify(newSettings));
+    updateUserSettings(newSettings);
     
     toast({
       title: "Settings saved",

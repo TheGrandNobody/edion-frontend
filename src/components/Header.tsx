@@ -1,7 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useTheme } from 'next-themes';
 import ChatHistoryMenu from './ChatHistory';
 import UserMenu from './UserMenu';
 import HistoryButton from './HistoryButton';
@@ -11,7 +11,6 @@ import { getUserSettingsFromStorage, getChatHistoryFromStorage } from '../utils/
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setTheme } = useTheme();
   const [showHistory, setShowHistory] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>(getChatHistoryFromStorage());
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
@@ -19,18 +18,6 @@ const Header = () => {
   if (location.pathname === '/settings') {
     return null;
   }
-
-  useEffect(() => {
-    if (userSettings.darkMode) {
-      setTheme('dark');
-      document.documentElement.classList.add('dark');
-    } else {
-      setTheme('light');
-      document.documentElement.classList.remove('dark');
-    }
-    
-    window.dispatchEvent(new Event('themeChange'));
-  }, [userSettings.darkMode, setTheme]);
 
   useEffect(() => {
     const handleStorageChange = () => {
