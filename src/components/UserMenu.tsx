@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Settings, Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -27,19 +28,21 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
       darkMode: !userSettings.darkMode
     };
     
+    // Update local settings state
     setUserSettings(newSettings);
     
+    // Directly manipulate DOM for immediate visual feedback
     if (newSettings.darkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
     
+    // Save to storage
     updateUserSettings(newSettings);
     
-    requestAnimationFrame(() => {
-      window.dispatchEvent(new Event('themeChange'));
-    });
+    // Notify components that need to respond to theme changes
+    window.dispatchEvent(new Event('themeChange'));
   };
 
   const goToSettings = () => {

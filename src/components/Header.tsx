@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -7,7 +6,6 @@ import ChatHistoryMenu from './ChatHistory';
 import UserMenu from './UserMenu';
 import HistoryButton from './HistoryButton';
 import { UserSettings as UserSettingsType, ChatHistoryItem } from '../types';
-import { useThemeEffect } from '@/hooks/use-theme-effect';
 import { getUserSettingsFromStorage, getChatHistoryFromStorage } from '../utils/storageUtils';
 
 const Header = () => {
@@ -22,22 +20,23 @@ const Header = () => {
     return null;
   }
 
-  // Use our custom hook for theme effects
-  useThemeEffect(userSettings);
+  useEffect(() => {
+    if (userSettings.darkMode) {
+      setTheme('dark');
+      document.documentElement.classList.add('dark');
+    } else {
+      setTheme('light');
+      document.documentElement.classList.remove('dark');
+    }
+    
+    window.dispatchEvent(new Event('themeChange'));
+  }, [userSettings.darkMode, setTheme]);
 
   useEffect(() => {
     const handleStorageChange = () => {
       const newSettings = getUserSettingsFromStorage();
       setChatHistory(getChatHistoryFromStorage());
       setUserSettings(newSettings);
-      
-      if (newSettings.darkMode) {
-        setTheme('dark');
-        document.documentElement.classList.add('dark');
-      } else {
-        setTheme('light');
-        document.documentElement.classList.remove('dark');
-      }
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -47,7 +46,7 @@ const Header = () => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [location.pathname, setTheme]);
+  }, [location.pathname]);
 
   const handleHistoryAction = (chatId: string) => {
     if (chatId !== '') {
