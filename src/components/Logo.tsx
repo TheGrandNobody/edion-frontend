@@ -7,16 +7,33 @@ const Logo = () => {
   const { theme, resolvedTheme } = useTheme();
   const [currentTheme, setCurrentTheme] = useState<string | undefined>(undefined);
   
+  // Check for user's dark mode preference in local storage
   useEffect(() => {
-    // Use resolvedTheme which properly detects the system preference
-    setCurrentTheme(resolvedTheme);
-    console.log('Theme updated in Logo:', { resolvedTheme, theme, currentTheme: resolvedTheme });
+    const userSettings = localStorage.getItem('userSettings');
+    const darkModePreference = userSettings ? JSON.parse(userSettings).darkMode : false;
+    
+    // Priority: 1. resolvedTheme from next-themes, 2. user settings, 3. theme from next-themes
+    const effectiveTheme = resolvedTheme || (darkModePreference ? 'dark' : 'light') || theme;
+    setCurrentTheme(effectiveTheme);
+    
+    console.log('Logo theme check:', { 
+      resolvedTheme, 
+      theme, 
+      darkModePreference,
+      effectiveTheme,
+      documentClassList: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+    });
   }, [theme, resolvedTheme]);
 
-  // Only render the correct logo once we've determined the theme
-  const logoSrc = currentTheme === 'dark' ? "/white_on_trans.svg" : "/black_on_trans.svg";
+  // Force check document class as a fallback
+  const isDarkMode = 
+    currentTheme === 'dark' || 
+    document.documentElement.classList.contains('dark');
   
-  console.log('Logo rendering with:', { currentTheme, logoSrc });
+  // Choose logo based on theme
+  const logoSrc = isDarkMode ? "/white_on_trans.svg" : "/black_on_trans.svg";
+  
+  console.log('Logo rendering with:', { currentTheme, isDarkMode, logoSrc });
 
   return (
     <motion.div 

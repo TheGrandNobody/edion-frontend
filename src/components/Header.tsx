@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid } from 'lucide-react';
@@ -46,16 +47,24 @@ const Header = () => {
   }
 
   useEffect(() => {
-    // Apply theme from user settings
-    if (userSettings.darkMode) {
-      document.documentElement.classList.add('dark');
-      setTheme('dark');
-      console.log('Setting theme to dark from Header');
-    } else {
-      document.documentElement.classList.remove('dark');
-      setTheme('light');
-      console.log('Setting theme to light from Header');
-    }
+    // Apply theme from user settings and force it to propagate
+    const applyTheme = () => {
+      if (userSettings.darkMode) {
+        document.documentElement.classList.add('dark');
+        setTheme('dark');
+        console.log('Setting theme to dark from Header');
+      } else {
+        document.documentElement.classList.remove('dark');
+        setTheme('light');
+        console.log('Setting theme to light from Header');
+      }
+    };
+    
+    applyTheme();
+    
+    // Force the theme to be applied after a short delay to ensure it propagates
+    const timeoutId = setTimeout(applyTheme, 50);
+    return () => clearTimeout(timeoutId);
   }, [userSettings.darkMode, setTheme]);
 
   useEffect(() => {
@@ -67,8 +76,10 @@ const Header = () => {
       // Ensure theme is updated if settings change in another tab/window
       if (newSettings.darkMode) {
         setTheme('dark');
+        document.documentElement.classList.add('dark');
       } else {
         setTheme('light');
+        document.documentElement.classList.remove('dark');
       }
     };
 
