@@ -1,10 +1,29 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 const Logo = () => {
-  // Use document class directly for immediate feedback - no state needed
-  const isDark = document.documentElement.classList.contains('dark');
+  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
+  
+  useEffect(() => {
+    // Function to check and update dark mode status
+    const updateTheme = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    
+    // Set up event listener for theme changes
+    window.addEventListener('themeChange', updateTheme);
+    
+    // Initial check
+    updateTheme();
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('themeChange', updateTheme);
+    };
+  }, []);
+  
+  // Determine logo source based on current theme
   const logoSrc = isDark ? "/white_on_trans.svg" : "/black_on_trans.svg";
   
   return (
@@ -19,9 +38,9 @@ const Logo = () => {
           <img 
             src={logoSrc} 
             alt="edion logo" 
-            className="h-16 w-auto mr-3 theme-change-immediate" 
+            className="h-16 w-auto mr-3" 
           />
-          <span className="text-5xl font-light tracking-wider theme-change-immediate">edion</span>
+          <span className="text-5xl font-light tracking-wider">edion</span>
         </div>
       </div>
     </motion.div>

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 interface ActionCardProps {
@@ -9,11 +9,28 @@ interface ActionCardProps {
 }
 
 const ActionCard: React.FC<ActionCardProps> = ({ icon, title, delay = 0 }) => {
-  // Check theme directly from DOM for immediate response
-  const isDarkMode = document.documentElement.classList.contains('dark');
+  const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
   
-  // Determine card class based on current theme - without transitions for instant theme switching
-  const cardClass = `action-card ${isDarkMode ? 'dark-card' : 'light-card'} theme-change-immediate`;
+  useEffect(() => {
+    // Function to check and update dark mode status
+    const updateTheme = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    };
+    
+    // Set up event listener for theme changes
+    window.addEventListener('themeChange', updateTheme);
+    
+    // Initial check
+    updateTheme();
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('themeChange', updateTheme);
+    };
+  }, []);
+  
+  // Determine card class based on current theme
+  const cardClass = `action-card ${isDarkMode ? 'dark-card' : 'light-card'}`;
 
   return (
     <motion.div 
