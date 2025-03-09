@@ -30,7 +30,7 @@ const Logo = () => {
     currentTheme === 'dark' || 
     document.documentElement.classList.contains('dark');
   
-  // Choose logo based on theme
+  // Choose logo based on theme - fix: using the correct logo for each mode
   const logoSrc = isDarkMode ? "/white_on_trans.svg" : "/black_on_trans.svg";
   
   console.log('Logo rendering with:', { currentTheme, isDarkMode, logoSrc });
