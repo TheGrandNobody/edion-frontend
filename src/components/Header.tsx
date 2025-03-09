@@ -1,13 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Settings, Moon, Sun } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ChatHistoryMenu from './ChatHistory';
 import { UserSettings as UserSettingsType, ChatHistoryItem } from '../types';
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from 'next-themes';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const getUserSettingsFromStorage = (): UserSettingsType => {
   const storedSettings = localStorage.getItem('userSettings');
@@ -122,6 +129,22 @@ const Header = () => {
     navigate('/settings');
   };
 
+  const toggleDarkMode = () => {
+    const newSettings = {
+      ...userSettings,
+      darkMode: !userSettings.darkMode
+    };
+    
+    localStorage.setItem('userSettings', JSON.stringify(newSettings));
+    setUserSettings(newSettings);
+    
+    // Theme will be updated via useEffect
+    toast({
+      title: `${newSettings.darkMode ? 'Dark' : 'Light'} mode enabled`,
+      description: `Theme has been switched to ${newSettings.darkMode ? 'dark' : 'light'} mode`,
+    });
+  };
+
   // Handle closing the history menu when clicking outside
   const handleOutsideClick = (e: React.MouseEvent) => {
     if (showHistory) {
@@ -146,18 +169,41 @@ const Header = () => {
           <LayoutGrid className="w-5 h-5" />
         </motion.button>
         
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <Avatar 
-            className="h-10 w-10 cursor-pointer"
-            onClick={goToSettings}
-          >
-            <AvatarImage src={userSettings.profilePicture} alt="User" />
-            <AvatarFallback>{userSettings.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-          </Avatar>
-        </motion.div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Avatar 
+                className="h-10 w-10 cursor-pointer"
+              >
+                <AvatarImage src={userSettings.profilePicture} alt="User" />
+                <AvatarFallback>{userSettings.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+              </Avatar>
+            </motion.div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <div className="flex items-center justify-between px-2 py-1.5">
+              <span className="text-sm font-medium">Theme</span>
+              <button
+                onClick={toggleDarkMode}
+                className="p-1 rounded-md hover:bg-secondary"
+              >
+                {userSettings.darkMode ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={goToSettings} className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </motion.header>
 
       {showHistory && (

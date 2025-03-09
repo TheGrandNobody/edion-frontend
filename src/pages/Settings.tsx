@@ -1,15 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Lock, Mail, Shield, Check, RefreshCw } from 'lucide-react';
 import ImageCropper from '../components/ImageCropper';
 import { UserSettings as UserSettingsType } from '../types';
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-// Remove the Header import since we no longer need it
 
 const getUserSettingsFromStorage = (): UserSettingsType => {
   const storedSettings = localStorage.getItem('userSettings');
@@ -38,27 +35,23 @@ const Settings = () => {
   const [showCropper, setShowCropper] = useState(false);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
 
-  // Password change state
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   
-  // Email change state
   const [showEmailChange, setShowEmailChange] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [emailPassword, setEmailPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   
-  // 2FA state
   const [showQRCode, setShowQRCode] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [verificationMethod, setVerificationMethod] = useState<'email' | 'sms' | 'authenticator'>('authenticator');
   const [setupStep, setSetupStep] = useState(1);
   const [twoFactorCode, setTwoFactorCode] = useState("");
 
-  // Load settings on component mount
   useEffect(() => {
     const settings = getUserSettingsFromStorage();
     setUsername(settings.username);
@@ -75,7 +68,6 @@ const Settings = () => {
     }
   }, [croppedImage]);
 
-  // Apply dark mode in real-time when the toggle changes
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -99,14 +91,12 @@ const Settings = () => {
   const handleCancel = () => {
     const originalSettings = getUserSettingsFromStorage();
     
-    // Revert dark mode to original setting
     if (originalSettings.darkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
     
-    // Navigate back
     navigate(-1);
   };
 
@@ -130,7 +120,6 @@ const Settings = () => {
   };
 
   const handleChangePassword = () => {
-    // Validate passwords
     if (newPassword !== confirmPassword) {
       toast({
         title: "Error",
@@ -149,8 +138,6 @@ const Settings = () => {
       return;
     }
 
-    // In a real app, you would send the passwords to your backend here
-    // For this example, we'll just simulate success
     toast({
       title: "Password updated",
       description: "Your password has been changed successfully",
@@ -163,7 +150,6 @@ const Settings = () => {
 
   const handleChangeEmail = () => {
     if (!emailSent) {
-      // Validate email
       if (!newEmail.includes('@') || !newEmail.includes('.')) {
         toast({
           title: "Error",
@@ -173,16 +159,13 @@ const Settings = () => {
         return;
       }
 
-      // In a real app, you would send the verification code to the new email
-      // For this example, we'll just simulate success
       setEmailSent(true);
       toast({
         title: "Verification code sent",
         description: `We've sent a verification code to ${newEmail}`,
       });
     } else {
-      // Verify the code
-      if (verificationCode !== "123456") { // Demo code
+      if (verificationCode !== "123456") {
         toast({
           title: "Error",
           description: "Invalid verification code. For this demo, use 123456",
@@ -208,8 +191,7 @@ const Settings = () => {
     if (setupStep === 1) {
       setSetupStep(2);
     } else if (setupStep === 2) {
-      // Verify the code
-      if (twoFactorCode !== "123456") { // Demo code
+      if (twoFactorCode !== "123456") {
         toast({
           title: "Error",
           description: "Invalid verification code. For this demo, use 123456",
@@ -239,8 +221,6 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* We no longer need to include the Header component here */}
-      
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">User Settings</h1>
@@ -252,10 +232,9 @@ const Settings = () => {
         
         <div className="bg-card rounded-lg shadow-sm p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 mb-8 w-full">
+            <TabsList className="grid grid-cols-2 mb-8 w-full">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="security">Security</TabsTrigger>
-              <TabsTrigger value="preferences">Preferences</TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile" className="space-y-6">
@@ -637,22 +616,6 @@ const Settings = () => {
                   </div>
                 </div>
               )}
-            </TabsContent>
-
-            <TabsContent value="preferences" className="space-y-6">
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Application Preferences</h2>
-                
-                <div className="flex items-center justify-between py-3 border-b border-border">
-                  <span className="font-medium">Dark Mode</span>
-                  <Switch
-                    checked={darkMode}
-                    onCheckedChange={(value) => {
-                      setDarkMode(value);
-                    }}
-                  />
-                </div>
-              </div>
             </TabsContent>
           </Tabs>
         </div>
