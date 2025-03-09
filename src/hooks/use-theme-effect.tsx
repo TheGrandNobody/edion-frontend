@@ -11,16 +11,17 @@ export function useThemeEffect(userSettings: UserSettings) {
       if (userSettings.darkMode) {
         document.documentElement.classList.add('dark');
         setTheme('dark');
-        console.log('Setting theme to dark from Header');
+        console.log('Setting theme to dark from Hook');
       } else {
         document.documentElement.classList.remove('dark');
         setTheme('light');
-        console.log('Setting theme to light from Header');
+        console.log('Setting theme to light from Hook');
       }
     };
     
     applyTheme();
     
+    // Add a small delay to ensure the theme is applied after any animations
     const timeoutId = setTimeout(applyTheme, 50);
     return () => clearTimeout(timeoutId);
   }, [userSettings.darkMode, setTheme]);
