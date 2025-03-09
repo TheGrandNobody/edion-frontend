@@ -12,8 +12,8 @@ const ActionCard: React.FC<ActionCardProps> = ({ icon, title, delay = 0 }) => {
   // Check theme directly from DOM for immediate response
   const isDarkMode = document.documentElement.classList.contains('dark');
   
-  // Determine card class based on current theme
-  const cardClass = `action-card ${isDarkMode ? 'dark-card' : 'light-card'}`;
+  // Determine card class based on current theme - without transitions for instant theme switching
+  const cardClass = `action-card ${isDarkMode ? 'dark-card' : 'light-card'} theme-change-immediate`;
 
   return (
     <motion.div 

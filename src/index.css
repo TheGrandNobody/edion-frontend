@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -175,7 +176,8 @@
   }
   
   .action-card {
-    @apply rounded-lg p-4 flex items-center gap-4 transition-all duration-200 cursor-pointer;
+    @apply rounded-lg p-4 flex items-center gap-4 cursor-pointer;
+    /* Remove the transition-all duration-200 that was causing the fade effect */
   }
   
   .light-card {
@@ -184,6 +186,11 @@
   
   .dark-card {
     @apply bg-secondary/90 hover:bg-secondary/70;
+  }
+
+  /* New class to ensure immediate theme changes without transitions */
+  .theme-change-immediate {
+    transition: none !important;
   }
   
   .logo-container {
