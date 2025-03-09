@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid, Settings, Moon, Sun } from 'lucide-react';
@@ -48,13 +47,11 @@ const Header = () => {
   
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
 
-  // Hide header on settings page
   if (location.pathname === '/settings') {
     return null;
   }
 
   useEffect(() => {
-    // Apply theme from user settings and force it to propagate
     const applyTheme = () => {
       if (userSettings.darkMode) {
         document.documentElement.classList.add('dark');
@@ -69,7 +66,6 @@ const Header = () => {
     
     applyTheme();
     
-    // Force the theme to be applied after a short delay to ensure it propagates
     const timeoutId = setTimeout(applyTheme, 50);
     return () => clearTimeout(timeoutId);
   }, [userSettings.darkMode, setTheme]);
@@ -80,7 +76,6 @@ const Header = () => {
       setChatHistory(getChatHistoryFromStorage());
       setUserSettings(newSettings);
       
-      // Ensure theme is updated if settings change in another tab/window
       if (newSettings.darkMode) {
         setTheme('dark');
         document.documentElement.classList.add('dark');
@@ -137,15 +132,8 @@ const Header = () => {
     
     localStorage.setItem('userSettings', JSON.stringify(newSettings));
     setUserSettings(newSettings);
-    
-    // Theme will be updated via useEffect
-    toast({
-      title: `${newSettings.darkMode ? 'Dark' : 'Light'} mode enabled`,
-      description: `Theme has been switched to ${newSettings.darkMode ? 'dark' : 'light'} mode`,
-    });
   };
 
-  // Handle closing the history menu when clicking outside
   const handleOutsideClick = (e: React.MouseEvent) => {
     if (showHistory) {
       setShowHistory(false);
