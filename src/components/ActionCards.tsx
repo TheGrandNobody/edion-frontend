@@ -1,11 +1,27 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import ActionCard from './ActionCard';
 import { FileText, PenSquare, AlertTriangle } from 'lucide-react';
 
 const ActionCards = () => {
-  // Check current theme directly from the DOM
-  const isDarkMode = document.documentElement.classList.contains('dark');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  // Update dark mode status on mount and when theme changes
+  useEffect(() => {
+    const updateThemeStatus = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    };
+    
+    // Set initial state
+    updateThemeStatus();
+    
+    // Listen for theme changes
+    window.addEventListener('themeChange', updateThemeStatus);
+    
+    return () => {
+      window.removeEventListener('themeChange', updateThemeStatus);
+    };
+  }, []);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-xl mx-auto">

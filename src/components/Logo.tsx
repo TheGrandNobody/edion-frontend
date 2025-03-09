@@ -1,12 +1,31 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 const Logo = () => {
-  // Use document class directly for immediate feedback - no state needed
-  const logoSrc = document.documentElement.classList.contains('dark') 
-    ? "/white_on_trans.svg" 
-    : "/black_on_trans.svg";
+  const [logoSrc, setLogoSrc] = useState('');
+  
+  // Function to update logo based on current theme
+  const updateLogoSrc = () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    setLogoSrc(isDark ? "/white_on_trans.svg" : "/black_on_trans.svg");
+  };
+  
+  // Set initial logo on mount
+  useEffect(() => {
+    updateLogoSrc();
+    
+    // Listen for theme changes
+    const handleThemeChange = () => {
+      updateLogoSrc();
+    };
+    
+    window.addEventListener('themeChange', handleThemeChange);
+    
+    return () => {
+      window.removeEventListener('themeChange', handleThemeChange);
+    };
+  }, []);
   
   return (
     <motion.div 
