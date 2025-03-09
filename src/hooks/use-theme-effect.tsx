@@ -8,6 +8,7 @@ export function useThemeEffect(userSettings: UserSettings) {
 
   useEffect(() => {
     const applyTheme = () => {
+      // Apply theme changes immediately
       if (userSettings.darkMode) {
         document.documentElement.classList.add('dark');
         setTheme('dark');
@@ -19,11 +20,10 @@ export function useThemeEffect(userSettings: UserSettings) {
       }
     };
     
+    // Apply theme immediately
     applyTheme();
     
-    // Add a small delay to ensure the theme is applied after any animations
-    const timeoutId = setTimeout(applyTheme, 50);
-    return () => clearTimeout(timeoutId);
+    // No delay needed anymore as we're focusing on immediate updates
   }, [userSettings.darkMode, setTheme]);
 
   return null;

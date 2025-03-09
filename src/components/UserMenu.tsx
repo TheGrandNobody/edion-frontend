@@ -28,10 +28,18 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
       darkMode: !userSettings.darkMode
     };
     
+    // Apply theme change to DOM immediately before storage update
+    if (newSettings.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    
+    // Then update storage and state
     updateUserSettings(newSettings);
     setUserSettings(newSettings);
     
-    // Dispatch a custom event to notify the Logo component about the theme change
+    // Dispatch event after immediate DOM changes
     window.dispatchEvent(new Event('themeChange'));
   };
 

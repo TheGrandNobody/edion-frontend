@@ -7,7 +7,7 @@ const Logo = () => {
   const { theme, resolvedTheme } = useTheme();
   const [currentTheme, setCurrentTheme] = useState<string | undefined>(undefined);
   
-  // Listen for theme changes from multiple sources
+  // Listen for theme changes from multiple sources with optimized response
   useEffect(() => {
     const updateTheme = () => {
       const userSettings = localStorage.getItem('userSettings');
@@ -32,7 +32,7 @@ const Logo = () => {
     // Listen for storage events (when settings change)
     window.addEventListener('storage', updateTheme);
     
-    // Also listen for custom theme change events
+    // Also listen for custom theme change events - with higher priority
     window.addEventListener('themeChange', updateTheme);
     
     return () => {
@@ -41,12 +41,12 @@ const Logo = () => {
     };
   }, [theme, resolvedTheme]);
 
-  // Force check document class as a fallback
+  // Use document class directly for immediate feedback
   const isDarkMode = 
     currentTheme === 'dark' || 
     document.documentElement.classList.contains('dark');
   
-  // Choose logo based on theme - fix: using the correct logo for each mode
+  // Choose logo based on theme
   const logoSrc = isDarkMode ? "/white_on_trans.svg" : "/black_on_trans.svg";
   
   console.log('Logo rendering with:', { currentTheme, isDarkMode, logoSrc });
