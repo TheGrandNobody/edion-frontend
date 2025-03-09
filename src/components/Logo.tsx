@@ -63,9 +63,9 @@ const Logo = () => {
           <img 
             src={logoSrc} 
             alt="edion logo" 
-            className="h-12 w-auto mr-2" 
+            className="h-16 w-auto mr-3" 
           />
-          <span className="text-4xl font-light tracking-wider">edion</span>
+          <span className="text-5xl font-light tracking-wider">edion</span>
         </div>
       </div>
     </motion.div>
