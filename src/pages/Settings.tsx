@@ -9,20 +9,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getUserSettingsFromStorage, updateUserSettings } from '../utils/storageUtils';
 
-const getUserSettingsFromStorage = (): UserSettingsType => {
-  const storedSettings = localStorage.getItem('userSettings');
-  if (storedSettings) {
-    return JSON.parse(storedSettings);
-  }
-  return {
-    username: 'teacher_jane',
-    fullName: 'Jane Smith',
-    email: 'jane.smith@school.edu',
-    profilePicture: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=256&q=80',
-    darkMode: false,
-  };
-};
-
 const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
