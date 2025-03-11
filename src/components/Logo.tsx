@@ -38,7 +38,7 @@ const Logo = () => {
           <img 
             src={logoSrc} 
             alt="edion logo" 
-            className="h-32 w-auto mr-5 theme-change-immediate" 
+            className="h-32 w-auto mr-2 theme-change-immediate" 
           />
           <span className="text-7xl font-light tracking-wider theme-change-immediate bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">edion</span>
         </div>
