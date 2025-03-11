@@ -26,7 +26,7 @@ const Index = () => {
       <Header />
       
       <main className="flex-grow flex flex-col items-center justify-center px-4">
-        <div className="my-16">
+        <div className="mb-8">
           <Logo />
         </div>
         
