@@ -43,7 +43,7 @@ const ActionCard: React.FC<ActionCardProps> = ({ icon, title, color = 'gray', de
 
   return (
     <motion.div 
-      className={`flex items-center py-2.5 px-6 rounded-full shadow-sm backdrop-blur-sm ${getBackgroundClasses()}`}
+      className={`flex items-center py-2.5 px-6 rounded-full shadow-sm backdrop-blur-sm cursor-pointer ${getBackgroundClasses()}`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: delay, ease: "easeOut" }}
