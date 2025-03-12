@@ -658,7 +658,8 @@ const Chat = () => {
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       placeholder="Ask anything"
-                      className="w-full px-4 py-3 sm:py-3.5 pr-24 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-blue-500 text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400 resize-none overflow-hidden leading-6"
+                      className="w-full px-4 py-3 sm:py-3.5 pr-24 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-blue-500 text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400 resize-none overflow-hidden leading-6 flex items-center"
+                      style={{ minHeight: '46px', maxHeight: '150px', paddingTop: '12px' }}
                       rows={Math.min(5, inputValue.split('\n').length + 1)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
