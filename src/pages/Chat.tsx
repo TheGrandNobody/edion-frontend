@@ -25,6 +25,7 @@ import PDFViewer from '../components/PDFViewer';
 import TabBar from '../components/TabBar';
 import ChatHistoryMenu from '../components/ChatHistory';
 import { generateStudentReportPDF } from '../utils/pdfUtils';
+import FileUploadMenu from '../components/FileUploadMenu';
 
 const getUserSettingsFromStorage = (): UserSettingsType => {
   const storedSettings = localStorage.getItem('userSettings');
@@ -459,6 +460,69 @@ const Chat = () => {
     }
   };
 
+  const handleFileSelect = (file: File) => {
+    const activeTab = getActiveTab();
+    if (!activeTab) return;
+    
+    const updatedTabs = tabs.map(tab => {
+      if (tab.id === activeTabId) {
+        const updatedMessages = [
+          ...tab.messages,
+          {
+            id: tab.messages.length + 1,
+            text: `I've uploaded ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+            isUser: true,
+          }
+        ];
+        
+        return {
+          ...tab,
+          messages: updatedMessages,
+        };
+      }
+      return tab;
+    });
+    
+    setTabs(updatedTabs);
+    localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
+
+    setTimeout(scrollToBottom, 50);
+
+    setTimeout(() => {
+      setTabs(prevTabs => prevTabs.map(tab => {
+        if (tab.id === activeTabId) {
+          return {
+            ...tab,
+            messages: [
+              ...tab.messages,
+              {
+                id: tab.messages.length + 1,
+                text: `I'll analyze ${file.name} for you. What would you like to know about it?`,
+                isUser: false,
+              }
+            ],
+          };
+        }
+        return tab;
+      }));
+      
+      setTimeout(scrollToBottom, 50);
+    }, 1000);
+    
+    const updatedHistory = chatHistory.map(chat => {
+      if (chat.id === activeTabId) {
+        return {
+          ...chat,
+          lastMessage: `Uploaded ${file.name}`,
+        };
+      }
+      return chat;
+    });
+    
+    setChatHistory(updatedHistory);
+    localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -610,12 +674,9 @@ const Chat = () => {
                       >
                         <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
                       </button>
-                      <button
-                        type="button"
-                        className="p-1.5 sm:p-2 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
-                      >
-                        <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
+                      
+                      <FileUploadMenu onFileSelect={handleFileSelect} />
+                      
                       <button
                         type="submit"
                         className={cn(
