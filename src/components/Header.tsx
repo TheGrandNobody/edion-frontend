@@ -15,9 +15,8 @@ const Header = () => {
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>(getChatHistoryFromStorage());
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
 
-  if (location.pathname === '/settings') {
-    return null;
-  }
+  // Settings page still needs UserMenu for theme toggle, but not the full header
+  const isSettingsPage = location.pathname === '/settings';
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -60,6 +59,20 @@ const Header = () => {
   const toggleHistory = () => {
     setShowHistory(!showHistory);
   };
+
+  // If on settings page, only show UserMenu for theme toggle
+  if (isSettingsPage) {
+    return (
+      <motion.div 
+        className="absolute top-6 right-6 z-10"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <UserMenu userSettings={userSettings} setUserSettings={setUserSettings} />
+      </motion.div>
+    );
+  }
 
   return (
     <>

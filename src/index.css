@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -194,5 +195,18 @@
   
   .logo-container:hover .logo {
     @apply transform scale-105;
+  }
+  
+  /* Word wrapping utilities */
+  .break-words {
+    word-break: break-word;
+  }
+  
+  .overflow-wrap-anywhere {
+    overflow-wrap: anywhere;
+  }
+  
+  .hyphens-auto {
+    hyphens: auto;
   }
 }

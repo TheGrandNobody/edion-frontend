@@ -73,7 +73,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
             </div>
           ) : (
             <div className="relative group">
-              <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-line">
+              <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-line break-words overflow-wrap-anywhere hyphens-auto">
                 {message.text}
               </p>
               {onEditMessage && (
@@ -108,7 +108,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
             : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1), 0 -2px 6px -2px rgba(255, 255, 255, 0.5) inset',
         }}
       >
-        <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-line">
+        <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-line break-words overflow-wrap-anywhere hyphens-auto">
           {message.text}
         </p>
       </div>
