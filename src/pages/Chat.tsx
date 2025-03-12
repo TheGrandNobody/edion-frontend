@@ -658,7 +658,7 @@ const Chat = () => {
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       placeholder="Ask anything"
-                      className="w-full px-4 py-3 sm:py-3.5 pr-24 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-blue-500 text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400 resize-none overflow-hidden"
+                      className="w-full px-4 py-3 sm:py-3.5 pr-24 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-blue-500 text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400 resize-none overflow-hidden leading-6"
                       rows={Math.min(5, inputValue.split('\n').length + 1)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
@@ -670,17 +670,17 @@ const Chat = () => {
                     <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 sm:space-x-2">
                       <button
                         type="button"
-                        className="p-1.5 sm:p-2 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+                        className="p-1.5 sm:p-2 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm flex items-center justify-center"
                       >
                         <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
                       </button>
                       
-                      <FileUploadMenu onFileSelect={handleFileSelect} />
+                      <FileUploadMenu />
                       
                       <button
                         type="submit"
                         className={cn(
-                          "p-1.5 sm:p-2 rounded-lg text-white",
+                          "p-1.5 sm:p-2 rounded-lg text-white flex items-center justify-center",
                           "bg-indigo-500 hover:bg-indigo-600 dark:bg-blue-500 dark:hover:bg-blue-600"
                         )}
                       >
