@@ -3,7 +3,7 @@ import { LayoutGrid } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatTab, UserSettings } from '../types';
 import TabBar from './TabBar';
-import ChatUserMenu from './ChatUserMenu';
+import UserMenu from './UserMenu';
 
 interface ChatHeaderProps {
   toggleHistory: () => void;
@@ -56,7 +56,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
       
       <div className="ml-3">
-        <ChatUserMenu 
+        <UserMenu 
           userSettings={localUserSettings} 
           setUserSettings={(newSettings: UserSettings) => {
             setLocalUserSettings(newSettings);
