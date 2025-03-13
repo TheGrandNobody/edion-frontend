@@ -3,7 +3,7 @@ import { LayoutGrid } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatTab, UserSettings } from '../types';
 import TabBar from './TabBar';
-import UserMenu from './UserMenu';
+import ChatUserMenu from './ChatUserMenu';
 
 interface ChatHeaderProps {
   toggleHistory: () => void;
@@ -56,11 +56,17 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
       
       <div className="ml-3">
-        <UserMenu 
+        <ChatUserMenu 
           userSettings={localUserSettings} 
-          setUserSettings={(newSettings) => {
+          setUserSettings={(newSettings: UserSettings) => {
             setLocalUserSettings(newSettings);
-            // If we need to propagate changes up, we could call a callback here
+            // Propagate changes up to the parent component
+            if (newSettings.darkMode !== userSettings.darkMode) {
+              // This will trigger the theme change in the parent
+              window.dispatchEvent(new CustomEvent('themeChanged', { 
+                detail: { darkMode: newSettings.darkMode, timestamp: Date.now() }
+              }));
+            }
           }} 
         />
       </div>

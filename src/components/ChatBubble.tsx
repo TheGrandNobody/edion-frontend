@@ -16,7 +16,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
 
   // Listen for theme changes
   useEffect(() => {
-    const handleThemeChange = () => {
+    const handleThemeChange = (event: CustomEvent) => {
       setForceUpdate(prev => prev + 1);
       
       // Force image reload
@@ -25,17 +25,24 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
         iconRef.current.src = '';
         setTimeout(() => {
           if (iconRef.current) {
-            iconRef.current.src = currentSrc;
+            iconRef.current.src = darkMode ? '/black_on_white.svg' : '/white_on_black.svg';
           }
         }, 10);
       }
     };
     
-    window.addEventListener('themeChanged', handleThemeChange);
+    window.addEventListener('themeChanged', handleThemeChange as EventListener);
     return () => {
-      window.removeEventListener('themeChanged', handleThemeChange);
+      window.removeEventListener('themeChanged', handleThemeChange as EventListener);
     };
-  }, []);
+  }, [darkMode]);
+
+  // Also update when darkMode prop changes
+  useEffect(() => {
+    if (iconRef.current) {
+      iconRef.current.src = darkMode ? '/black_on_white.svg' : '/white_on_black.svg';
+    }
+  }, [darkMode]);
 
   const handleEditSubmit = () => {
     if (onEditMessage && editText.trim() !== '') {

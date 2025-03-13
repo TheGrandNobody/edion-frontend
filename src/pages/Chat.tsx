@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserSettings as UserSettingsType } from '../types';
 import PDFViewer from '../components/PDFViewer';
@@ -26,6 +26,10 @@ const getUserSettingsFromStorage = (): UserSettingsType => {
 const Chat = () => {
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
   const navigate = useNavigate();
+  // Add this state to force re-renders
+  const [forceUpdate, setForceUpdate] = useState(0);
+  // Track if this is the first load
+  const isInitialMount = useRef(true);
 
   const {
     showHistory,
@@ -47,6 +51,28 @@ const Chat = () => {
   const getActiveTab = () => tabs.find(tab => tab.id === activeTabId);
 
   useEffect(() => {
+    // Apply theme immediately on first load
+    if (isInitialMount.current) {
+      // First, disable all transitions
+      document.documentElement.classList.add('disable-transitions');
+      
+      // Apply theme change
+      if (userSettings.darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      
+      // Re-enable transitions after a small delay
+      setTimeout(() => {
+        document.documentElement.classList.remove('disable-transitions');
+      }, 1);
+      
+      isInitialMount.current = false;
+      return;
+    }
+    
+    // For subsequent theme changes
     // First, disable all transitions
     document.documentElement.classList.add('disable-transitions');
     
@@ -68,9 +94,6 @@ const Chat = () => {
     return () => clearTimeout(timer);
   }, [userSettings.darkMode]);
 
-  // Add this state to force re-renders
-  const [forceUpdate, setForceUpdate] = useState(0);
-  
   // Listen for theme changes from other components
   useEffect(() => {
     const handleThemeChange = (event: CustomEvent) => {

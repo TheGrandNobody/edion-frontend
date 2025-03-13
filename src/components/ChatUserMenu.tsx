@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Settings, Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -13,14 +13,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface UserMenuProps {
+interface ChatUserMenuProps {
   userSettings: UserSettings;
-  setUserSettings: React.Dispatch<React.SetStateAction<UserSettings>>;
+  setUserSettings: (newSettings: UserSettings) => void;
 }
 
-const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) => {
+const ChatUserMenu: React.FC<ChatUserMenuProps> = ({ userSettings, setUserSettings }) => {
   const navigate = useNavigate();
   const buttonRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
   
   // Handle clicks outside to remove focus
   useEffect(() => {
@@ -36,6 +37,21 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Listen for theme changes to keep dropdown open
+  useEffect(() => {
+    const handleThemeChange = () => {
+      // Ensure dropdown stays open after theme change
+      setTimeout(() => {
+        setIsOpen(true);
+      }, 50);
+    };
+    
+    window.addEventListener('themeChanged', handleThemeChange);
+    return () => {
+      window.removeEventListener('themeChanged', handleThemeChange);
     };
   }, []);
   
@@ -94,16 +110,24 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
 
   const goToSettings = () => {
     navigate('/settings');
+    setIsOpen(false); // Close dropdown after navigation
+  };
+
+  const handleAvatarClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOpen(!isOpen);
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <motion.div
           ref={buttonRef}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className="theme-change-immediate focus:outline-none"
+          onClick={handleAvatarClick}
         >
           <Avatar 
             className="h-10 w-10 cursor-pointer theme-change-immediate focus:ring-0 focus:ring-offset-0"
@@ -143,4 +167,4 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
   );
 };
 
-export default UserMenu;
+export default ChatUserMenu; 
