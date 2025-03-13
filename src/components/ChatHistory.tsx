@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Search, FileText, Dumbbell, GraduationCap, School, Trash2 } from 'lucide-react';
 import { ChatHistoryItem } from '../types';
@@ -79,10 +78,10 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
                 <span className="font-medium">Reports</span>
               </button>
               <div className="mt-1 sm:mt-2 space-y-1">
-                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded hover:text-blue-600 dark:hover:text-blue-400">
                   Jossman Delft: March 2024
                 </button>
-                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded hover:text-blue-600 dark:hover:text-blue-400">
                   Rick Van Der Spiegel: March 2024
                 </button>
               </div>
@@ -95,10 +94,10 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
                 <span className="font-medium">Exercises</span>
               </button>
               <div className="mt-1 sm:mt-2 space-y-1">
-                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded hover:text-blue-600 dark:hover:text-blue-400">
                   Math, Division, August
                 </button>
-                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded hover:text-blue-600 dark:hover:text-blue-400">
                   Science, Chemistry, Atom Structure, March
                 </button>
               </div>
@@ -111,10 +110,10 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
                 <span className="font-medium">Curriculum</span>
               </button>
               <div className="mt-1 sm:mt-2 space-y-1">
-                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded hover:text-blue-600 dark:hover:text-blue-400">
                   World Affairs: Chapter 7
                 </button>
-                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded hover:text-blue-600 dark:hover:text-blue-400">
                   Social studies: Chapter 6
                 </button>
               </div>
@@ -127,10 +126,10 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
                 <span className="font-medium">Classroom</span>
               </button>
               <div className="mt-1 sm:mt-2 space-y-1">
-                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded hover:text-blue-600 dark:hover:text-blue-400">
                   G Block
                 </button>
-                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                <button className="w-full text-left px-3 py-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-gray-800/20 rounded hover:text-blue-600 dark:hover:text-blue-400">
                   A Block
                 </button>
               </div>

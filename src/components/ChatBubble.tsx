@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, memo, useEffect, useRef } from 'react';
 import { ChatMessage } from '../types';
 import { Pencil, Check, X } from 'lucide-react';
 
@@ -12,6 +11,31 @@ interface ChatBubbleProps {
 const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessage }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.text);
+  const [forceUpdate, setForceUpdate] = useState(0);
+  const iconRef = useRef<HTMLImageElement>(null);
+
+  // Listen for theme changes
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setForceUpdate(prev => prev + 1);
+      
+      // Force image reload
+      if (iconRef.current) {
+        const currentSrc = iconRef.current.src;
+        iconRef.current.src = '';
+        setTimeout(() => {
+          if (iconRef.current) {
+            iconRef.current.src = currentSrc;
+          }
+        }, 10);
+      }
+    };
+    
+    window.addEventListener('themeChanged', handleThemeChange);
+    return () => {
+      window.removeEventListener('themeChanged', handleThemeChange);
+    };
+  }, []);
 
   const handleEditSubmit = () => {
     if (onEditMessage && editText.trim() !== '') {
@@ -39,11 +63,14 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
     return (
       <div className="flex justify-end space-x-2">
         <div
-          className="max-w-[80%] bg-white dark:bg-gray-900 rounded-2xl p-3 sm:p-4 shadow-lg transform hover:scale-[1.01] transition-all duration-200"
+          className="max-w-[80%] bg-white dark:bg-gray-900 rounded-2xl p-3 sm:p-4 transform hover:scale-[1.01]"
           style={{
-            boxShadow: darkMode
-              ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2), 0 -2px 6px -2px rgba(255, 255, 255, 0.03) inset'
-              : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1), 0 -2px 6px -2px rgba(255, 255, 255, 0.5) inset',
+            boxShadow: `
+              0 1px 2px -1px rgba(0, 0, 0, 0.08),
+              0 2px 4px -1px rgba(0, 0, 0, 0.08),
+              0 4px 8px -2px rgba(0, 0, 0, 0.08),
+              0 -1px 2px 0 rgba(255, 255, 255, 0.05) inset
+            `
           }}
         >
           {isEditing ? (
@@ -79,7 +106,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
               {onEditMessage && (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="absolute top-0 right-0 p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-opacity"
+                  className="absolute top-0 right-0 p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <Pencil className="w-3 h-3 text-gray-500" />
                 </button>
@@ -93,22 +120,40 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
 
   return (
     <div className="flex space-x-2">
-      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-800 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-md">
+      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+        <div className="absolute inset-0 bg-black dark:bg-white" />
         <img
-          src='/white_on_black.svg'
+          ref={iconRef}
+          key={`chatbot-icon-${darkMode}-${forceUpdate}`}
+          src={darkMode ? '/black_on_white.svg' : '/white_on_black.svg'}
           alt="Chatbot Logo"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain relative z-10"
+          style={{
+            filter: darkMode ? 
+              'drop-shadow(0 1px 2px rgba(255, 255, 255, 0.1))' : 
+              'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))'
+          }}
         />
       </div>
       <div
-        className="max-w-[80%] bg-white dark:bg-gray-900 rounded-2xl p-3 sm:p-4 shadow-lg transform hover:scale-[1.01] transition-all duration-200"
+        className="max-w-[80%] bg-white dark:bg-zinc-900 rounded-2xl p-3 sm:p-4 transform hover:scale-[1.01]"
         style={{
-          boxShadow: darkMode
-            ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2), 0 -2px 6px -2px rgba(255, 255, 255, 0.03) inset'
-            : '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1), 0 -2px 6px -2px rgba(255, 255, 255, 0.5) inset',
+          boxShadow: darkMode ?
+            `
+              0 1px 2px -1px rgba(0, 0, 0, 0.15),
+              0 2px 4px -1px rgba(0, 0, 0, 0.15),
+              0 4px 8px -2px rgba(0, 0, 0, 0.15),
+              0 -1px 2px 0 rgba(255, 255, 255, 0.05) inset
+            ` :
+            `
+              0 1px 2px -1px rgba(0, 0, 0, 0.08),
+              0 2px 4px -1px rgba(0, 0, 0, 0.08),
+              0 4px 8px -2px rgba(0, 0, 0, 0.08),
+              0 -1px 2px 0 rgba(255, 255, 255, 0.05) inset
+            `
         }}
       >
-        <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-line break-words overflow-wrap-anywhere hyphens-auto">
+        <p className="text-sm text-gray-900 dark:text-zinc-100 whitespace-pre-line break-words overflow-wrap-anywhere hyphens-auto">
           {message.text}
         </p>
       </div>

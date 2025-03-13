@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 
 interface ActionCardProps {
@@ -10,35 +9,9 @@ interface ActionCardProps {
 }
 
 const ActionCard: React.FC<ActionCardProps> = ({ icon, title, color = 'gray', delay = 0 }) => {
-  const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
-  
-  useEffect(() => {
-    // Function to check and update dark mode status
-    const updateTheme = () => {
-      setIsDarkMode(document.documentElement.classList.contains('dark'));
-    };
-    
-    // Set up event listener for theme changes
-    window.addEventListener('themeChange', updateTheme);
-    
-    // Initial check
-    updateTheme();
-    
-    // Clean up
-    return () => {
-      window.removeEventListener('themeChange', updateTheme);
-    };
-  }, []);
-  
-  // Get appropriate background and hover colors based on the color prop and dark mode
+  // Get appropriate background classes without any transition for theme changes
   const getBackgroundClasses = () => {
-    const baseClasses = 'transition-all duration-200 border border-gray-200/30 dark:border-gray-800/50';
-    
-    if (isDarkMode) {
-      return `${baseClasses} bg-gray-900/50 hover:bg-gray-900/80`;
-    }
-    
-    return `${baseClasses} bg-white/80 hover:bg-white`;
+    return 'border border-gray-200/30 dark:border-gray-800/50 bg-white/80 hover:bg-white dark:bg-gray-900/50 dark:hover:bg-gray-900/80';
   };
 
   return (
@@ -50,14 +23,14 @@ const ActionCard: React.FC<ActionCardProps> = ({ icon, title, color = 'gray', de
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.98 }}
     >
-      <div className="flex-shrink-0 mr-3 theme-change-immediate">
+      <div className="flex-shrink-0 mr-3">
         {typeof icon === 'string' ? (
-          <span className="text-xl theme-change-immediate">{icon}</span>
+          <span className="text-xl">{icon}</span>
         ) : (
           icon
         )}
       </div>
-      <span className="text-sm font-medium theme-change-immediate">{title}</span>
+      <span className="text-sm font-medium">{title}</span>
     </motion.div>
   );
 };

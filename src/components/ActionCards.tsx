@@ -1,53 +1,32 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import ActionCard from './ActionCard';
 import { FileText, GraduationCap, BookOpen, HelpCircle, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const ActionCards = () => {
-  const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
-  
-  useEffect(() => {
-    // Function to check and update dark mode status
-    const updateTheme = () => {
-      setIsDarkMode(document.documentElement.classList.contains('dark'));
-    };
-    
-    // Set up event listener for theme changes
-    window.addEventListener('themeChange', updateTheme);
-    
-    // Initial check
-    updateTheme();
-    
-    // Clean up
-    return () => {
-      window.removeEventListener('themeChange', updateTheme);
-    };
-  }, []);
-
   return (
     <div className="flex flex-wrap gap-3 w-full justify-center">
       <ActionCard
-        icon={<FileText className={`w-5 h-5 ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`} />}
+        icon={<FileText className="w-5 h-5 text-purple-500 dark:text-purple-400" />}
         title="Generate report"
         color="purple"
         delay={0.1}
       />
       <ActionCard
-        icon={<GraduationCap className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`} />}
+        icon={<GraduationCap className="w-5 h-5 text-blue-500 dark:text-blue-400" />}
         title="Generate exercises"
         color="blue"
         delay={0.2}
       />
       <ActionCard
-        icon={<BookOpen className={`w-5 h-5 ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`} />}
+        icon={<BookOpen className="w-5 h-5 text-amber-500 dark:text-amber-400" />}
         title="Plan a lesson"
         color="amber"
         delay={0.3}
       />
       <ActionCard
-        icon={<HelpCircle className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-500'}`} />}
+        icon={<HelpCircle className="w-5 h-5 text-green-500 dark:text-green-400" />}
         title="Seek advice"
         color="green"
         delay={0.4}
@@ -56,7 +35,7 @@ const ActionCards = () => {
         <PopoverTrigger asChild>
           <div>
             <ActionCard
-              icon={<ChevronDown className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />}
+              icon={<ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
               title="More"
               color="gray"
               delay={0.5}

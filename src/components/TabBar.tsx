@@ -191,7 +191,7 @@ const TabBar: React.FC<TabBarProps> = ({
           <div
             key={tab.id}
             className={cn(
-              "group relative flex items-center justify-between w-full max-w-[120px] mx-1 cursor-pointer transition-colors overflow-visible",
+              "group relative flex items-center justify-between w-full max-w-[120px] mx-1 cursor-pointer overflow-visible",
               activeTabId === tab.id
                 ? "text-gray-900 dark:text-gray-100"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100",
@@ -207,34 +207,53 @@ const TabBar: React.FC<TabBarProps> = ({
           >
             {activeTabId === tab.id && (
               <div className="absolute inset-y-0 left-0 right-1.5 overflow-visible">
-                <div className="absolute inset-0 bg-indigo-50/40 dark:bg-blue-900/10 shadow-[0_0_8px_rgba(79,70,229,0.15)] dark:shadow-[0_0_8px_rgba(96,165,250,0.15)] 
-                     transform skew-x-[15deg] border-b-[1.5px] border-indigo-500/40 dark:border-blue-400/50"></div>
+                <div className="absolute inset-0 bg-white/40 dark:bg-white/5 shadow-[0_0_12px_rgba(0,0,0,0.05)] dark:shadow-[0_0_12px_rgba(255,255,255,0.03)] 
+                     transform skew-x-[15deg] border-b-2 border-indigo-500/50 dark:border-blue-400/30"></div>
               </div>
             )}
             
             <div className="flex-grow overflow-hidden px-2 py-0.5 relative z-10">
               <div className="flex flex-col">
-                <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{tab.date}</span>
+                <span className={cn(
+                  "text-xs truncate",
+                  activeTabId === tab.id 
+                    ? "text-indigo-600/90 dark:text-blue-400/90" 
+                    : "text-gray-500 dark:text-gray-400"
+                )}>
+                  {tab.date}
+                </span>
                 <span className={cn(
                   "text-xs truncate", 
-                  activeTabId === tab.id ? "font-semibold" : "font-medium"
+                  activeTabId === tab.id 
+                    ? "font-semibold text-gray-900 dark:text-white" 
+                    : "font-medium text-gray-600 dark:text-gray-300"
                 )}>
                   {tab.title}
                 </span>
               </div>
             </div>
             <button
-              className="p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-100/70 dark:hover:bg-gray-900 relative z-10 mr-1"
+              className={cn(
+                "p-0.5 rounded-full relative z-10",
+                activeTabId === tab.id
+                  ? "opacity-0 group-hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/10"
+                  : "opacity-0 group-hover:opacity-100 hover:bg-gray-100/70 dark:hover:bg-gray-800/70"
+              )}
               onClick={(e) => {
                 e.stopPropagation();
                 handleTabClose(tab.id);
               }}
             >
-              <X className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+              <X className={cn(
+                "w-3 h-3",
+                activeTabId === tab.id
+                  ? "text-gray-600 dark:text-gray-300"
+                  : "text-gray-400 dark:text-gray-500"
+              )} />
             </button>
             
             {index < visibleTabs.length - 1 && (
-              <div className="absolute right-[-4px] top-1/2 h-2/3 w-px bg-gray-200 dark:bg-gray-700 transform rotate-[-15deg] translate-y-[-50%] origin-bottom z-20"></div>
+              <div className="absolute right-[-4px] top-1/2 h-2/3 w-px bg-gray-200/50 dark:bg-gray-700/30 transform rotate-[-15deg] translate-y-[-50%] origin-bottom z-20"></div>
             )}
           </div>
         ))}
@@ -246,7 +265,7 @@ const TabBar: React.FC<TabBarProps> = ({
             <DropdownMenuTrigger asChild>
               <button 
                 className={cn(
-                  "p-1 rounded-lg flex-shrink-0 transition-colors duration-200 flex items-center justify-center",
+                  "p-1 rounded-lg flex-shrink-0 flex items-center justify-center",
                   isActiveTabHidden() 
                     ? "bg-indigo-100/80 dark:bg-blue-900/30 text-indigo-600/90 dark:text-blue-400/90 hover:bg-indigo-200/80 dark:hover:bg-blue-800/40 shadow-[0_0_5px_rgba(79,70,229,0.1)] dark:shadow-[0_0_5px_rgba(96,165,250,0.1)]" 
                     : dropdownOpen 
