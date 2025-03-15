@@ -222,7 +222,6 @@ const Chat = () => {
 
       <div className="flex-1 flex flex-col bg-gray-100 dark:bg-zinc-950">
         <ChatHeader
-          key={`header-${forceUpdate}`}
           toggleHistory={toggleHistory}
           tabs={tabs}
           activeTabId={activeTabId}

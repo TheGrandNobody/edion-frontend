@@ -62,6 +62,8 @@ export const updateUserSettings = (newSettings: UserSettings): void => {
   // Dispatch storage event for other components to update
   window.dispatchEvent(new Event('storage'));
   
-  // Dispatch theme change event
-  window.dispatchEvent(new Event('themeChange'));
+  // Dispatch theme change event - change this to match the event name in UserMenu.tsx
+  window.dispatchEvent(new CustomEvent('themeChanged', { 
+    detail: { darkMode: newSettings.darkMode, timestamp: Date.now() }
+  }));
 };

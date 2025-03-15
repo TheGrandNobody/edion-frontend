@@ -75,19 +75,23 @@ const Header = () => {
 
   return (
     <>
-      <div className="navbar-container sticky top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-3 bg-transparent">
-        <button
-          className="p-2 hover:bg-white/40 dark:hover:bg-gray-900 rounded-lg text-gray-700 dark:text-gray-200 flex items-center justify-center"
-          onClick={toggleHistory}
-        >
-          <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
+      <div className="navbar-container sticky top-0 z-10 flex h-[60px] items-center justify-between px-2 sm:px-4 bg-transparent">
+        <div className="flex-none flex items-center justify-center h-full">
+          <button
+            className="p-2 hover:bg-white/40 dark:hover:bg-gray-900 rounded-lg text-gray-700 dark:text-gray-200 flex items-center justify-center"
+            onClick={toggleHistory}
+          >
+            <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
+        </div>
         
         <div className="flex-1">
           {/* Empty flex spacer */}
         </div>
         
-        <UserMenu userSettings={userSettings} setUserSettings={setUserSettings} />
+        <div className="flex-none flex items-center justify-center h-full">
+          <UserMenu userSettings={userSettings} setUserSettings={setUserSettings} />
+        </div>
       </div>
 
       {showHistory && (

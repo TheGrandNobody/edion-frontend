@@ -206,9 +206,9 @@ const TabBar: React.FC<TabBarProps> = ({
             onDragEnd={handleDragEnd}
           >
             {activeTabId === tab.id && (
-              <div className="absolute inset-y-0 left-0 right-5 overflow-visible">
-                <div className="absolute inset-0 bg-white/40 dark:bg-white/5 shadow-[0_0_12px_rgba(0,0,0,0.05)] dark:shadow-[0_0_12px_rgba(255,255,255,0.03)] 
-                     transform skew-x-[15deg] border-b-2 border-indigo-500/50 dark:border-blue-400/30"></div>
+              <div className="absolute inset-y-0 left-0 right-0 overflow-visible">
+                <div className="absolute inset-0 bg-white/90 dark:bg-gray-800/90 shadow-[0_0_12px_rgba(0,0,0,0.08)] dark:shadow-[0_0_12px_rgba(59,130,246,0.15)] 
+                     rounded-tl-xl rounded-tr-lg border-b-2 border-indigo-500/70 dark:border-blue-400/70 before:content-[''] before:absolute before:bottom-0 before:left-[-8px] before:w-[8px] before:h-[8px] before:rounded-br-lg before:shadow-[4px_4px_0_4px_white] dark:before:shadow-[4px_4px_0_4px_#1f2937] after:content-[''] after:absolute after:bottom-0 after:right-[-8px] after:w-[8px] after:h-[8px] after:rounded-bl-lg after:shadow-[-4px_4px_0_4px_white] dark:after:shadow-[-4px_4px_0_4px_#1f2937]"></div>
               </div>
             )}
             
@@ -217,7 +217,7 @@ const TabBar: React.FC<TabBarProps> = ({
                 <span className={cn(
                   "text-xs truncate",
                   activeTabId === tab.id 
-                    ? "text-indigo-600/90 dark:text-blue-400/90" 
+                    ? "text-indigo-600 dark:text-blue-400" 
                     : "text-gray-500 dark:text-gray-400"
                 )}>
                   {tab.date}
@@ -236,8 +236,8 @@ const TabBar: React.FC<TabBarProps> = ({
               className={cn(
                 "p-0.5 rounded-full relative z-10 mr-1",
                 activeTabId === tab.id
-                  ? "opacity-0 group-hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/10"
-                  : "opacity-0 group-hover:opacity-100 hover:bg-gray-100/70 dark:hover:bg-gray-800/70"
+                  ? "opacity-0 group-hover:opacity-100 hover:bg-indigo-100/50 dark:hover:bg-blue-500/20"
+                  : "opacity-0 group-hover:opacity-100 hover:bg-gray-100/70 dark:hover:bg-gray-700/70"
               )}
               onClick={(e) => {
                 e.stopPropagation();
@@ -247,13 +247,13 @@ const TabBar: React.FC<TabBarProps> = ({
               <X className={cn(
                 "w-3 h-3",
                 activeTabId === tab.id
-                  ? "text-gray-600 dark:text-gray-300"
+                  ? "text-indigo-600 dark:text-blue-400" 
                   : "text-gray-400 dark:text-gray-500"
               )} />
             </button>
             
             {index < visibleTabs.length - 1 && (
-              <div className="absolute right-[-4px] top-1/2 h-2/3 w-px bg-gray-200/50 dark:bg-gray-700/30 transform rotate-[-15deg] translate-y-[-50%] origin-bottom z-20"></div>
+              <div className="absolute right-[-4px] top-1/2 h-2/3 w-px bg-gray-200/50 dark:bg-gray-700/30 transform translate-y-[-50%] z-20"></div>
             )}
           </div>
         ))}

@@ -1,6 +1,5 @@
 .gitignore
 README.md
-bun.lockb
 components.json
 eslint.config.js
 index.html

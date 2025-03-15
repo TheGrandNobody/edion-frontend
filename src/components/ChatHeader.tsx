@@ -36,13 +36,15 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   }, [userSettings]);
 
   return (
-    <div className="navbar-container sticky top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-3 bg-transparent">
-      <button
-        className="p-2 hover:bg-white/40 dark:hover:bg-gray-900 rounded-lg text-gray-700 dark:text-gray-200 flex items-center justify-center"
-        onClick={toggleHistory}
-      >
-        <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
-      </button>
+    <div className="navbar-container sticky top-0 z-10 flex h-[60px] items-center justify-between px-2 sm:px-4 bg-transparent">
+      <div className="flex-none flex items-center justify-center h-full">
+        <button
+          className="p-2 hover:bg-white/40 dark:hover:bg-gray-900 rounded-lg text-gray-700 dark:text-gray-200 flex items-center justify-center"
+          onClick={toggleHistory}
+        >
+          <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
+      </div>
       
       <div className="flex-1 bg-white/60 dark:bg-black/60 backdrop-blur-md rounded-lg shadow-lg p-1.5 mx-2 border border-gray-200/10 dark:border-gray-800/40">
         <TabBar
@@ -55,7 +57,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         />
       </div>
       
-      <div className="ml-3">
+      <div className="flex-none flex items-center justify-center h-full ml-3">
         <UserMenu 
           userSettings={localUserSettings} 
           setUserSettings={(newSettings: UserSettings) => {

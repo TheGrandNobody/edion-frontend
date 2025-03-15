@@ -309,7 +309,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
                       value={email}
                       readOnly
                       disabled
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-300 leading-tight focus:outline-none focus:shadow-outline dark:bg-gray-700 dark:border-gray-500 bg-gray-100 dark:bg-gray-800"
+                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-300 leading-tight focus:outline-none focus:shadow-outline dark:border-gray-500 bg-gray-100 dark:bg-gray-800"
                     />
                   </div>
                   <Button

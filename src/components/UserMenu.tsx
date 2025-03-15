@@ -22,7 +22,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
   const buttonRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [isManuallyControlled, setIsManuallyControlled] = useState(false);
+  const isChangingTheme = useRef(false);
   const timeoutRef = useRef<number | null>(null);
 
   // Navigate to settings
@@ -30,14 +30,14 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
     navigate('/settings');
   }, [navigate]);
 
-  // Handle theme toggle - completely disconnected from dropdown state
+  // Handle theme toggle
   const toggleDarkMode = useCallback((e: React.MouseEvent) => {
-    // Prevent default behavior but don't try to manage dropdown state here
+    // Prevent default behavior
     e.preventDefault();
     e.stopPropagation();
     
-    // Take manual control of the dropdown
-    setIsManuallyControlled(true);
+    // Mark that we're changing the theme
+    isChangingTheme.current = true;
     
     // Apply theme change
     const newSettings = {
@@ -45,10 +45,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
       darkMode: !userSettings.darkMode
     };
     
-    // First toggle the class
-    document.documentElement.classList.toggle('dark', newSettings.darkMode);
-    
-    // Then update state
+    // Update state and storage
     setUserSettings(newSettings);
     updateUserSettings(newSettings);
     
@@ -62,21 +59,22 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
       window.clearTimeout(timeoutRef.current);
     }
     
-    // Release control after a delay
+    // Reset the theme change flag after a delay
     timeoutRef.current = window.setTimeout(() => {
-      setIsManuallyControlled(false);
+      isChangingTheme.current = false;
     }, 300) as unknown as number;
   }, [userSettings, setUserSettings]);
   
-  // Master control of dropdown open state
+  // Handle dropdown open state changes
   const handleOpenChange = useCallback((nextOpen: boolean) => {
-    // Only allow state changes if we're not manually controlling
-    if (isManuallyControlled) {
+    // If we're in the middle of a theme change and something is trying to close the dropdown,
+    // ignore the close request
+    if (isChangingTheme.current && !nextOpen) {
       return;
     }
     
     setIsOpen(nextOpen);
-  }, [isManuallyControlled]);
+  }, []);
   
   // Clean up timeout on unmount
   useEffect(() => {
