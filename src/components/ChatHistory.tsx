@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, FileText, Dumbbell, GraduationCap, School, Trash2 } from 'lucide-react';
 import { ChatHistoryItem } from '../types';
 import { useToast } from "@/hooks/use-toast";
+import { motion } from 'framer-motion';
 
 interface ChatHistoryMenuProps {
   history: ChatHistoryItem[];
@@ -46,9 +47,12 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
   };
 
   return (
-    <div 
-      className="fixed inset-y-0 left-0 w-64 sm:w-80 bg-transparent backdrop-blur-xl z-10"
+    <motion.div 
+      className="fixed inset-y-0 left-0 w-64 sm:w-80 bg-transparent backdrop-blur-xl z-20"
       onClick={handleMenuClick}
+      initial={{ x: "-100%" }}
+      animate={{ x: 0 }}
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}
     >
       {/* Semi-transparent overlay */}
       <div className="absolute inset-0 bg-white/30 dark:bg-gray-900/30" />
@@ -74,7 +78,7 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
             {/* Reports */}
             <div>
               <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/30 dark:bg-gray-800/30 w-full text-gray-800 dark:text-gray-200">
-                <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500 dark:text-purple-400" />
                 <span className="font-medium">Reports</span>
               </button>
               <div className="mt-1 sm:mt-2 space-y-1">
@@ -90,7 +94,7 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
             {/* Exercises */}
             <div>
               <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/30 dark:bg-gray-800/30 w-full text-gray-800 dark:text-gray-200">
-                <Dumbbell className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <Dumbbell className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500 dark:text-blue-400" />
                 <span className="font-medium">Exercises</span>
               </button>
               <div className="mt-1 sm:mt-2 space-y-1">
@@ -106,7 +110,7 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
             {/* Curriculum */}
             <div>
               <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/30 dark:bg-gray-800/30 w-full text-gray-800 dark:text-gray-200">
-                <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 dark:text-amber-400" />
                 <span className="font-medium">Curriculum</span>
               </button>
               <div className="mt-1 sm:mt-2 space-y-1">
@@ -122,7 +126,7 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
             {/* Classroom */}
             <div>
               <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/30 dark:bg-gray-800/30 w-full text-gray-800 dark:text-gray-200">
-                <School className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <School className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 dark:text-green-400" />
                 <span className="font-medium">Classroom</span>
               </button>
               <div className="mt-1 sm:mt-2 space-y-1">
@@ -137,8 +141,8 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
           </div>
 
           {/* Previous Chats */}
-          <div className="mt-4 sm:mt-6 px-3">
-            <h3 className="font-medium mb-2 text-gray-800 dark:text-gray-200 text-sm">
+          <div className="mt-4 sm:mt-6">
+            <h3 className="font-medium mb-2 text-gray-800 dark:text-gray-200 text-sm px-3">
               Previous Chats
             </h3>
             <div className="space-y-2">
@@ -148,7 +152,7 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
                   className="relative group"
                 >
                   <button
-                    className="w-full text-left py-2 px-2 rounded hover:bg-white/20 dark:hover:bg-gray-800/20 transition-colors"
+                    className="w-full text-left py-2 px-3 rounded hover:bg-white/20 dark:hover:bg-gray-800/20 transition-colors"
                     onClick={() => onSelectChat(chat.id)}
                   >
                     <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400">
@@ -179,7 +183,7 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

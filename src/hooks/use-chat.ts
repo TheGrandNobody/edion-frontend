@@ -18,14 +18,32 @@ export const useChat = (userSettings: UserSettings) => {
 
   // Load chat history from localStorage
   useEffect(() => {
+    // Always filter the history to make sure it only contains valid tabs
     const storedHistory = localStorage.getItem('chatHistory');
-    if (storedHistory) {
+    const storedTabs = localStorage.getItem('chatTabs');
+    
+    if (storedHistory && storedTabs) {
       try {
-        setChatHistory(JSON.parse(storedHistory));
+        const history = JSON.parse(storedHistory);
+        const tabs = JSON.parse(storedTabs);
+        
+        // Filter history to only include items with corresponding tab data
+        const validHistory = history.filter((historyItem) => {
+          return tabs.some(tab => tab.id === historyItem.id);
+        });
+        
+        // If the filtered history is different from the original, update localStorage
+        if (validHistory.length !== history.length) {
+          localStorage.setItem('chatHistory', JSON.stringify(validHistory));
+        }
+        
+        setChatHistory(validHistory);
       } catch (error) {
         console.error('Failed to parse chat history:', error);
         setChatHistory([]);
       }
+    } else {
+      setChatHistory([]);
     }
   }, []);
 
@@ -47,36 +65,27 @@ export const useChat = (userSettings: UserSettings) => {
         setActiveTabId(initialState.selectedChatId);
         setTabs(loadedTabs);
       } else {
-        const storedHistory = localStorage.getItem('chatHistory');
-        const history = storedHistory ? JSON.parse(storedHistory) : [];
-        const selectedChat = history.find((chat: ChatHistoryItem) => chat.id === initialState.selectedChatId);
+        // Create a new tab if the chat doesn't exist
+        const defaultTab: ChatTab = {
+          id: String(Date.now()),
+          title: 'New Chat',
+          date: new Date().toLocaleDateString('en-GB'),
+          messages: [],
+          activePDF: null,
+        };
         
-        if (selectedChat) {
-          const newTab: ChatTab = {
-            id: selectedChat.id,
-            title: selectedChat.title,
-            date: selectedChat.date,
-            messages: [
-              {
-                id: 1,
-                text: initialState.initialQuery || selectedChat.title,
-                isUser: true,
-              },
-              {
-                id: 2,
-                text: "Hello! I'm here to help. What can I assist you with today?",
-                isUser: false,
-              }
-            ],
-            activePDF: null,
-          };
-          
-          loadedTabs = [newTab, ...loadedTabs];
-          setTabs(loadedTabs);
-          setActiveTabId(newTab.id);
-          
-          localStorage.setItem('chatTabs', JSON.stringify(loadedTabs));
-        }
+        loadedTabs = [defaultTab, ...loadedTabs];
+        setTabs(loadedTabs);
+        setActiveTabId(defaultTab.id);
+        
+        localStorage.setItem('chatTabs', JSON.stringify(loadedTabs));
+        
+        // Display error notification
+        toast({
+          title: "Chat not found",
+          description: "The requested chat could not be found. A new chat has been created.",
+          variant: "destructive"
+        });
       }
     } else if (loadedTabs.length > 0) {
       setTabs(loadedTabs);
@@ -96,7 +105,7 @@ export const useChat = (userSettings: UserSettings) => {
     }
     
     setIsLoading(false);
-  }, [initialState.selectedChatId, initialState.initialQuery]);
+  }, [initialState.selectedChatId, initialState.initialQuery, toast]);
 
   // Handle form submission
   const handleSubmit = useCallback((e: React.FormEvent) => {
@@ -204,21 +213,26 @@ export const useChat = (userSettings: UserSettings) => {
 
   // Delete a chat
   const handleDeleteChat = useCallback((chatId: string) => {
+    // Update chat history
     const updatedHistory = chatHistory.filter(chat => chat.id !== chatId);
     setChatHistory(updatedHistory);
     localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
     
-    const isActiveTab = activeTabId === chatId;
+    // Update tabs
+    const updatedTabs = tabs.filter(tab => tab.id !== chatId);
+    setTabs(updatedTabs);
+    localStorage.setItem('chatTabs', JSON.stringify(updatedTabs));
     
-    if (isActiveTab) {
-      const tabIndex = tabs.findIndex(tab => tab.id === chatId);
-      const updatedTabs = tabs.filter(tab => tab.id !== chatId);
-      
+    // If the active tab was deleted, set a new active tab
+    if (activeTabId === chatId) {
       if (updatedTabs.length > 0) {
+        // Find the index of the deleted tab
+        const tabIndex = tabs.findIndex(tab => tab.id === chatId);
+        // Select the next tab, or the last tab if it was the last one
         const newActiveIndex = tabIndex < updatedTabs.length ? tabIndex : updatedTabs.length - 1;
         setActiveTabId(updatedTabs[newActiveIndex].id);
-        setTabs(updatedTabs);
       } else {
+        // Create a new tab if there are no tabs left
         const newTab: ChatTab = {
           id: String(Date.now()),
           title: 'New Chat',
@@ -230,6 +244,7 @@ export const useChat = (userSettings: UserSettings) => {
         setTabs([newTab]);
         setActiveTabId(newTab.id);
         
+        // Add the new tab to chat history
         const newChatHistoryItem: ChatHistoryItem = {
           id: newTab.id,
           title: newTab.title,
@@ -237,15 +252,11 @@ export const useChat = (userSettings: UserSettings) => {
           lastMessage: '',
         };
         
-        setChatHistory([newChatHistoryItem, ...updatedHistory]);
-        localStorage.setItem('chatHistory', JSON.stringify([newChatHistoryItem, ...updatedHistory]));
+        setChatHistory([newChatHistoryItem]);
+        localStorage.setItem('chatHistory', JSON.stringify([newChatHistoryItem]));
+        localStorage.setItem('chatTabs', JSON.stringify([newTab]));
       }
-    } else {
-      const updatedTabs = tabs.filter(tab => tab.id !== chatId);
-      setTabs(updatedTabs);
     }
-    
-    localStorage.setItem('chatTabs', JSON.stringify(tabs.filter(tab => tab.id !== chatId)));
 
     toast({
       title: "Chat deleted",

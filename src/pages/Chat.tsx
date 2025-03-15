@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserSettings as UserSettingsType } from '../types';
+import { UserSettings as UserSettingsType, ChatTab } from '../types';
 import PDFViewer from '../components/PDFViewer';
 import ChatHistoryMenu from '../components/ChatHistory';
 import ChatHeader from '../components/ChatHeader';
@@ -8,6 +8,7 @@ import ChatMessages from '../components/ChatMessages';
 import ChatInput from '../components/ChatInput';
 import { useChat } from '../hooks/use-chat';
 import { updateUserSettings } from '../utils/storageUtils';
+import { useToast } from '@/hooks/use-toast';
 
 const getUserSettingsFromStorage = (): UserSettingsType => {
   const storedSettings = localStorage.getItem('userSettings');
@@ -30,6 +31,7 @@ const Chat = () => {
   const [forceUpdate, setForceUpdate] = useState(0);
   // Track if this is the first load
   const isInitialMount = useRef(true);
+  const { toast } = useToast();
 
   const {
     showHistory,
@@ -204,7 +206,7 @@ const Chat = () => {
       {showHistory && (
         <>
           <div 
-            className="fixed inset-0 z-5" 
+            className="fixed inset-0 z-9" 
             onClick={handleOutsideClick}
           />
           <ChatHistoryMenu 

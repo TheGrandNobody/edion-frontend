@@ -206,7 +206,7 @@ const TabBar: React.FC<TabBarProps> = ({
             onDragEnd={handleDragEnd}
           >
             {activeTabId === tab.id && (
-              <div className="absolute inset-y-0 left-0 right-1.5 overflow-visible">
+              <div className="absolute inset-y-0 left-0 right-5 overflow-visible">
                 <div className="absolute inset-0 bg-white/40 dark:bg-white/5 shadow-[0_0_12px_rgba(0,0,0,0.05)] dark:shadow-[0_0_12px_rgba(255,255,255,0.03)] 
                      transform skew-x-[15deg] border-b-2 border-indigo-500/50 dark:border-blue-400/30"></div>
               </div>
@@ -234,7 +234,7 @@ const TabBar: React.FC<TabBarProps> = ({
             </div>
             <button
               className={cn(
-                "p-0.5 rounded-full relative z-10",
+                "p-0.5 rounded-full relative z-10 mr-1",
                 activeTabId === tab.id
                   ? "opacity-0 group-hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/10"
                   : "opacity-0 group-hover:opacity-100 hover:bg-gray-100/70 dark:hover:bg-gray-800/70"
