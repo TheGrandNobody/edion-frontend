@@ -1,4 +1,3 @@
-
 import { UserSettings, ChatHistoryItem } from '../types';
 
 export const getUserSettingsFromStorage = (): UserSettings => {
@@ -15,12 +14,38 @@ export const getUserSettingsFromStorage = (): UserSettings => {
   };
 };
 
-export const getChatHistoryFromStorage = (): ChatHistoryItem[] => {
-  const storedHistory = localStorage.getItem('chatHistory');
-  if (storedHistory) {
-    return JSON.parse(storedHistory);
+/**
+ * Gets chat history from localStorage and filters out any entries that don't have corresponding tab data
+ */
+export const getChatHistoryFromStorage = () => {
+  try {
+    const storedHistory = localStorage.getItem('chatHistory');
+    const storedTabs = localStorage.getItem('chatTabs');
+    
+    if (!storedHistory) return [];
+    
+    const history = JSON.parse(storedHistory);
+    
+    // If there are no tabs, return empty history
+    if (!storedTabs) return [];
+    
+    const tabs = JSON.parse(storedTabs);
+    
+    // Filter history to only include items with corresponding tab data
+    const validHistory = history.filter((historyItem) => {
+      return tabs.some(tab => tab.id === historyItem.id);
+    });
+    
+    // If the filtered history is different from the original, update localStorage
+    if (validHistory.length !== history.length) {
+      localStorage.setItem('chatHistory', JSON.stringify(validHistory));
+    }
+    
+    return validHistory;
+  } catch (error) {
+    console.error('Failed to parse chat history:', error);
+    return [];
   }
-  return [];
 };
 
 export const updateUserSettings = (newSettings: UserSettings): void => {

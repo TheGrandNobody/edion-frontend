@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { LayoutGrid } from 'lucide-react';
 import ChatHistoryMenu from './ChatHistory';
 import UserMenu from './UserMenu';
-import HistoryButton from './HistoryButton';
 import { UserSettings as UserSettingsType, ChatHistoryItem } from '../types';
 import { getUserSettingsFromStorage, getChatHistoryFromStorage } from '../utils/storageUtils';
 
@@ -76,15 +75,20 @@ const Header = () => {
 
   return (
     <>
-      <motion.header 
-        className="w-full flex justify-between items-center p-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <HistoryButton toggleHistory={toggleHistory} />
+      <div className="navbar-container sticky top-0 z-10 flex items-center justify-between px-2 sm:px-4 py-3 bg-transparent">
+        <button
+          className="p-2 hover:bg-white/40 dark:hover:bg-gray-900 rounded-lg text-gray-700 dark:text-gray-200 flex items-center justify-center"
+          onClick={toggleHistory}
+        >
+          <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
+        
+        <div className="flex-1">
+          {/* Empty flex spacer */}
+        </div>
+        
         <UserMenu userSettings={userSettings} setUserSettings={setUserSettings} />
-      </motion.header>
+      </div>
 
       {showHistory && (
         <>

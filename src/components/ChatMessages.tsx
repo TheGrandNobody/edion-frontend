@@ -28,11 +28,28 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({ activeTab, darkMode, o
     >
       <div className="w-full mx-auto" style={{ maxWidth: 'min(100%, 800px)', width: '100%', padding: '0 4px', boxSizing: 'border-box' }}>
         {activeTab.messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full py-20">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Welcome to EduChat</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-center max-w-md mb-6">
-              I'm your AI assistant ready to help with teaching tasks, creating reports, and answering questions.
-            </p>
+          <div className="flex flex-col items-center justify-center h-full py-10">
+            <div className="mb-6">
+              <div className="flex items-center justify-center theme-change-immediate">
+                <div className="logo-container theme-change-immediate">
+                  <div className="flex items-center theme-change-immediate">
+                    <img 
+                      src={darkMode ? "/white_on_trans.svg" : "/black_on_trans.svg"}
+                      alt="edion logo" 
+                      className="h-16 w-auto mr-2 theme-change-immediate" 
+                    />
+                    <span className="text-4xl font-light tracking-wider theme-change-immediate bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">edion</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="w-full max-w-lg mx-auto mb-6">
+              <div className="w-full px-4 py-2.5 pr-4 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg text-sm text-gray-700 dark:text-gray-200 shadow-sm backdrop-blur-sm flex items-center justify-between">
+                <span className="text-gray-400 dark:text-gray-500">What can I help you with today?</span>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
               <button
                 onClick={() => onEditMessage(-1, "Generate a student progress report")}

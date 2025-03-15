@@ -333,7 +333,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
             <h2 className="text-xl font-semibold mb-4">Security Settings</h2>
             <div className="space-y-6">
               <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                <h3 className="text-lg font-medium mb-2">Two-Factor Authentication</h3>
+                <h3 className="text-base font-medium mb-2">Two-Factor Authentication</h3>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <Shield className="h-5 w-5 text-gray-600 dark:text-gray-400" />
@@ -358,7 +358,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
                 </div>
               </div>
               <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                <h3 className="text-lg font-medium mb-2">Change Password</h3>
+                <h3 className="text-base font-medium mb-2">Change Password</h3>
                 {!showPasswordChange && !showEmailChange && !showQRCode && (
                   <>
                     <div className="mb-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -366,7 +366,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
                         <div className="flex items-center space-x-3">
                           <Lock className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                           <div>
-                            <h3 className="font-medium text-gray-800 dark:text-gray-200">Password</h3>
+                            <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200">Password</h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400">Change your password</p>
                           </div>
                         </div>
@@ -384,7 +384,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ settings, onClose, onSave }
                         <div className="flex items-center space-x-3">
                           <Mail className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                           <div>
-                            <h3 className="font-medium text-gray-800 dark:text-gray-200">Email</h3>
+                            <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200">Email</h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400">Change your email address</p>
                           </div>
                         </div>

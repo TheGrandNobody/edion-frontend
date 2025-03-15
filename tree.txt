@@ -12,7 +12,10 @@ src/App.tsx
 src/components/ActionCard.tsx
 src/components/ActionCards.tsx
 src/components/ChatBubble.tsx
+src/components/ChatHeader.tsx
 src/components/ChatHistory.tsx
+src/components/ChatInput.tsx
+src/components/ChatMessages.tsx
 src/components/FileUploadMenu.tsx
 src/components/Header.tsx
 src/components/HistoryButton.tsx
@@ -74,6 +77,7 @@ src/components/ui/toggle-group.tsx
 src/components/ui/toggle.tsx
 src/components/ui/tooltip.tsx
 src/components/ui/use-toast.ts
+src/hooks/use-chat.ts
 src/hooks/use-mobile.tsx
 src/hooks/use-theme-effect.tsx
 src/hooks/use-toast.ts
@@ -90,6 +94,7 @@ src/utils/pdfUtils.ts
 src/utils/storageUtils.ts
 src/vite-env.d.ts
 tailwind.config.ts
+tree.txt
 tsconfig.app.json
 tsconfig.json
 tsconfig.node.json
