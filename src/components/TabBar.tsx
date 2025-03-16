@@ -38,6 +38,9 @@ const TabBar: React.FC<TabBarProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [preventTabClick, setPreventTabClick] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(
+    typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+  );
 
   useEffect(() => {
     setForceUpdate(prev => prev + 1);
@@ -49,6 +52,20 @@ const TabBar: React.FC<TabBarProps> = ({
       setIsInitialized(true);
     }
   }, [tabs, isInitialized]);
+
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          setIsDarkMode(document.documentElement.classList.contains('dark'));
+        }
+      });
+    });
+    
+    observer.observe(document.documentElement, { attributes: true });
+    
+    return () => observer.disconnect();
+  }, []);
 
   const calculateVisibleTabs = () => {
     if (!containerRef.current || !plusButtonRef.current || tabs.length === 0) return;
@@ -207,8 +224,37 @@ const TabBar: React.FC<TabBarProps> = ({
           >
             {activeTabId === tab.id && (
               <div className="absolute inset-y-0 left-0 right-0 overflow-visible">
-                <div className="absolute inset-0 bg-white dark:bg-gray-800 shadow-[0_0_12px_rgba(0,0,0,0.08)] dark:shadow-[0_0_12px_rgba(59,130,246,0.15)] 
-                     rounded-tl-xl rounded-tr-lg border-b-2 border-indigo-500/70 dark:border-blue-400/70 before:content-[''] before:absolute before:bottom-0 before:left-[-8px] before:w-[8px] before:h-[8px] before:rounded-br-lg before:shadow-[4px_4px_0_4px_white] dark:before:shadow-[4px_4px_0_4px_#1f2937] after:content-[''] after:absolute after:bottom-0 after:right-[-8px] after:w-[8px] after:h-[8px] after:rounded-bl-lg after:shadow-[-4px_4px_0_4px_white] dark:after:shadow-[-4px_4px_0_4px_#1f2937]"></div>
+                {/* Main tab background with EXTRA dramatic glow */}
+                <div className="absolute inset-0 bg-white dark:bg-gray-800 
+                     shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_22px_rgba(59,130,246,0.3)] 
+                     rounded-tl-xl rounded-tr-lg border-b-3 border-indigo-500/90 dark:border-blue-400/90
+                     transition-all duration-300 ease-out active-tab"></div>
+                
+                {/* Left corner with enhanced styling */}
+                <div className="absolute bottom-0 left-[-8px] w-[8px] h-[8px] drop-shadow-md" data-testid="left-corner">
+                  <svg width="8" height="8" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg">
+                    <path 
+                      d="M8 0V8H0C4.42 8 8 4.42 8 0Z" 
+                      style={{ 
+                        fill: isDarkMode ? 'rgb(9, 9, 11)' : 'white',
+                        filter: isDarkMode ? 'drop-shadow(0 2px 4px rgba(59, 130, 246, 0.2))' : 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.06))'
+                      }}
+                    />
+                  </svg>
+                </div>
+                
+                {/* Right corner with enhanced styling */}
+                <div className="absolute bottom-0 right-[-8px] w-[8px] h-[8px] drop-shadow-md" data-testid="right-corner">
+                  <svg width="8" height="8" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg">
+                    <path 
+                      d="M0 0V8H8C3.58 8 0 4.42 0 0Z" 
+                      style={{ 
+                        fill: isDarkMode ? 'rgb(9, 9, 11)' : 'white',
+                        filter: isDarkMode ? 'drop-shadow(0 2px 4px rgba(59, 130, 246, 0.2))' : 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.06))'
+                      }}
+                    />
+                  </svg>
+                </div>
               </div>
             )}
             

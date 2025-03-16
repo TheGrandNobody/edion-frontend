@@ -41,11 +41,16 @@
 
 /* Override any remaining gray colors in dark mode */
 .dark [class*="dark:bg-gray-"] {
-  background-color: rgb(9, 9, 11) !important;
+  background-color: rgb(9, 9, 11) !important; /* zinc-950 */
 }
 
 .dark [class*="dark:text-gray-"] {
   color: rgb(244, 244, 245) !important; /* zinc-100 */
+}
+
+/* Make sure zinc backgrounds are consistent too */
+.dark .dark\:bg-zinc-950 {
+  background-color: rgb(9, 9, 11) !important; /* zinc-950 */
 }
 
 @layer base {
@@ -252,4 +257,19 @@
   .hyphens-auto {
     hyphens: auto;
   }
+}
+
+/* Add this to your index.css file */
+.dark .dark\:fill-gray-800 {
+  fill: rgb(24, 24, 27) !important; /* zinc-900 */
+}
+
+@keyframes tabGlow {
+  0% { box-shadow: 0 0 12px rgba(59, 130, 246, 0.15); }
+  50% { box-shadow: 0 0 18px rgba(59, 130, 246, 0.3); }
+  100% { box-shadow: 0 0 12px rgba(59, 130, 246, 0.15); }
+}
+
+.dark .active-tab {
+  animation: tabGlow 3s ease-in-out infinite;
 }

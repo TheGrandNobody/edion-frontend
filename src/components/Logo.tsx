@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
@@ -12,14 +11,14 @@ const Logo = () => {
     };
     
     // Set up event listener for theme changes
-    window.addEventListener('themeChange', updateTheme);
+    window.addEventListener('themeChanged', updateTheme);
     
     // Initial check
     updateTheme();
     
     // Clean up
     return () => {
-      window.removeEventListener('themeChange', updateTheme);
+      window.removeEventListener('themeChanged', updateTheme);
     };
   }, []);
   

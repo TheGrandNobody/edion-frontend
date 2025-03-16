@@ -49,6 +49,13 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
     setUserSettings(newSettings);
     updateUserSettings(newSettings);
     
+    // Apply theme change to document immediately
+    if (newSettings.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    
     // Notify about theme change
     window.dispatchEvent(new CustomEvent('themeChanged', { 
       detail: { darkMode: newSettings.darkMode, timestamp: Date.now() }
@@ -83,6 +90,16 @@ const UserMenu: React.FC<UserMenuProps> = ({ userSettings, setUserSettings }) =>
         window.clearTimeout(timeoutRef.current);
       }
     };
+  }, []);
+
+  // Ensure theme is synchronized with userSettings on mount
+  useEffect(() => {
+    // Apply theme based on current settings
+    if (userSettings.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, []);
 
   return (

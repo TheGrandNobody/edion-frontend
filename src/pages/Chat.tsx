@@ -68,7 +68,7 @@ const Chat = () => {
       // Re-enable transitions after a small delay
       setTimeout(() => {
         document.documentElement.classList.remove('disable-transitions');
-      }, 1);
+      }, 50);
       
       isInitialMount.current = false;
       return;
@@ -91,7 +91,7 @@ const Chat = () => {
     // Re-enable transitions after a small delay to ensure theme is applied
     const timer = setTimeout(() => {
       document.documentElement.classList.remove('disable-transitions');
-    }, 1);
+    }, 50);
     
     return () => clearTimeout(timer);
   }, [userSettings.darkMode]);

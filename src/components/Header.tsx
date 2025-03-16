@@ -7,12 +7,21 @@ import UserMenu from './UserMenu';
 import { UserSettings as UserSettingsType, ChatHistoryItem } from '../types';
 import { getUserSettingsFromStorage, getChatHistoryFromStorage } from '../utils/storageUtils';
 
-const Header = () => {
+interface HeaderProps {
+  userSettings?: UserSettingsType;
+  setUserSettings?: React.Dispatch<React.SetStateAction<UserSettingsType>>;
+}
+
+const Header: React.FC<HeaderProps> = ({ userSettings: propUserSettings, setUserSettings: propSetUserSettings }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showHistory, setShowHistory] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>(getChatHistoryFromStorage());
-  const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
+  const [localUserSettings, setLocalUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
+  
+  // Use props if provided, otherwise use local state
+  const userSettings = propUserSettings || localUserSettings;
+  const setUserSettings = propSetUserSettings || setLocalUserSettings;
 
   // Settings page still needs UserMenu for theme toggle, but not the full header
   const isSettingsPage = location.pathname === '/settings';
@@ -21,7 +30,11 @@ const Header = () => {
     const handleStorageChange = () => {
       const newSettings = getUserSettingsFromStorage();
       setChatHistory(getChatHistoryFromStorage());
-      setUserSettings(newSettings);
+      
+      // Only update local state if props are not provided
+      if (!propUserSettings) {
+        setLocalUserSettings(newSettings);
+      }
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -31,7 +44,7 @@ const Header = () => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [location.pathname]);
+  }, [location.pathname, propUserSettings]);
 
   const handleHistoryAction = (chatId: string) => {
     if (chatId !== '') {

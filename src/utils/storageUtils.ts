@@ -52,6 +52,9 @@ export const updateUserSettings = (newSettings: UserSettings): void => {
   // Save to localStorage
   localStorage.setItem('userSettings', JSON.stringify(newSettings));
   
+  // Disable transitions before theme change
+  document.documentElement.classList.add('disable-transitions');
+  
   // Update dark mode in the DOM
   if (newSettings.darkMode) {
     document.documentElement.classList.add('dark');
@@ -62,8 +65,17 @@ export const updateUserSettings = (newSettings: UserSettings): void => {
   // Dispatch storage event for other components to update
   window.dispatchEvent(new Event('storage'));
   
-  // Dispatch theme change event - change this to match the event name in UserMenu.tsx
+  // Dispatch theme change event with more details
   window.dispatchEvent(new CustomEvent('themeChanged', { 
-    detail: { darkMode: newSettings.darkMode, timestamp: Date.now() }
+    detail: { 
+      darkMode: newSettings.darkMode, 
+      timestamp: Date.now(),
+      source: 'storageUtils'
+    }
   }));
+  
+  // Re-enable transitions after a small delay
+  setTimeout(() => {
+    document.documentElement.classList.remove('disable-transitions');
+  }, 50);
 };
