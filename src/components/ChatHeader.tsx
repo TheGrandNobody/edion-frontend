@@ -36,7 +36,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   }, [userSettings]);
 
   return (
-    <div className="navbar-container sticky top-0 z-10 flex h-[60px] items-center justify-between px-2 sm:px-4 bg-transparent">
+    <div className="navbar-container sticky top-0 z-40 flex h-[60px] items-center justify-between px-2 sm:px-4 bg-transparent">
       <div className="flex-none flex items-center justify-center h-full">
         <button
           className="p-2 hover:bg-white/40 dark:hover:bg-gray-900 rounded-lg text-gray-700 dark:text-gray-200 flex items-center justify-center"

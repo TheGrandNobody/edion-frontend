@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Mic } from 'lucide-react';
@@ -146,7 +145,15 @@ const Search = () => {
         <input
           type="text"
           placeholder="What can I help you with, Julia?"
-          className="w-full px-4 py-2.5 sm:py-3 pr-24 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-blue-500 text-sm text-gray-700 dark:text-gray-200 dark:placeholder-gray-400 shadow-sm backdrop-blur-sm"
+          className={cn(
+            "w-full px-4 py-2.5 sm:py-3 pr-24 rounded-lg text-sm",
+            "bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm",
+            "text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400",
+            "border border-transparent",
+            "transition-all duration-200 ease-in-out",
+            "focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-blue-500",
+            "focus:bg-white/90 dark:focus:bg-gray-800/90 focus:border-indigo-500/20 dark:focus:border-blue-500/20"
+          )}
           aria-label="Search box"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}

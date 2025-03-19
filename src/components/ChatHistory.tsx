@@ -48,7 +48,7 @@ const ChatHistoryMenu: React.FC<ChatHistoryMenuProps> = ({ history, onSelectChat
 
   return (
     <motion.div 
-      className="fixed inset-y-0 left-0 w-64 sm:w-80 bg-transparent backdrop-blur-xl z-20"
+      className="fixed inset-y-0 left-0 w-64 sm:w-80 bg-transparent backdrop-blur-xl z-30"
       onClick={handleMenuClick}
       initial={{ x: "-100%" }}
       animate={{ x: 0 }}
