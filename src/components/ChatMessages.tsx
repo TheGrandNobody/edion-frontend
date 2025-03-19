@@ -1,7 +1,98 @@
 import React, { useEffect, useRef, memo } from 'react';
-import { Download, Pencil, RefreshCw } from 'lucide-react';
+import { Download, Pencil, RefreshCw, FileText, BookOpen, ClipboardList, CheckSquare } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { ChatTab } from '../types';
 import ChatBubble from './ChatBubble';
+
+interface SuggestionCardProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  onClick: () => void;
+  delay?: number;
+  color?: string;
+  darkMode?: boolean;
+}
+
+const SuggestionCard: React.FC<SuggestionCardProps> = ({ 
+  icon, 
+  title, 
+  description, 
+  onClick, 
+  delay = 0, 
+  color = 'gray',
+  darkMode = false
+}) => {
+  // Use even more subtle glow colors
+  const lightModeGlow = "0 0 1px rgba(100, 100, 100, 0.3), 0 0 15px rgba(100, 100, 100, 0.1)";
+  const darkModeGlow = "0 0 1px rgba(120, 120, 120, 0.05), 0 0 15px rgba(120, 120, 120, 0.08)";
+  
+  // Refined pulsing effect with softer transitions
+  const pulseVariants = {
+    hover: {
+      boxShadow: [
+        darkMode ? darkModeGlow : lightModeGlow,
+        darkMode 
+          ? "0 0 2px rgba(120, 120, 120, 0.1), 0 0 25px rgba(120, 120, 120, 0.12)" 
+          : "0 0 2px rgba(80, 80, 80, 0.35), 0 0 25px rgba(80, 80, 80, 0.2)",
+        darkMode ? darkModeGlow : lightModeGlow
+      ],
+      transition: {
+        boxShadow: {
+          repeat: Infinity,
+          repeatType: "reverse" as const,
+          duration: 2.5,
+          ease: [0.33, 1, 0.68, 1] // custom cubic-bezier for more elegant pulsing
+        }
+      }
+    }
+  };
+  
+  return (
+    <motion.button
+      onClick={onClick}
+      className="w-full p-4 text-left rounded-lg bg-white/80 dark:bg-gray-800/60 border border-gray-200/50 dark:border-gray-700/50 shadow-sm relative overflow-hidden"
+      initial={{
+        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        opacity: 0,
+        y: 10
+      }}
+      animate={{
+        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        opacity: 1,
+        y: 0
+      }}
+      whileHover="hover"
+      variants={pulseVariants}
+      whileTap={{ scale: 0.98 }}
+      transition={{
+        duration: 0.4,
+        delay,
+        ease: "easeOut"
+      }}
+    >
+      <motion.div
+        initial={{ scale: 1 }}
+        whileHover={{ scale: 1.02 }} // More subtle scale
+        transition={{ 
+          duration: 0.5,
+          ease: [0.19, 1, 0.22, 1] // More elegant easing
+        }}
+        className="w-full h-full"
+      >
+        <div className="flex items-center mb-2">
+          <div className="flex-shrink-0 mr-3">
+            {icon}
+          </div>
+          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{title}</span>
+        </div>
+        <p className="text-xs text-gray-600 dark:text-gray-400">
+          {description}
+        </p>
+      </motion.div>
+    </motion.button>
+  );
+};
 
 interface ChatMessagesProps {
   activeTab: ChatTab;
@@ -44,25 +135,43 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({ activeTab, darkMode, o
               </div>
             </div>
             
-            <div className="w-full max-w-lg mx-auto mb-6">
-              <div className="w-full px-4 py-2.5 pr-4 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg text-sm text-gray-700 dark:text-gray-200 shadow-sm backdrop-blur-sm flex items-center justify-between">
-                <span className="text-gray-400 dark:text-gray-500">What can I help you with today?</span>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
-              <button
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg mt-6">
+              <SuggestionCard
+                icon={<FileText className="w-5 h-5 text-purple-500 dark:text-purple-400" />}
+                title="Generate a progress report"
+                description="Create a comprehensive student progress report with performance metrics and improvement areas"
                 onClick={() => onEditMessage(-1, "Generate a student progress report")}
-                className="p-3 text-left rounded-lg bg-white/80 dark:bg-gray-800/60 hover:bg-white dark:hover:bg-gray-800 border border-gray-200/50 dark:border-gray-700/50 shadow-sm"
-              >
-                <span className="text-gray-800 dark:text-gray-200">Generate a student progress report</span>
-              </button>
-              <button
+                delay={0.1}
+                color="purple"
+                darkMode={darkMode}
+              />
+              <SuggestionCard
+                icon={<BookOpen className="w-5 h-5 text-amber-500 dark:text-amber-400" />}
+                title="Create a lesson plan"
+                description="Plan a structured lesson for 5th grade science with objectives, activities, and assessments"
                 onClick={() => onEditMessage(-1, "Help me create a lesson plan for 5th grade science")}
-                className="p-3 text-left rounded-lg bg-white/80 dark:bg-gray-800/60 hover:bg-white dark:hover:bg-gray-800 border border-gray-200/50 dark:border-gray-700/50 shadow-sm"
-              >
-                <span className="text-gray-800 dark:text-gray-200">Create a lesson plan for 5th grade science</span>
-              </button>
+                delay={0.2}
+                color="amber"
+                darkMode={darkMode}
+              />
+              <SuggestionCard
+                icon={<ClipboardList className="w-5 h-5 text-blue-500 dark:text-blue-400" />}
+                title="Generate an assignment"
+                description="Create a well-structured assignment with clear instructions, objectives and grading criteria"
+                onClick={() => onEditMessage(-1, "Help me create an assignment for high school English literature")}
+                delay={0.3}
+                color="blue"
+                darkMode={darkMode}
+              />
+              <SuggestionCard
+                icon={<CheckSquare className="w-5 h-5 text-green-500 dark:text-green-400" />}
+                title="Grade a paper"
+                description="Get assistance with grading student work with detailed feedback and improvement suggestions"
+                onClick={() => onEditMessage(-1, "Can you help me grade this student essay and provide constructive feedback?")}
+                delay={0.4}
+                color="green"
+                darkMode={darkMode}
+              />
             </div>
           </div>
         ) : (

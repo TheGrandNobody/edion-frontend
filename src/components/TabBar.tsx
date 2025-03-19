@@ -195,12 +195,12 @@ const TabBar: React.FC<TabBarProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="flex items-center w-full relative overflow-hidden"
+      className="flex items-center w-full relative overflow-hidden px-3"
     >
       <div
         ref={tabsRef}
         className={cn(
-          "flex items-center overflow-hidden flex-grow",
+          "flex items-center overflow-visible flex-grow",
           isTransitioning && "pointer-events-none"
         )}
       >
@@ -228,7 +228,8 @@ const TabBar: React.FC<TabBarProps> = ({
                 <div className="absolute inset-0 bg-white dark:bg-gray-800 
                      shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_22px_rgba(59,130,246,0.3)] 
                      rounded-tl-xl rounded-tr-lg border-b-3 border-indigo-500/90 dark:border-blue-400/90
-                     transition-all duration-300 ease-out active-tab"></div>
+                     transition-all duration-300 ease-out active-tab
+                     origin-center"></div>
                 
                 {/* Left corner with enhanced styling */}
                 <div className="absolute bottom-0 left-[-8px] w-[8px] h-[8px] drop-shadow-md" data-testid="left-corner">
@@ -328,7 +329,7 @@ const TabBar: React.FC<TabBarProps> = ({
             <DropdownMenuContent 
               align="end" 
               sideOffset={5}
-              className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800 w-[220px] max-h-[300px] overflow-y-auto"
+              className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md p-1 border border-gray-200 dark:border-gray-800 w-[220px] max-h-[300px] overflow-y-auto -mr-3"
             >
               {hiddenTabs.map((tab) => (
                 <div
@@ -369,7 +370,7 @@ const TabBar: React.FC<TabBarProps> = ({
         
         <button
           ref={plusButtonRef}
-          className="p-1 hover:bg-gray-100/70 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 text-gray-700 dark:text-gray-300 flex items-center justify-center"
+          className="p-1 hover:bg-gray-100/70 dark:hover:bg-gray-800/80 rounded-lg flex-shrink-0 text-gray-700 dark:text-gray-300 flex items-center justify-center mr-0"
           onClick={() => {
             setPreventTabClick(true);
             onNewTab();
