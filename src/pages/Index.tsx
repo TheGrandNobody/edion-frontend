@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Header from '../components/Header';
 import Logo from '../components/Logo';
 import Search from '../components/Search';

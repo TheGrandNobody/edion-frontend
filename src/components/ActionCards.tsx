@@ -1,7 +1,5 @@
-import React from 'react';
 import ActionCard from './ActionCard';
 import { FileText, GraduationCap, BookOpen, HelpCircle, ChevronDown } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const ActionCards = () => {

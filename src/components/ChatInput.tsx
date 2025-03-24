@@ -3,6 +3,27 @@ import { Send, Mic, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import FileUploadMenu from './FileUploadMenu';
 
+// Add our fun keyframes for the spin animation
+const spinKeyframes = `
+@keyframes spin-once {
+  from {
+    transform: rotate(-10deg);
+  }
+  to {
+    transform: rotate(10deg);
+  }
+}
+
+.hover-spin:hover {
+  animation: spin-once 0.3s ease-in-out alternate infinite;
+}
+`;
+
+// Add the style tag with our keyframes
+const styleTag = document.createElement('style');
+styleTag.textContent = spinKeyframes;
+document.head.appendChild(styleTag);
+
 interface ChatInputProps {
   inputValue: string;
   setInputValue: (value: string) => void;
@@ -81,7 +102,6 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({ inputValue, setInputVa
                     "resize-none",
                     "scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600",
                     "scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500",
-                    "transition-all duration-200 ease-in-out",
                     "pr-[68px]"
                   )}
                   style={{
@@ -103,7 +123,7 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({ inputValue, setInputVa
                   }}
                 />
               </div>
-              <div className="flex flex-col bg-gradient-to-l from-white/90 dark:from-zinc-950/95 via-white/90 dark:via-zinc-950/95 to-transparent p-3 mb-2.5" style={{ 
+              <div className="flex flex-col bg-gradient-to-l from-white/90 dark:from-zinc-950/95 via-white/90 dark:via-zinc-950/95 to-transparent p-3" style={{ 
                 minWidth: '52px', 
                 justifyContent: 'space-evenly',
                 height: `${INITIAL_HEIGHT}px`,
@@ -123,12 +143,17 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({ inputValue, setInputVa
                 <button
                   type="submit"
                   className={cn(
-                    "p-2 rounded-full aspect-square text-white flex items-center justify-center",
-                    "bg-indigo-500 hover:bg-indigo-600 dark:bg-blue-500 dark:hover:bg-blue-600"
+                    "p-1.5 sm:p-2 rounded-lg flex items-center justify-center",
+                    inputValue.trim()
+                      ? "bg-indigo-100/80 dark:bg-blue-900/30 text-indigo-600/90 dark:text-blue-400/90 hover:bg-indigo-200/80 dark:hover:bg-blue-800/40 shadow-[0_0_5px_rgba(79,70,229,0.1)] dark:shadow-[0_0_5px_rgba(96,165,250,0.1)]"
+                      : "hover:bg-gray-100/70 dark:hover:bg-gray-800/70 text-gray-500 dark:text-gray-400 backdrop-blur-sm"
                   )}
                   disabled={!inputValue.trim()}
                 >
-                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Send className={cn(
+                    "w-4 h-4 sm:w-5 sm:h-5",
+                    inputValue.trim() && "hover-spin"
+                  )} />
                 </button>
               </div>
             </div>

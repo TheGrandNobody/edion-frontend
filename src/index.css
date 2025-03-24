@@ -4,30 +4,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Specific transitions for different interactions */
-* {
-  /* Quick transitions for interactive elements */
-  transition-property: transform, opacity;
-  transition-duration: 150ms;
-  transition-timing-function: ease-out;
-}
-
-/* Slower, more elegant transitions for UI elements */
-.user-menu-transition {
-  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Loading transitions */
-.loading-transition {
-  transition: opacity 200ms ease-in-out;
-}
-
-/* Class to temporarily disable all transitions */
-.disable-transitions,
-.disable-transitions * {
-  transition: none !important;
-}
-
 /* Specific background colors for dark mode */
 .dark body,
 .dark .bg-gray-950,
