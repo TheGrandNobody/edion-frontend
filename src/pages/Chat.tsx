@@ -238,8 +238,8 @@ const Chat = () => {
             <div className="w-full md:w-1/2 border-r border-gray-200 dark:border-zinc-800/50 overflow-hidden">
               <PDFViewer 
                 key={`pdf-${forceUpdate}`}
-                pdfUrl={activeTab.activePDF} 
-                darkMode={userSettings.darkMode} 
+                pdfUrl={activeTab.activePDF}
+                onClose={() => {}}
               />
             </div>
           )}

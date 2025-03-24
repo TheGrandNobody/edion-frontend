@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -26,6 +25,7 @@ interface FileUploadMenuProps {
   align?: 'start' | 'center' | 'end';
   sideOffset?: number;
   showMobile?: boolean;
+  disableResponsive?: boolean;
 }
 
 const FileUploadMenu: React.FC<FileUploadMenuProps> = ({
@@ -36,6 +36,7 @@ const FileUploadMenu: React.FC<FileUploadMenuProps> = ({
   align = 'center',
   sideOffset = 10,
   showMobile = true,
+  disableResponsive = false,
 }) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,13 +89,17 @@ const FileUploadMenu: React.FC<FileUploadMenuProps> = ({
           <button 
             type="button" 
             className={cn(
-              "p-1.5 sm:p-2 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm",
+              disableResponsive ? "p-1" : "p-1.5 sm:p-2",
+              "hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm",
               triggerClassName,
               showMobile ? "" : "hidden sm:block"
             )}
             aria-label="Attach file"
           >
-            <Paperclip className={cn("h-4 w-4 sm:w-5 sm:h-5", triggerIconClassName)} />
+            <Paperclip className={cn(
+              disableResponsive ? "w-3.5 h-3.5" : "h-4 w-4 sm:w-5 sm:h-5",
+              triggerIconClassName
+            )} />
           </button>
         </PopoverTrigger>
         <PopoverContent 

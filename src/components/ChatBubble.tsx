@@ -1,7 +1,9 @@
 import React, { useState, memo, useEffect, useRef } from 'react';
 import { ChatMessage } from '../types';
-import { Pencil, Check, X, Copy, CheckCheck } from 'lucide-react';
+import { Pencil, Check, X, Copy, CheckCheck, Paperclip } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import FileUploadMenu from './FileUploadMenu';
+import PDFViewer from './PDFViewer';
 
 // Add keyframes for fade-in animation
 const styleTag = document.createElement('style');
@@ -37,8 +39,34 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
   const [editText, setEditText] = useState(message.text);
   const [forceUpdate, setForceUpdate] = useState(0);
   const [isCopied, setIsCopied] = useState(false);
+  const [showPdf, setShowPdf] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const iconRef = useRef<HTMLImageElement>(null);
+
+  // Function to detect PDF URLs in text
+  const detectPdfUrls = (text: string): string[] => {
+    const urlRegex = /(https?:\/\/[^\s]+\.pdf)\b/gi;
+    return text.match(urlRegex) || [];
+  };
+
+  // Function to render text with clickable PDF links
+  const renderTextWithPdfLinks = (text: string) => {
+    const parts = text.split(/(https?:\/\/[^\s]+\.pdf)\b/gi);
+    return parts.map((part, index) => {
+      if (part.match(/(https?:\/\/[^\s]+\.pdf)\b/gi)) {
+        return (
+          <button
+            key={index}
+            onClick={() => setShowPdf(true)}
+            className="text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            {part}
+          </button>
+        );
+      }
+      return part;
+    });
+  };
 
   // Check if this message was the last copied one
   useEffect(() => {
@@ -81,6 +109,15 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
     }
   }, [darkMode]);
 
+  // Check if message contains "PDF"
+  useEffect(() => {
+    if (message.isUser && message.text.toUpperCase().includes('PDF')) {
+      setShowPdf(true);
+    } else {
+      setShowPdf(false);
+    }
+  }, [message.text, message.isUser]);
+
   const handleEditSubmit = () => {
     if (onEditMessage && editText.trim() !== '') {
       onEditMessage(message.id, editText);
@@ -118,7 +155,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
       <div className="flex flex-col items-end space-y-1">
         <div
           className={cn(
-            "max-w-[80%] bg-white dark:bg-gray-900 rounded-2xl p-3 sm:p-4 transform transition-transform duration-200 relative",
+            "w-full bg-white dark:bg-gray-900 rounded-2xl p-3 sm:p-4 transform transition-transform duration-200 relative",
             !isEditing && "hover:scale-[1.01]"
           )}
           style={{
@@ -127,7 +164,8 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
               0 2px 4px -1px rgba(0, 0, 0, 0.08),
               0 4px 8px -2px rgba(0, 0, 0, 0.08),
               0 -1px 2px 0 rgba(255, 255, 255, 0.05) inset
-            `
+            `,
+            maxWidth: isEditing ? '800px' : '80%'
           }}
         >
           {isEditing ? (
@@ -150,6 +188,13 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
                 <span className="text-gray-500 dark:text-gray-400 mr-2">
                   Press Esc to cancel, Enter to save
                 </span>
+                <FileUploadMenu 
+                  position="top"
+                  align="end"
+                  disableResponsive={true}
+                  triggerClassName="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
+                  triggerIconClassName="w-3.5 h-3.5"
+                />
                 <button
                   onClick={handleCancel}
                   className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
@@ -171,7 +216,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
               title={isCopied ? "Copied!" : "Click to copy"}
             >
               <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-line break-words overflow-wrap-anywhere hyphens-auto">
-                {message.text}
+                {renderTextWithPdfLinks(message.text)}
               </p>
             </button>
           )}
@@ -214,6 +259,15 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
                 <Pencil className="w-3 h-3" />
               </button>
             )}
+          </div>
+        )}
+        {showPdf && (
+          <div className="mt-4 w-full">
+            <PDFViewer
+              pdfUrl="/placeholder.pdf"
+              onClose={() => setShowPdf(false)}
+              className="w-full"
+            />
           </div>
         )}
       </div>
@@ -262,7 +316,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
             title={isCopied ? "Copied!" : "Click to copy"}
           >
             <p className="text-sm text-gray-900 dark:text-zinc-100 whitespace-pre-line break-words overflow-wrap-anywhere hyphens-auto">
-              {message.text}
+              {renderTextWithPdfLinks(message.text)}
             </p>
           </button>
           {isCopied && (
@@ -290,6 +344,15 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
             )}
           </button>
         </div>
+        {showPdf && (
+          <div className="mt-4 w-full">
+            <PDFViewer
+              pdfUrl="/placeholder.pdf"
+              onClose={() => setShowPdf(false)}
+              className="w-full"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
