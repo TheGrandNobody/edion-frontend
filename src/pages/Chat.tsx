@@ -9,6 +9,7 @@ import ChatInput from '../components/ChatInput';
 import { useChat } from '../hooks/use-chat';
 import { updateUserSettings } from '../utils/storageUtils';
 import { useToast } from '@/hooks/use-toast';
+import { Pencil } from 'lucide-react';
 
 const getUserSettingsFromStorage = (): UserSettingsType => {
   const storedSettings = localStorage.getItem('userSettings');
@@ -26,6 +27,7 @@ const getUserSettingsFromStorage = (): UserSettingsType => {
 
 const Chat = () => {
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
+  const [isEditingPDF, setIsEditingPDF] = useState(false);
   const navigate = useNavigate();
   // Add this state to force re-renders
   const [forceUpdate, setForceUpdate] = useState(0);
@@ -184,6 +186,14 @@ const Chat = () => {
     }
   };
 
+  const handleEditPDF = () => {
+    setIsEditingPDF(true);
+  };
+
+  const handleClosePDFEdit = () => {
+    setIsEditingPDF(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -234,29 +244,49 @@ const Chat = () => {
         />
 
         <div className="flex-1 flex overflow-hidden relative">
-          {activeTab.activePDF && (
-            <div className="w-full md:w-1/2 border-r border-gray-200 dark:border-zinc-800/50 overflow-hidden">
-              <PDFViewer 
-                key={`pdf-${forceUpdate}`}
-                pdfUrl={activeTab.activePDF}
-                onClose={() => {}}
-              />
+          {(activeTab.activePDF || isEditingPDF) && (
+            <div className={`${isEditingPDF ? 'w-1/2' : 'w-full md:w-1/2'} border-r border-gray-200 dark:border-zinc-800/50 overflow-hidden flex flex-col pb-28`}>
+              <div className="flex items-center justify-between p-2 border-b border-gray-200 dark:border-zinc-800/50">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                  {isEditingPDF ? 'Edit Document' : 'Preview'}
+                </span>
+                {!isEditingPDF && (
+                  <button
+                    onClick={handleEditPDF}
+                    className="p-1.5 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 rounded-lg text-gray-600 dark:text-gray-300 flex items-center space-x-2"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    <span className="text-sm">Edit</span>
+                  </button>
+                )}
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <PDFViewer 
+                  key={`pdf-${forceUpdate}`}
+                  pdfUrl={activeTab.activePDF || "/placeholder.pdf"}
+                  onClose={isEditingPDF ? handleClosePDFEdit : undefined}
+                  isEditing={isEditingPDF}
+                />
+              </div>
             </div>
           )}
 
-          <div className={`flex-1 flex flex-col ${activeTab.activePDF ? 'hidden md:flex md:w-1/2' : 'w-full'}`}>
+          <div className={`flex-1 flex flex-col ${activeTab.activePDF && !isEditingPDF ? 'hidden md:flex md:w-1/2' : ''} ${isEditingPDF ? 'w-1/2' : 'w-full'}`}>
             <ChatMessages
               key={`messages-${forceUpdate}`}
               activeTab={activeTab}
               darkMode={userSettings.darkMode}
               onEditMessage={handleEditMessage}
+              onEditPDF={handleEditPDF}
             />
-            <ChatInput
-              key={`input-${forceUpdate}`}
-              inputValue={inputValue}
-              setInputValue={setInputValue}
-              onSubmit={handleSubmit}
-            />
+            <div className="relative">
+              <ChatInput
+                key={`input-${forceUpdate}`}
+                inputValue={inputValue}
+                setInputValue={setInputValue}
+                onSubmit={handleSubmit}
+              />
+            </div>
           </div>
         </div>
       </div>

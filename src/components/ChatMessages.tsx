@@ -97,10 +97,11 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({
 interface ChatMessagesProps {
   activeTab: ChatTab;
   darkMode: boolean;
-  onEditMessage: (messageId: number, newText: string) => void;
+  onEditMessage?: (messageId: number, newText: string) => void;
+  onEditPDF?: () => void;
 }
 
-const ChatMessages: React.FC<ChatMessagesProps> = memo(({ activeTab, darkMode, onEditMessage }) => {
+const ChatMessages: React.FC<ChatMessagesProps> = memo(({ activeTab, darkMode, onEditMessage, onEditPDF }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -139,7 +140,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({ activeTab, darkMode, o
               <SuggestionCard
                 icon={<FileText className="w-5 h-5 text-purple-500 dark:text-purple-400" />}
                 title="Generate a progress report"
-                description="Create a comprehensive student progress report with performance metrics and improvement areas"
+                description="Create detailed student performance reports with metrics, achievements, and areas for development"
                 onClick={() => onEditMessage(-1, "Generate a student progress report")}
                 delay={0.1}
                 color="purple"
@@ -148,8 +149,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({ activeTab, darkMode, o
               <SuggestionCard
                 icon={<BookOpen className="w-5 h-5 text-amber-500 dark:text-amber-400" />}
                 title="Create a lesson plan"
-                description="Plan a structured lesson for 5th grade science with objectives, activities, and assessments"
-                onClick={() => onEditMessage(-1, "Help me create a lesson plan for 5th grade science")}
+                description="Design comprehensive lesson plans with learning objectives, activities, and assessment strategies"
+                onClick={() => onEditMessage(-1, "Help me create a lesson plan")}
                 delay={0.2}
                 color="amber"
                 darkMode={darkMode}
@@ -157,8 +158,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({ activeTab, darkMode, o
               <SuggestionCard
                 icon={<ClipboardList className="w-5 h-5 text-blue-500 dark:text-blue-400" />}
                 title="Generate an assignment"
-                description="Create a well-structured assignment with clear instructions, objectives and grading criteria"
-                onClick={() => onEditMessage(-1, "Help me create an assignment for high school English literature")}
+                description="Develop structured assignments with clear learning objectives, instructions, and evaluation criteria"
+                onClick={() => onEditMessage(-1, "Help me create an assignment")}
                 delay={0.3}
                 color="blue"
                 darkMode={darkMode}
@@ -166,8 +167,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({ activeTab, darkMode, o
               <SuggestionCard
                 icon={<CheckSquare className="w-5 h-5 text-green-500 dark:text-green-400" />}
                 title="Grade a paper"
-                description="Get assistance with grading student work with detailed feedback and improvement suggestions"
-                onClick={() => onEditMessage(-1, "Can you help me grade this student essay and provide constructive feedback?")}
+                description="Evaluate student work with constructive feedback and targeted improvement recommendations"
+                onClick={() => onEditMessage(-1, "Can you help me grade this paper?")}
                 delay={0.4}
                 color="green"
                 darkMode={darkMode}
@@ -184,6 +185,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({ activeTab, darkMode, o
                 message={message} 
                 darkMode={darkMode} 
                 onEditMessage={message.isUser ? onEditMessage : undefined}
+                onEditPDF={onEditPDF}
               />
               {message.pdfUrl && !message.isUser && (
                 <div className="ml-10 mt-2 flex flex-wrap gap-2">
@@ -191,7 +193,10 @@ const ChatMessages: React.FC<ChatMessagesProps> = memo(({ activeTab, darkMode, o
                     <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span>Download</span>
                   </button>
-                  <button className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-sm backdrop-blur-sm">
+                  <button 
+                    onClick={onEditPDF}
+                    className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-sm backdrop-blur-sm"
+                  >
                     <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span>Edit</span>
                   </button>
