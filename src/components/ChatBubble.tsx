@@ -40,7 +40,6 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
   const [editText, setEditText] = useState(message.text);
   const [forceUpdate, setForceUpdate] = useState(0);
   const [isCopied, setIsCopied] = useState(false);
-  const [showPdf, setShowPdf] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const iconRef = useRef<HTMLImageElement>(null);
 
@@ -58,7 +57,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
         return (
           <button
             key={index}
-            onClick={() => setShowPdf(true)}
+            onClick={() => setIsEditing(true)}
             className="text-blue-600 dark:text-blue-400 hover:underline"
           >
             {part}
@@ -112,12 +111,10 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
 
   // Check if message contains "PDF"
   useEffect(() => {
-    if (message.isUser && message.text.toUpperCase().includes('PDF')) {
-      setShowPdf(true);
-    } else {
-      setShowPdf(false);
+    if (message.isUser && message.text.toUpperCase().includes('PDF') && onEditPDF) {
+      onEditPDF();
     }
-  }, [message.text, message.isUser]);
+  }, [message.text, message.isUser, onEditPDF]);
 
   const handleEditSubmit = () => {
     if (onEditMessage && editText.trim() !== '') {
@@ -156,7 +153,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
       <div className="flex flex-col items-end space-y-1">
         <div
           className={cn(
-            "w-full bg-white dark:bg-gray-900 rounded-2xl p-3 sm:p-4 transform transition-transform duration-200 relative",
+            "max-w-[100%] bg-white dark:bg-gray-900 rounded-2xl p-3 sm:p-4 transform transition-transform duration-200 relative",
             !isEditing && "hover:scale-[1.01]"
           )}
           style={{
@@ -262,33 +259,6 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
             )}
           </div>
         )}
-        {showPdf && (
-          <div className="mt-4 w-full">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowPdf(false)}
-                  className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-sm backdrop-blur-sm"
-                >
-                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Close</span>
-                </button>
-                <button
-                  onClick={onEditPDF}
-                  className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-sm backdrop-blur-sm"
-                >
-                  <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Edit</span>
-                </button>
-              </div>
-            </div>
-            <PDFViewer
-              pdfUrl="/placeholder.pdf"
-              onClose={() => setShowPdf(false)}
-              className="w-full"
-            />
-          </div>
-        )}
       </div>
     );
   }
@@ -312,7 +282,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
       </div>
       <div className="flex flex-col space-y-1">
         <div
-          className="max-w-[80%] bg-white dark:bg-zinc-900 rounded-2xl p-3 sm:p-4 transform hover:scale-[1.01] relative"
+          className="max-w-[100%] bg-white dark:bg-zinc-900 rounded-2xl p-3 sm:p-4 transform hover:scale-[1.01] relative"
           style={{
             boxShadow: darkMode ?
               `
@@ -363,33 +333,6 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, darkMode, onEditMessag
             )}
           </button>
         </div>
-        {showPdf && (
-          <div className="mt-4 w-full">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowPdf(false)}
-                  className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-sm backdrop-blur-sm"
-                >
-                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Close</span>
-                </button>
-                <button
-                  onClick={onEditPDF}
-                  className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/70 dark:bg-gray-900 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-sm backdrop-blur-sm"
-                >
-                  <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Edit</span>
-                </button>
-              </div>
-            </div>
-            <PDFViewer
-              pdfUrl="/placeholder.pdf"
-              onClose={() => setShowPdf(false)}
-              className="w-full"
-            />
-          </div>
-        )}
       </div>
     </div>
   );

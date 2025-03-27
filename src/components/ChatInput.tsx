@@ -137,7 +137,7 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({ inputValue, setInputVa
               </div>
               <div className="flex flex-col bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-l border-gray-200/80 dark:border-gray-800/50 p-3 z-10" style={{ 
                 minWidth: '52px',
-                height: `${isExpanded ? EXPANDED_HEIGHT : INITIAL_HEIGHT}px`,
+                height: `${INITIAL_HEIGHT}px`,
                 position: 'absolute',
                 right: 0,
                 bottom: 0,
