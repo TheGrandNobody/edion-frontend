@@ -53,16 +53,28 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({ inputValue, setInputVa
     if (!textarea) return;
 
     const checkOverflow = () => {
+      // Reset to initial height to check content height
       textarea.style.height = `${INITIAL_HEIGHT}px`;
       const shouldShowExpand = textarea.scrollHeight > INITIAL_HEIGHT;
-      setShowExpandButton(shouldShowExpand);
       
-      const newHeight = isExpanded ? EXPANDED_HEIGHT : INITIAL_HEIGHT;
-      textarea.style.height = `${newHeight}px`;
-      
-      if (formRef.current) {
-        formRef.current.style.height = `${newHeight}px`;
+      // If content is small enough and we're expanded, auto-contract
+      if (!shouldShowExpand && isExpanded) {
+        setIsExpanded(false);
+        const newHeight = INITIAL_HEIGHT;
+        textarea.style.height = `${newHeight}px`;
+        if (formRef.current) {
+          formRef.current.style.height = `${newHeight}px`;
+        }
+      } else {
+        // Otherwise set to appropriate height
+        const newHeight = isExpanded ? EXPANDED_HEIGHT : INITIAL_HEIGHT;
+        textarea.style.height = `${newHeight}px`;
+        if (formRef.current) {
+          formRef.current.style.height = `${newHeight}px`;
+        }
       }
+      
+      setShowExpandButton(shouldShowExpand);
     };
 
     checkOverflow();
@@ -84,7 +96,7 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({ inputValue, setInputVa
           )}
         </button>
       )}
-      <div className="w-full mx-auto" style={{ maxWidth: 'min(100%, 800px)', width: '100%', padding: '0 4px', boxSizing: 'border-box' }}>
+      <div className="w-full mx-auto relative z-50" style={{ maxWidth: 'min(100%, 800px)', width: '100%', padding: '0 4px', boxSizing: 'border-box' }}>
         <div className="bg-white/80 dark:bg-gray-900/80 border border-gray-200/80 dark:border-gray-800/50 backdrop-blur-md rounded-xl shadow-lg py-2">
           <form ref={formRef} onSubmit={onSubmit} className="relative overflow-hidden">
             <div className="flex">
@@ -112,7 +124,7 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({ inputValue, setInputVa
                     whiteSpace: 'pre-wrap',
                     overflowY: 'auto',
                     height: `${isExpanded ? EXPANDED_HEIGHT : INITIAL_HEIGHT}px`,
-                    width: 'calc(100% - 64px)'
+                    width: 'calc(100% - 52px)'
                   }}
                   rows={1}
                   onKeyDown={(e) => {
@@ -123,13 +135,15 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(({ inputValue, setInputVa
                   }}
                 />
               </div>
-              <div className="flex flex-col bg-gradient-to-l from-white/90 dark:from-zinc-950/95 via-white/90 dark:via-zinc-950/95 to-transparent p-3" style={{ 
-                minWidth: '52px', 
-                justifyContent: 'space-evenly',
-                height: `${INITIAL_HEIGHT}px`,
+              <div className="flex flex-col bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-l border-gray-200/80 dark:border-gray-800/50 p-3 z-10" style={{ 
+                minWidth: '52px',
+                height: `${isExpanded ? EXPANDED_HEIGHT : INITIAL_HEIGHT}px`,
                 position: 'absolute',
                 right: 0,
-                bottom: 0
+                bottom: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}>
                 <button
                   type="button"
