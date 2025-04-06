@@ -1,7 +1,6 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserSettings as UserSettingsType } from '../types';
-import PDFViewer from '../components/PDFViewer';
 import ChatHistoryMenu from '../components/ChatHistory';
 import ChatHeader from '../components/ChatHeader';
 import ChatMessages from '../components/ChatMessages';
@@ -25,7 +24,6 @@ const getUserSettingsFromStorage = (): UserSettingsType => {
 
 const Chat = () => {
   const [userSettings, setUserSettings] = useState<UserSettingsType>(getUserSettingsFromStorage());
-  const [isEditingPDF, setIsEditingPDF] = useState(false);
   const navigate = useNavigate();
   // Add this state to force re-renders
   const [forceUpdate, setForceUpdate] = useState(0);
@@ -183,14 +181,6 @@ const Chat = () => {
     }
   };
 
-  const handleClosePDFEdit = () => {
-    setIsEditingPDF(false);
-  };
-
-  const handleEditPDF = useCallback(() => {
-    setIsEditingPDF(true);
-  }, []);
-
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -240,33 +230,12 @@ const Chat = () => {
           goToSettings={goToSettings}
         />
 
-        <div className="flex-1 flex overflow-hidden relative">
-          {(activeTab.activePDF || isEditingPDF) && (
-            <div className="w-1/2 border-r border-gray-200 dark:border-zinc-800/50 overflow-hidden flex flex-col pb-28">
-              <div className="flex items-center justify-between p-2 border-b border-gray-200 dark:border-zinc-800/50">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                  Edit Document
-                </span>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <PDFViewer 
-                  key={`pdf-${forceUpdate}`}
-                  pdfUrl={activeTab.activePDF || "/placeholder.pdf"}
-                  onClose={handleClosePDFEdit}
-                  isEditing={isEditingPDF}
-                  darkMode={userSettings.darkMode}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className={`flex-1 flex flex-col ${isEditingPDF ? 'w-1/2' : 'w-full'}`}>
+          <div className={`flex-1 flex flex-col w-full`}>
             <ChatMessages
               key={`messages-${forceUpdate}`}
               activeTab={activeTab}
               darkMode={userSettings.darkMode}
               onEditMessage={handleEditMessage}
-              onEditPDF={handleEditPDF}
             />
             <div className="relative">
               <ChatInput
@@ -279,7 +248,6 @@ const Chat = () => {
           </div>
         </div>
       </div>
-    </div>
   );
 };
 
