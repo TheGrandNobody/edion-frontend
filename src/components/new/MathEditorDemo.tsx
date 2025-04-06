@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import SimpleMathEditor from './SimpleMathEditor';
 
 const MathEditorDemo = () => {
-  const [content, setContent] = useState("Start typing here. Press $ to enter a math equation like $E=mc^2$");
+  const [content, setContent] = useState("Start typing here.");
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   return (

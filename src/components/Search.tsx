@@ -142,43 +142,83 @@ const Search = () => {
       transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
     >
       <form onSubmit={handleSubmit} className="relative">
-        <input
-          type="text"
-          placeholder="What can I help you with, Julia?"
-          className={cn(
-            "w-full px-4 py-2.5 sm:py-3 pr-24 rounded-lg text-sm",
-            "bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm",
-            "text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400",
-            "border border-transparent",
-            "transition-all duration-200 ease-in-out",
-            "focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-blue-500",
-            "focus:bg-white/90 dark:focus:bg-gray-800/90 focus:border-indigo-500/20 dark:focus:border-blue-500/20"
-          )}
-          aria-label="Search box"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
-        <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 sm:space-x-2">
-          <button 
-            type="button" 
-            className="p-1.5 sm:p-2 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
-            aria-label="Voice input"
-          >
-            <Mic className="h-4 w-4 sm:w-5 sm:h-5" />
-          </button>
-          
-          <FileUploadMenu onFileSelect={handleFileSelect} />
-          
-          <button 
-            type="submit" 
-            className={cn(
-              "p-1.5 sm:p-2 rounded-lg text-white",
-              "bg-indigo-500 hover:bg-indigo-600 dark:bg-blue-500 dark:hover:bg-blue-600"
-            )}
-            aria-label="Submit search"
-          >
-            <ArrowRight className="h-4 w-4 sm:w-5 sm:h-5" />
-          </button>
+        <div className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm rounded-lg border border-transparent">
+          <div className="flex">
+            <div className="flex-1 relative">
+              <textarea
+                placeholder="What can I help you with, Julia?"
+                className={cn(
+                  "w-full bg-transparent rounded-lg",
+                  "focus:outline-none text-sm",
+                  "text-gray-700 dark:text-gray-200",
+                  "placeholder:text-gray-400 dark:placeholder:text-gray-400",
+                  "resize-none",
+                  "scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600",
+                  "scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-500"
+                )}
+                style={{
+                  lineHeight: '20px',
+                  padding: '12px 12px 12px 16px',
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
+                  whiteSpace: 'pre-wrap',
+                  overflowY: 'auto',
+                  width: 'calc(100% - 140px)',
+                  minHeight: '42px',
+                  maxHeight: '200px'
+                }}
+                aria-label="Search box"
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  // Auto-adjust height
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                }}
+                rows={1}
+              />
+            </div>
+            <div className="flex items-center gap-1 bg-transparent border-l border-gray-200/80 dark:border-gray-800/50 p-2 z-10" style={{ 
+              width: '140px',
+              position: 'absolute',
+              right: 0,
+              bottom: 0,
+              top: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <button 
+                type="button" 
+                className="p-1.5 sm:p-2 hover:bg-gray-200/70 dark:hover:bg-gray-700/70 rounded-lg text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+                aria-label="Voice input"
+              >
+                <Mic className="h-4 w-4 sm:w-5 sm:h-5" />
+              </button>
+              
+              <FileUploadMenu onFileSelect={handleFileSelect} />
+              
+              <button 
+                type="submit" 
+                className={cn(
+                  "p-1.5 sm:p-2 rounded-lg flex items-center justify-center",
+                  searchInput.trim()
+                    ? "bg-indigo-500 hover:bg-indigo-600 dark:bg-blue-500 dark:hover:bg-blue-600 text-white"
+                    : "hover:bg-gray-200/70 dark:hover:bg-gray-700/70 text-gray-500 dark:text-gray-400 backdrop-blur-sm"
+                )}
+                aria-label="Submit search"
+                disabled={!searchInput.trim()}
+              >
+                <ArrowRight className="h-4 w-4 sm:w-5 sm:h-5" />
+              </button>
+            </div>
+          </div>
         </div>
       </form>
     </motion.div>
