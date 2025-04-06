@@ -1,17 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Download, X, Maximize2, Minimize2, Save } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import LatexEditor from './LatexEditor';
 
 interface PDFViewerProps {
   pdfUrl: string;
   onClose?: () => void;
   className?: string;
   isEditing?: boolean;
+  darkMode?: boolean;
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ pdfUrl, onClose, className, isEditing = false }) => {
+const PDFViewer: React.FC<PDFViewerProps> = ({ pdfUrl, onClose, className, isEditing = false, darkMode = false }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editedContent, setEditedContent] = useState('');
+
+  // Initialize with some sample LaTeX content when editing mode is activated
+  useEffect(() => {
+    if (isEditing) {
+      setEditedContent(`\\section{Introduction}
+Welcome to your document! Type normally and use these shortcuts:
+• Press $ to enter math mode (e.g. $E = mc^2$)
+• Use # for headings
+• Type normally for regular text
+
+\\section{Example Math}
+Here's an example equation: $F = ma$
+And a more complex one: $\\int_0^\\infty e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}$
+
+\\section{Next Steps}
+Start editing this document by clicking anywhere and typing. The math will be rendered automatically!`);
+    }
+  }, [isEditing]);
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
@@ -92,18 +112,14 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ pdfUrl, onClose, className, isEdi
         {isEditing ? (
           <div className="h-full flex flex-col">
             <div className="flex-1 p-4 overflow-auto">
-              <textarea
-                value={editedContent}
-                onChange={(e) => setEditedContent(e.target.value)}
-                className={cn(
-                  "w-full h-full p-4 rounded-lg",
-                  "bg-white dark:bg-gray-900",
-                  "border border-gray-200/80 dark:border-gray-800/50",
-                  "text-sm text-gray-900 dark:text-gray-100",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:focus:ring-blue-500/20",
-                  "resize-none"
-                )}
-                placeholder="Edit your document here..."
+              <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                Editing mode active - Use LaTeX commands to format your document
+              </div>
+              <LatexEditor
+                initialValue={editedContent}
+                onChange={setEditedContent}
+                darkMode={darkMode}
+                className="min-h-[calc(100vh-200px)]"
               />
             </div>
           </div>
