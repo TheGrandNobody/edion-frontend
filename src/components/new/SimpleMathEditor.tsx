@@ -21,7 +21,6 @@ const SimpleMathEditor: React.FC<SimpleMathEditorProps> = ({
   const [inMathMode, setInMathMode] = useState(false);
   const [currentMathBuffer, setCurrentMathBuffer] = useState('');
   const [isComposing, setIsComposing] = useState(false);
-  const [lastSelection, setLastSelection] = useState<{ start: number, end: number } | null>(null);
   
   // Apply changes and update parent if needed
   useEffect(() => {
@@ -101,30 +100,29 @@ const SimpleMathEditor: React.FC<SimpleMathEditorProps> = ({
 
   // Helper function to detect math expressions
   const isMathExpression = (text: string): boolean => {
+    // Only consider complete patterns as math expressions
     const mathPatterns = [
-      /\^/, // superscript
-      /\_/, // subscript
-      /\\frac/, // fractions
-      /\\sqrt/, // square root
-      /\d+\/\d+/, // Simple fractions like 1/2
-      /\d+\*\d+/, // Multiplication
-      /log\d*\s*\(/, // Logarithm with optional base and parentheses
-      /(sin|cos|tan|csc|sec|cot|arcsin|arccos|arctan)\s*\(/, // Trigonometric functions
-      /(sinh|cosh|tanh)\s*\(/, // Hyperbolic functions
-      /(lim|sup|inf|max|min)\s*\{/, // Functions with curly braces
-      /(sum|prod|int)\s*/, // Summation, product, integral
-      /sqrt\s*\(/, // Square root
-      /root\d*\s*\(/, // nth root
-      /pi|theta|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|omicron|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega/, // Greek letters
-      /inf(inity)?/, // Infinity
-      /!=|<=|>=|~=/, // Comparison operators
-      /\+-|-\+|==|=>|->|<-|<=>/, // Special operators
-      /\\int/, // Integral
-      /\\sum/, // Summation
-      /\\lim/, // Limit
-      /\\infty/, // Infinity
-      /\\left|\\right/, // Parentheses and brackets
-      /\\begin|\\end/ // Environment markers
+      /^[a-zA-Z0-9]+\^[0-9a-zA-Z]*$/, // Allow incomplete exponents
+      /^[a-zA-Z0-9]+\_[0-9a-zA-Z]*$/, // Allow incomplete subscripts
+      /\\frac\{.*\}\{.*\}/, // Complete fraction
+      /\\sqrt(\[.*\])?\{.*\}/, // Complete square root
+      /\d+\/\d+/, // Complete fractions like 1/2
+      /\d+\*\d+/, // Complete multiplication
+      /log\d*\s*\([^)]*\)/, // Complete logarithm
+      /(sin|cos|tan|csc|sec|cot|arcsin|arccos|arctan)\s*\([^)]*\)/, // Complete trig functions
+      /(sinh|cosh|tanh)\s*\([^)]*\)/, // Complete hyperbolic functions
+      /(lim|sup|inf|max|min)\s*\{.*\}/, // Complete functions with curly braces
+      /(sum|prod|int)\s*_\{.*\}\^?\{?.*\}?/, // Complete summation, product, integral
+      /sqrt\s*\([^)]*\)/, // Complete square root with parentheses
+      /root\d*\s*\([^)]*\)/, // Complete nth root
+      /\\(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|omicron|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega)\b/, // Complete Greek letters
+      /\\infty\b/, // Complete infinity
+      /!=|<=|>=|~=|\+-|-\+|==|=>|->|<-|<=>/, // Complete operators
+      /\\int(_\{.*\})?\^?\{?.*\}?/, // Complete integral
+      /\\sum(_\{.*\})?\^?\{?.*\}?/, // Complete summation
+      /\\lim(_\{.*\})?\^?\{?.*\}?/, // Complete limit
+      /\\left.*\\right/, // Complete parentheses/brackets pair
+      /\\begin\{.*\}.*\\end\{.*\}/ // Complete environment
     ];
     
     return mathPatterns.some(pattern => pattern.test(text));
@@ -132,17 +130,40 @@ const SimpleMathEditor: React.FC<SimpleMathEditorProps> = ({
 
   // Helper function to convert text to LaTeX
   const convertToLatex = (text: string): string => {
+    // Handle exponents and subscripts with any valid mathematical expression
+    const exponentRegex = /(\^)([0-9a-zA-Z\(\)\+\-\*\/\{\}\[\]]+)/g;
+    text = text.replace(exponentRegex, '^{$2}');
+
+    const subscriptRegex = /(_)([0-9a-zA-Z\(\)\+\-\*\/\{\}\[\]]+)/g;
+    text = text.replace(subscriptRegex, '_{$2}');
+
+    // Handle function arguments (e.g., "log2(x)" to "\log_{2}(x)")
+    const logBaseParenRegex = /log([0-9a-zA-Z\+\-\*\/\{\}\[\]]+)\s*(\(.*?\))/g;
+    text = text.replace(logBaseParenRegex, '\\log_{$1}$2');
+
+    // Handle root expressions (e.g., "root3(x)" to "\sqrt[3]{x}")
+    const rootRegex = /root([0-9a-zA-Z\+\-\*\/\{\}\[\]]+)\s*\((.*?)\)/g;
+    text = text.replace(rootRegex, '\\sqrt[$1]{$2}');
+
+    // Handle limits, sums, and integrals with complex bounds
+    const limitRegex = /lim_([0-9a-zA-Z\+\-\*\/\{\}\[\]]+)(?:\s*->|\s*→)\s*([0-9a-zA-Z\+\-\*\/\{\}\[\]]+)/g;
+    text = text.replace(limitRegex, '\\lim_{$1 \\to $2}');
+
+    const sumRegex = /sum_([0-9a-zA-Z\+\-\*\/\{\}\[\]]+)\^([0-9a-zA-Z\+\-\*\/\{\}\[\]]+)/g;
+    text = text.replace(sumRegex, '\\sum_{$1}^{$2}');
+
+    const intRegex = /int_([0-9a-zA-Z\+\-\*\/\{\}\[\]]+)\^([0-9a-zA-Z\+\-\*\/\{\}\[\]]+)/g;
+    text = text.replace(intRegex, '\\int_{$1}^{$2}');
+
     // Convert simple fractions (e.g., "1/2" to "\frac{1}{2}")
-    const fractionRegex = /(\d+)\/(\d+)/g;
+    const fractionRegex = /(\d+(?:[a-zA-Z\+\-\*\/\{\}\[\]]*))\/(\d+(?:[a-zA-Z\+\-\*\/\{\}\[\]]*))/g;
     text = text.replace(fractionRegex, '\\frac{$1}{$2}');
 
     // Convert multiplication (e.g., "2*3" to "2 \times 3")
-    const multiplicationRegex = /(\d+)\*(\d+)/g;
-    text = text.replace(multiplicationRegex, '$1 \\times $2');
-
-    // Convert logarithm with base and parentheses (e.g., "log2(x)" to "\log_2(x)")
-    const logBaseParenRegex = /log(\d+)\s*(\(.*?\))/g;
-    text = text.replace(logBaseParenRegex, '\\log_{$1}$2');
+    const multiplicationRegex = /(\d+(?:[a-zA-Z\+\-\*\/\{\}\[\]]*)\*\d+(?:[a-zA-Z\+\-\*\/\{\}\[\]]*))/g;
+    text = text.replace(multiplicationRegex, (match) => {
+      return match.replace('*', ' \\times ');
+    });
 
     // Convert natural logarithm (e.g., "log(x)" to "\log(x)")
     const logParenRegex = /log\s*(\(.*?\))/g;
@@ -178,10 +199,6 @@ const SimpleMathEditor: React.FC<SimpleMathEditorProps> = ({
     text = text.replace(funcPattern, (match, func, args) => {
       return `${mathFunctions[func as keyof typeof mathFunctions]}${args}`;
     });
-
-    // Convert nth root (e.g., "root3(x)" to "\sqrt[3]{x}")
-    const rootRegex = /root(\d+)\s*\((.*?)\)/g;
-    text = text.replace(rootRegex, '\\sqrt[$1]{$2}');
 
     // Convert Greek letters
     const greekLetters = {
@@ -272,27 +289,55 @@ const SimpleMathEditor: React.FC<SimpleMathEditorProps> = ({
       mathSpan.innerHTML = renderedMath;
       
       // Create a text node for the space after math
-      const spaceNode = document.createTextNode('\u200B'); // Zero-width space for better cursor handling
+      const spaceNode = document.createTextNode('\u200B'); // Zero-width space
       
-      // Replace text with rendered math
-      const wordRange = document.createRange();
+      // Find the correct position to insert the math expression
       const textContent = startNode.textContent || '';
       const wordStart = textContent.lastIndexOf(expression, range.startOffset);
       
       if (wordStart >= 0) {
+        // Create a new range for the math expression
+        const wordRange = document.createRange();
         wordRange.setStart(startNode, wordStart);
         wordRange.setEnd(startNode, wordStart + expression.length);
+        
+        // Get the parent node and position
+        const parentNode = startNode.parentNode;
+        if (!parentNode) return;
+        
+        // Delete the original text
         wordRange.deleteContents();
         
-        // Insert math span and space node
-        wordRange.insertNode(mathSpan);
-        mathSpan.after(spaceNode);
+        // Insert the math span at the correct position
+        const textBefore = textContent.substring(0, wordStart);
+        const textAfter = textContent.substring(wordStart + expression.length);
+        
+        // Create text nodes for before and after
+        if (textBefore) {
+          const beforeNode = document.createTextNode(textBefore);
+          parentNode.insertBefore(beforeNode, startNode);
+        }
+        
+        // Insert math span
+        parentNode.insertBefore(mathSpan, startNode);
+        parentNode.insertBefore(spaceNode, startNode);
+        
+        if (textAfter) {
+          const afterNode = document.createTextNode(textAfter);
+          parentNode.insertBefore(afterNode, startNode);
+        }
+        
+        // Remove the original node if it's empty
+        if (!startNode.textContent) {
+          parentNode.removeChild(startNode);
+        }
         
         // Position cursor after the space
-        range.setStartAfter(spaceNode);
-        range.setEndAfter(spaceNode);
+        const newRange = document.createRange();
+        newRange.setStartAfter(spaceNode);
+        newRange.setEndAfter(spaceNode);
         selection.removeAllRanges();
-        selection.addRange(range);
+        selection.addRange(newRange);
       }
     } catch (error) {
       console.error('KaTeX error:', error);
@@ -371,8 +416,20 @@ const SimpleMathEditor: React.FC<SimpleMathEditorProps> = ({
         renderMathExpression(currentWord);
         setInMathMode(false);
         setCurrentMathBuffer('');
-        // Add space after the expression
-        document.execCommand('insertText', false, ' ');
+        
+        // Force a reflow to ensure proper cursor position
+        requestAnimationFrame(() => {
+          if (editorRef.current) {
+            const range = document.createRange();
+            const lastTextNode = getTextNodesIn(editorRef.current).pop();
+            if (lastTextNode) {
+              range.setStartAfter(lastTextNode);
+              range.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            }
+          }
+        });
       }
     } else if (inMathMode) {
       // Update math buffer
@@ -391,8 +448,20 @@ const SimpleMathEditor: React.FC<SimpleMathEditorProps> = ({
         renderMathExpression(currentWord);
         setInMathMode(false);
         setCurrentMathBuffer('');
-        // Add space after the expression
-        document.execCommand('insertText', false, ' ');
+        
+        // Force a reflow to ensure proper cursor position
+        requestAnimationFrame(() => {
+          if (editorRef.current) {
+            const range = document.createRange();
+            const lastTextNode = getTextNodesIn(editorRef.current).pop();
+            if (lastTextNode) {
+              range.setStartAfter(lastTextNode);
+              range.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            }
+          }
+        });
       }
     }
   };
@@ -430,12 +499,45 @@ const SimpleMathEditor: React.FC<SimpleMathEditorProps> = ({
     // Handle space to exit math mode
     if (e.key === ' ' && inMathMode) {
       e.preventDefault();
+      if (currentMathBuffer.includes('^') && !currentMathBuffer.match(/\^[0-9a-zA-Z]+$/)) {
+        // Don't render incomplete exponents
+        document.execCommand('insertText', false, ' ');
+        setInMathMode(false);
+        setCurrentMathBuffer('');
+        
+        // Force a reflow to ensure proper cursor position
+        requestAnimationFrame(() => {
+          if (div) {
+            const range = document.createRange();
+            const lastTextNode = getTextNodesIn(div).pop();
+            if (lastTextNode) {
+              range.setStartAfter(lastTextNode);
+              range.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            }
+          }
+        });
+        return;
+      }
       renderMathExpression(currentMathBuffer);
       setInMathMode(false);
       setCurrentMathBuffer('');
       
-      // Insert space after rendered math
-      document.execCommand('insertText', false, ' ');
+      // Insert space after rendered math and force proper cursor position
+      requestAnimationFrame(() => {
+        document.execCommand('insertText', false, ' ');
+        if (div) {
+          const range = document.createRange();
+          const lastTextNode = getTextNodesIn(div).pop();
+          if (lastTextNode) {
+            range.setStartAfter(lastTextNode);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+        }
+      });
       return;
     }
     
@@ -444,9 +546,48 @@ const SimpleMathEditor: React.FC<SimpleMathEditorProps> = ({
       const newBuffer = currentMathBuffer.slice(0, -1);
       setCurrentMathBuffer(newBuffer);
       
-      // Exit math mode if buffer is empty
-      if (!newBuffer) {
+      // Special handling for exponents
+      if (newBuffer.endsWith('^')) {
+        // Keep in math mode but don't render
+        return;
+      }
+      
+      // Exit math mode if buffer is empty or if the remaining text isn't a valid math expression
+      if (!newBuffer || !isMathExpression(newBuffer)) {
         setInMathMode(false);
+        
+        if (selection && selection.focusNode) {
+          const text = selection.focusNode.textContent || '';
+          const pos = selection.focusOffset;
+          // Only update if we have text to work with
+          if (text) {
+            // Remove the current node's content
+            selection.focusNode.textContent = '';
+            // Insert text using modern DOM manipulation
+            const textNode = document.createTextNode(text);
+            const range = selection.getRangeAt(0);
+            range.insertNode(textNode);
+            // Restore cursor position
+            range.setStart(textNode, Math.min(pos, text.length));
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            // Force a reflow to ensure proper cursor position
+            requestAnimationFrame(() => {
+              if (div) {
+                const newRange = document.createRange();
+                const lastTextNode = getTextNodesIn(div).pop();
+                if (lastTextNode) {
+                  newRange.setStartAfter(lastTextNode);
+                  newRange.collapse(true);
+                  selection.removeAllRanges();
+                  selection.addRange(newRange);
+                }
+              }
+            });
+          }
+        }
       }
     }
 
