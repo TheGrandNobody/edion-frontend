@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cortex-js/compute-engine": "^0.29.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -63,6 +64,7 @@
     "katex": "^0.16.21",
     "latex.js": "^0.12.6",
     "lucide-react": "^0.462.0",
+    "mathlive": "^0.105.2",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
