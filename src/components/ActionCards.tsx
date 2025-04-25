@@ -1,8 +1,9 @@
 import ActionCard from './ActionCard';
-import { FileText, BookOpen, ClipboardList, CheckSquare, BrainCircuit, Award, Brain, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileText, BookOpen, ClipboardList, CheckSquare, BrainCircuit, Award, Brain, ChevronDown, ChevronUp, Pi, Variable } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from 'react-router-dom';
 
 const ActionCards = () => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -10,6 +11,15 @@ const ActionCards = () => {
   return (
     <div className="relative">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-4xl">
+        <Link to="/editor" className="no-underline">
+          <ActionCard
+            icon={<Variable className="w-5 h-5 text-cyan-500 dark:text-cyan-400" />}
+            title="LaTeX Math Editor"
+            description="Create math exercises with a WYSIWYG LaTeX editor for primary and middle-school students"
+            color="cyan"
+            delay={0.1}
+          />
+        </Link>
         <ActionCard
           icon={<FileText className="w-5 h-5 text-purple-500 dark:text-purple-400" />}
           title="Generate a progress report"
@@ -31,17 +41,17 @@ const ActionCards = () => {
           color="blue"
           delay={0.3}
         />
-        <ActionCard
-          icon={<CheckSquare className="w-5 h-5 text-green-500 dark:text-green-400" />}
-          title="Grade a paper"
-          description="Evaluate student work with constructive feedback and targeted improvement recommendations"
-          color="green"
-          delay={0.4}
-        />
         
         <AnimatePresence>
           {isExpanded && (
             <>
+              <ActionCard
+                icon={<CheckSquare className="w-5 h-5 text-green-500 dark:text-green-400" />}
+                title="Grade a paper"
+                description="Evaluate student work with constructive feedback and targeted improvement recommendations"
+                color="green"
+                delay={0.1}
+              />
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
