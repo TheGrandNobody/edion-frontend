@@ -1,51 +1,201 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 
 /**
  * Hook to handle inline math operations in the WYSIWYG editor
  */
 export const useInlineMath = () => {
   /**
+   * Find a math field element starting from a given node
+   */
+  const findMathField = (node: Node | null): HTMLElement | null => {
+    if (!node) return null;
+
+    // Check if we're inside a math field
+    let current = node;
+    while (current) {
+      if (current instanceof HTMLElement && current.tagName === 'MATH-FIELD') {
+        return current;
+      }
+      current = current.parentNode;
+    }
+
+    // Check if we're adjacent to or contain a math field
+    const element = node instanceof HTMLElement ? node : node.parentElement;
+    if (element) {
+      // Check siblings
+      const prevSibling = element.previousSibling;
+      const nextSibling = element.nextSibling;
+
+      if (prevSibling instanceof HTMLElement && prevSibling.tagName === 'MATH-FIELD') {
+        return prevSibling;
+      } else if (nextSibling instanceof HTMLElement && nextSibling.tagName === 'MATH-FIELD') {
+        return nextSibling;
+      }
+
+      // Check children
+      const mathFields = element.getElementsByTagName('MATH-FIELD');
+      if (mathFields.length > 0) {
+        return mathFields[mathFields.length - 1] as HTMLElement;
+      }
+    }
+
+    // Check if we're in text node after math field
+    if (node.nodeType === Node.TEXT_NODE && node.nodeValue === '\u200B') {
+      const prevSibling = node.previousSibling;
+      if (prevSibling instanceof HTMLElement && prevSibling.tagName === 'MATH-FIELD') {
+        return prevSibling;
+      }
+    }
+
+    return null;
+  };
+
+  /**
+   * Add a zero-width space after an element
+   */
+  const addZeroWidthSpace = (element: Node) => {
+    const textNode = document.createTextNode('\u200B');
+    element.parentNode?.insertBefore(textNode, element.nextSibling);
+  };
+
+  /**
+   * Focus the editor and position cursor
+   */
+  const focusEditor = () => {
+    const editor = document.querySelector('[contenteditable="true"]') as HTMLElement;
+    if (editor) {
+      editor.focus();
+    }
+  };
+
+  /**
+   * Remove a math field and its adjacent zero-width spaces
+   */
+  const removeMathField = (mathField: HTMLElement) => {
+    const nextSibling = mathField.nextSibling;
+    const prevSibling = mathField.previousSibling;
+    
+    if (nextSibling?.nodeType === Node.TEXT_NODE && nextSibling.nodeValue === '\u200B') {
+      nextSibling.remove();
+    }
+    if (prevSibling?.nodeType === Node.TEXT_NODE && prevSibling.nodeValue === '\u200B') {
+      prevSibling.remove();
+    }
+    
+    mathField.remove();
+    focusEditor();
+  };
+
+  /**
+   * Position cursor after a node and insert text
+   */
+  const positionCursorAndInsert = (node: Node, text: string) => {
+    const range = document.createRange();
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    range.setStartAfter(node);
+    range.setEndAfter(node);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand('insertText', false, text);
+  };
+
+  /**
+   * Initialize a newly created math field and set up cursor position
+   */
+  const initializeMathField = (parentElement: Element | null) => {
+    setTimeout(() => {
+      const mathFields = parentElement?.querySelectorAll('math-field');
+      if (mathFields) {
+        const newMathField = mathFields[mathFields.length - 1];
+        if (newMathField) {
+          (newMathField as HTMLElement).focus();
+          addZeroWidthSpace(newMathField);
+        }
+      }
+    }, 0);
+  };
+
+  /**
+   * Check if the current selection is inside or near a math field
+   */
+  const isInsideMathField = (): boolean => {
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount) return false;
+    return !!findMathField(selection.anchorNode);
+  };
+
+  /**
    * Insert math delimiters at the current cursor position
-   * and handle special key commands
    */
   const insertMathDelimiters = useCallback(() => {
-    // Insert the delimiters at cursor
-    document.execCommand('insertText', false, '\\(\\)');
-    
-    // Get the current selection
     const selection = window.getSelection();
-    
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
+    if (!selection || !selection.rangeCount) return;
+
+    if (isInsideMathField()) {
+      const mathField = findMathField(selection.anchorNode);
+      if (!mathField) return;
       
-      // Move the cursor between the delimiters
-      try {
-        // Create a new range
-        const newRange = document.createRange();
-        
-        // Set the position to be between the delimiters
-        newRange.setStart(range.startContainer, range.startOffset - 2);
-        newRange.setEnd(range.startContainer, range.startOffset - 2);
-        
-        // Apply the new range
-        selection.removeAllRanges();
-        selection.addRange(newRange);
-      } catch (e) {
-        console.error('Failed to position cursor between math delimiters:', e);
+      // Create a text node with a space after the math field
+      const spaceNode = document.createTextNode(' ');
+      mathField.parentNode?.insertBefore(spaceNode, mathField.nextSibling);
+      
+      // Insert new math delimiters after the space
+      positionCursorAndInsert(spaceNode, '\\(\\)');
+      initializeMathField(mathField.parentElement);
+    } else {
+      document.execCommand('insertText', false, '\\(\\)');
+      initializeMathField(selection.anchorNode?.parentElement);
+    }
+  }, []);
+
+  /**
+   * Handle deletion of empty math fields
+   */
+  const handleMathFieldDelete = useCallback((event: KeyboardEvent) => {
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'MATH-FIELD') {
+      const mathField = target as any;
+      if (!mathField.value) {
+        event.preventDefault();
+        removeMathField(mathField);
       }
     }
   }, []);
-  
+
   /**
-   * Handle keyboard shortcuts for inserting math
+   * Handle keyboard shortcuts and navigation
    */
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
-    // Check for Ctrl+M or Cmd+M
     if ((event.ctrlKey || event.metaKey) && event.key === 'm') {
       event.preventDefault();
       insertMathDelimiters();
+      return;
+    }
+
+    if (event.key === 'Backspace') {
+      const selection = window.getSelection();
+      if (selection?.rangeCount) {
+        const range = selection.getRangeAt(0);
+        const container = range.startContainer;
+        
+        if (container.nodeType === Node.TEXT_NODE && range.startOffset === 0) {
+          const prevSibling = container.previousSibling as HTMLElement;
+          if (prevSibling?.tagName === 'MATH-FIELD') {
+            event.preventDefault();
+            removeMathField(prevSibling);
+          }
+        }
+      }
     }
   }, [insertMathDelimiters]);
+
+  // Add event listener for handling math field deletion
+  useEffect(() => {
+    document.addEventListener('keydown', handleMathFieldDelete);
+    return () => document.removeEventListener('keydown', handleMathFieldDelete);
+  }, [handleMathFieldDelete]);
   
   return {
     insertMathDelimiters,
