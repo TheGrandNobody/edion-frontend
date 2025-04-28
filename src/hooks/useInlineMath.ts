@@ -180,11 +180,51 @@ export const useInlineMath = () => {
         const range = selection.getRangeAt(0);
         const container = range.startContainer;
         
-        if (container.nodeType === Node.TEXT_NODE && range.startOffset === 0) {
-          const prevSibling = container.previousSibling as HTMLElement;
-          if (prevSibling?.tagName === 'MATH-FIELD') {
+        // If we're at the start of a text node or element
+        if (range.startOffset === 0) {
+          // Find the previous math field by walking the DOM backwards
+          let currentNode: Node | null = container;
+          let previousNode: Node | null = null;
+
+          // First try to get the previous sibling or its last descendant
+          if (currentNode.previousSibling) {
+            previousNode = currentNode.previousSibling;
+            // If the previous sibling has children, get its last descendant
+            while (previousNode && previousNode.lastChild) {
+              previousNode = previousNode.lastChild;
+            }
+          } else {
+            // If no previous sibling, walk up the parent chain until we find one
+            while (currentNode.parentNode) {
+              if (currentNode.parentNode.previousSibling) {
+                previousNode = currentNode.parentNode.previousSibling;
+                // Get the last descendant of this previous sibling
+                while (previousNode && previousNode.lastChild) {
+                  previousNode = previousNode.lastChild;
+                }
+                break;
+              }
+              currentNode = currentNode.parentNode;
+            }
+          }
+
+          // Check if we found a math field
+          if (previousNode instanceof HTMLElement && previousNode.tagName === 'MATH-FIELD') {
             event.preventDefault();
-            removeMathField(prevSibling);
+            removeMathField(previousNode);
+            return;
+          }
+
+          // Also check parent of previous node in case math field is wrapped
+          let prevParent = previousNode?.parentNode;
+          while (prevParent && !(prevParent instanceof HTMLElement && prevParent.tagName === 'MATH-FIELD')) {
+            prevParent = prevParent.parentNode;
+          }
+          
+          if (prevParent instanceof HTMLElement && prevParent.tagName === 'MATH-FIELD') {
+            event.preventDefault();
+            removeMathField(prevParent);
+            return;
           }
         }
       }
