@@ -207,9 +207,63 @@ export const useInlineMath = () => {
    */
   const handleMathFieldDelete = useCallback((event: KeyboardEvent) => {
     const target = event.target as HTMLElement;
-    // Only handle deletion if we're actually in a math field
+    // Only handle events if we're actually in a math field
     if (target.tagName === 'MATH-FIELD') {
-      // Only handle backspace and delete keys
+      // Handle Enter key to create a new line after the math block
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        
+        // Find the parent paragraph or appropriate container
+        let container = target.parentElement;
+        
+        // Create a new paragraph after the math field's container
+        const newParagraph = document.createElement('p');
+        newParagraph.innerHTML = '&#8203;'; // Zero-width space to ensure paragraph has content
+        
+        // Insert the new paragraph after the container
+        if (container) {
+          if (container.nextSibling) {
+            container.parentNode?.insertBefore(newParagraph, container.nextSibling);
+          } else {
+            container.parentNode?.appendChild(newParagraph);
+          }
+          
+          // Set cursor to the new paragraph
+          const range = document.createRange();
+          const selection = window.getSelection();
+          
+          // Position at the start of the text content
+          if (newParagraph.firstChild) {
+            range.setStart(newParagraph.firstChild, 0);
+          } else {
+            range.setStart(newParagraph, 0);
+          }
+          range.collapse(true);
+          
+          if (selection) {
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            // Ensure the new position is visible
+            const clientRect = range.getBoundingClientRect();
+            if (clientRect) {
+              window.scrollTo({
+                top: window.scrollY + clientRect.top - window.innerHeight / 2,
+                behavior: 'smooth'
+              });
+            }
+          }
+          
+          // Focus the editor
+          const editor = document.querySelector('[contenteditable="true"]') as HTMLElement;
+          if (editor) {
+            editor.focus();
+          }
+        }
+        return;
+      }
+      
+      // Handle backspace and delete for empty math fields
       if (event.key === 'Backspace' || event.key === 'Delete') {
         const mathField = target as any;
         // Only delete if the field is empty
