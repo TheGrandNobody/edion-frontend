@@ -155,11 +155,16 @@ export const useInlineMath = () => {
    */
   const handleMathFieldDelete = useCallback((event: KeyboardEvent) => {
     const target = event.target as HTMLElement;
+    // Only handle deletion if we're actually in a math field
     if (target.tagName === 'MATH-FIELD') {
-      const mathField = target as any;
-      if (!mathField.value) {
-        event.preventDefault();
-        removeMathField(mathField);
+      // Only handle backspace and delete keys
+      if (event.key === 'Backspace' || event.key === 'Delete') {
+        const mathField = target as any;
+        // Only delete if the field is empty
+        if (!mathField.value) {
+          event.preventDefault();
+          removeMathField(mathField);
+        }
       }
     }
   }, []);
@@ -174,7 +179,14 @@ export const useInlineMath = () => {
       return;
     }
 
+    // Only handle backspace for text nodes outside math fields
     if (event.key === 'Backspace') {
+      const target = event.target as HTMLElement;
+      // Skip if we're inside a math field - that's handled by handleMathFieldDelete
+      if (target.tagName === 'MATH-FIELD') {
+        return;
+      }
+
       const selection = window.getSelection();
       if (selection?.rangeCount) {
         const range = selection.getRangeAt(0);
