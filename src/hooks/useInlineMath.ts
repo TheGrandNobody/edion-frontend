@@ -106,10 +106,32 @@ export const useInlineMath = () => {
    */
   const initializeMathField = (parentElement: Element | null) => {
     setTimeout(() => {
-      const mathFields = parentElement?.querySelectorAll('math-field');
-      if (mathFields) {
+      // Find the math field in the current context
+      let mathFields: NodeListOf<Element> | undefined;
+      
+      // First try the direct parent element if provided
+      if (parentElement) {
+        mathFields = parentElement.querySelectorAll('math-field');
+      }
+      
+      // If we didn't find math fields or no parent provided, try finding them in the editor
+      if (!mathFields || mathFields.length === 0) {
+        const editor = document.querySelector('[contenteditable="true"]');
+        if (editor) {
+          mathFields = editor.querySelectorAll('math-field');
+        }
+      }
+      
+      // Check if we found any math fields
+      if (mathFields && mathFields.length > 0) {
         const newMathField = mathFields[mathFields.length - 1];
         if (newMathField) {
+          // Ensure the math field is visible in viewport
+          if ('scrollIntoView' in newMathField) {
+            (newMathField as HTMLElement).scrollIntoView({ block: 'nearest' });
+          }
+          
+          // Focus the math field
           (newMathField as HTMLElement).focus();
           addZeroWidthSpace(newMathField);
         }
@@ -132,6 +154,30 @@ export const useInlineMath = () => {
   const insertMathDelimiters = useCallback(() => {
     const selection = window.getSelection();
     if (!selection || !selection.rangeCount) return;
+    
+    const range = selection.getRangeAt(0);
+    const container = range.startContainer;
+    
+    // Handle the case of empty lines - ensure we're in a proper container
+    if (container.nodeType === Node.ELEMENT_NODE && 
+        (container as HTMLElement).getAttribute('contenteditable') === 'true' &&
+        range.startOffset === 0 && 
+        (container as HTMLElement).childNodes.length === 0) {
+      // We're on an empty contenteditable element
+      // First create a paragraph to contain our math
+      const paragraph = document.createElement('p');
+      (container as HTMLElement).appendChild(paragraph);
+      
+      // Set selection to the new paragraph
+      range.setStart(paragraph, 0);
+      range.setEnd(paragraph, 0);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else if (container.nodeType === Node.ELEMENT_NODE && 
+              (container as HTMLElement).tagName === 'P' && 
+              (container as HTMLElement).childNodes.length === 0) {
+      // We're in an empty paragraph, that's fine - selection is already correct
+    }
 
     if (isInsideMathField()) {
       const mathField = findMathField(selection.anchorNode);
@@ -145,8 +191,14 @@ export const useInlineMath = () => {
       positionCursorAndInsert(spaceNode, '\\(\\)');
       initializeMathField(mathField.parentElement);
     } else {
+      // Capture the current element before insertion
+      const currentElement = selection.anchorNode instanceof HTMLElement ? 
+        selection.anchorNode : selection.anchorNode?.parentElement;
+        
       document.execCommand('insertText', false, '\\(\\)');
-      initializeMathField(selection.anchorNode?.parentElement);
+      
+      // Try to initialize with the captured element first
+      initializeMathField(currentElement || null);
     }
   }, []);
 
