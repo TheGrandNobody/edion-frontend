@@ -12,7 +12,7 @@ import {
   List,
   ListOrdered
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface EditorToolbarProps {
   showRawLatex: boolean;
@@ -27,6 +27,9 @@ const EditorToolbar = ({
   onInsertMath,
   editorRef
 }: EditorToolbarProps) => {
+  // Track formatting states
+  const [isBulletList, setIsBulletList] = useState(false);
+  const [isNumberedList, setIsNumberedList] = useState(false);
   
   const execFormatCommand = (command: string, value?: string) => {
     // Ensure the editor is focused before applying commands
@@ -52,9 +55,57 @@ const EditorToolbar = ({
       // Execute the command after ensuring focus
       setTimeout(() => {
         document.execCommand(command, false, value);
+        // Update format states after command execution
+        updateFormatStates();
       }, 0);
     }
   };
+  
+  // Function to check if selection is in a specific list type
+  const isInListType = (listType: string): boolean => {
+    if (!editorRef.current) return false;
+    
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount) return false;
+    
+    let node = selection.anchorNode;
+    while (node && node !== editorRef.current) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement;
+        if (element.tagName === listType) {
+          return true;
+        }
+      }
+      node = node.parentNode;
+    }
+    return false;
+  };
+  
+  // Update formatting states based on current selection
+  const updateFormatStates = () => {
+    setIsBulletList(isInListType('UL'));
+    setIsNumberedList(isInListType('OL'));
+  };
+  
+  // Track selection changes to update format states
+  useEffect(() => {
+    if (!editorRef.current) return;
+    
+    const handleSelectionChange = () => {
+      updateFormatStates();
+    };
+    
+    // Update format states initially
+    updateFormatStates();
+    
+    // Listen for selection changes
+    document.addEventListener('selectionchange', handleSelectionChange);
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, [editorRef]);
   
   return (
     <div className="bg-white dark:bg-zinc-800 rounded-md border p-2 flex flex-wrap gap-1">
@@ -104,12 +155,14 @@ const EditorToolbar = ({
         <Toggle
           aria-label="Bullet list"
           onClick={() => execFormatCommand('insertUnorderedList')}
+          pressed={isBulletList}
         >
           <List className="h-4 w-4" />
         </Toggle>
         <Toggle
           aria-label="Numbered list"
           onClick={() => execFormatCommand('insertOrderedList')}
+          pressed={isNumberedList}
         >
           <ListOrdered className="h-4 w-4" />
         </Toggle>
