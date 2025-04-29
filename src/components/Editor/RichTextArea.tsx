@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import 'mathlive';
 import useInlineMath from '../../hooks/useInlineMath';
 
@@ -16,10 +16,10 @@ declare global {
 interface RichTextAreaProps {
   content: string;
   onChange: (newContent: string) => void;
+  editorRef: React.RefObject<HTMLDivElement>;
 }
 
-const RichTextArea = ({ content, onChange }: RichTextAreaProps) => {
-  const editorRef = useRef<HTMLDivElement>(null);
+const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
   const { handleKeyDown } = useInlineMath();
   
   // Initialize the editor with content
@@ -126,16 +126,48 @@ const RichTextArea = ({ content, onChange }: RichTextAreaProps) => {
       mathField.setAttribute('data-initialized', 'true');
     });
   };
+
+  // Add a debugging function to log the content structure
+  const handleFocus = () => {
+    if (editorRef.current) {
+      console.log('Editor HTML:', editorRef.current.innerHTML);
+    }
+  };
   
   return (
     <div
       ref={editorRef}
       contentEditable
-      className="p-4 min-h-[300px] focus:outline-none overflow-y-auto"
+      className="p-4 min-h-[300px] focus:outline-none overflow-y-auto rich-text-editor"
       style={{ fontSize: '16px', lineHeight: '1.5' }}
       onKeyDown={handleKeyDown}
+      onFocus={handleFocus}
     />
   );
 };
+
+// Add global styles for the editor
+const styles = `
+.rich-text-editor ul {
+  list-style-type: disc;
+  margin-left: 1.5em;
+  padding-left: 1em;
+}
+
+.rich-text-editor ol {
+  list-style-type: decimal;
+  margin-left: 1.5em;
+  padding-left: 1em;
+}
+
+.rich-text-editor li {
+  margin-bottom: 0.5em;
+}
+`;
+
+// Apply the styles
+const styleElement = document.createElement('style');
+styleElement.textContent = styles;
+document.head.appendChild(styleElement);
 
 export default RichTextArea; 

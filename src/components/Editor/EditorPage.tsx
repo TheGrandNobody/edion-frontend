@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import EditorToolbar from './EditorToolbar';
 import RichTextArea from './RichTextArea';
 import LatexView from './LatexView';
@@ -10,6 +10,7 @@ const EditorPage = () => {
   const [showRawLatex, setShowRawLatex] = useState(false);
   const [latexDocument, setLatexDocument] = useState<string>(buildLatexDocument(content));
   const { insertMathDelimiters } = useInlineMath();
+  const editorRef = useRef<HTMLDivElement>(null);
 
   // Update latex document whenever content changes
   const handleContentChange = (newContent: string) => {
@@ -35,6 +36,7 @@ const EditorPage = () => {
           showRawLatex={showRawLatex}
           toggleRawLatex={toggleRawLatex}
           onInsertMath={insertMathDelimiters}
+          editorRef={editorRef}
         />
         
         {!showRawLatex ? (
@@ -42,6 +44,7 @@ const EditorPage = () => {
             <RichTextArea 
               content={content}
               onChange={handleContentChange}
+              editorRef={editorRef}
             />
           </div>
         ) : (

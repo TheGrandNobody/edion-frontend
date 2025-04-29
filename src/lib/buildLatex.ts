@@ -10,6 +10,7 @@ export const buildLatexDocument = (htmlContent: string): string => {
   return `\\documentclass{article}
 \\usepackage{amsmath}
 \\usepackage{amssymb}
+\\usepackage{enumitem}
 \\begin{document}
 
 ${latexContent}
@@ -30,7 +31,7 @@ const convertHtmlToLatex = (htmlContent: string): string => {
   let latexOutput = '';
   
   // Process the DOM nodes to extract text and math
-  processNode(tempDiv, (text, isMath, formattingTags) => {
+  processNode(tempDiv, (text, isMath, formattingTags, listContext) => {
     if (isMath) {
       // This is a math expression, already in LaTeX format
       latexOutput += text;
@@ -71,14 +72,15 @@ const convertHtmlToLatex = (htmlContent: string): string => {
  */
 const processNode = (
   node: Node,
-  callback: (text: string, isMath: boolean, formattingTags: string[]) => void,
-  formattingTags: string[] = []
+  callback: (text: string, isMath: boolean, formattingTags: string[], listContext: string | null) => void,
+  formattingTags: string[] = [],
+  listContext: string | null = null
 ) => {
   if (node.nodeType === Node.TEXT_NODE) {
     // This is a text node, add its content directly
     const text = node.textContent || '';
     if (text.trim()) {
-      callback(text, false, formattingTags);
+      callback(text, false, formattingTags, listContext);
     }
   } else if (node.nodeType === Node.ELEMENT_NODE) {
     const element = node as HTMLElement;
@@ -86,14 +88,43 @@ const processNode = (
     // Check if this is a math field
     if (element.classList.contains('math-field')) {
       const latex = element.getAttribute('data-latex') || '';
-      callback(`\\(${latex}\\)`, true, []);
+      callback(`\\(${latex}\\)`, true, [], listContext);
       return; // Don't process children of math fields
+    }
+    
+    // Handle lists
+    if (element.tagName === 'UL') {
+      callback('\n\\begin{itemize}[leftmargin=*]\n', false, [], listContext);
+      for (let i = 0; i < element.childNodes.length; i++) {
+        processNode(element.childNodes[i], callback, formattingTags, 'itemize');
+      }
+      callback('\n\\end{itemize}\n', false, [], listContext);
+      return;
+    }
+    
+    if (element.tagName === 'OL') {
+      callback('\n\\begin{enumerate}[leftmargin=*]\n', false, [], listContext);
+      for (let i = 0; i < element.childNodes.length; i++) {
+        processNode(element.childNodes[i], callback, formattingTags, 'enumerate');
+      }
+      callback('\n\\end{enumerate}\n', false, [], listContext);
+      return;
+    }
+    
+    if (element.tagName === 'LI') {
+      callback('\\item ', false, [], listContext);
+      // Process all child nodes
+      for (let i = 0; i < element.childNodes.length; i++) {
+        processNode(element.childNodes[i], callback, formattingTags, listContext);
+      }
+      callback('\n', false, [], listContext);
+      return;
     }
     
     // Handle paragraph and div elements - add newline before and after
     if (element.tagName === 'P' || element.tagName === 'DIV') {
       if (element.previousElementSibling) {
-        callback('\n\n', false, []);
+        callback('\n\n', false, [], listContext);
       }
     }
     
@@ -105,13 +136,13 @@ const processNode = (
     
     // Process all child nodes
     for (let i = 0; i < element.childNodes.length; i++) {
-      processNode(element.childNodes[i], callback, newFormattingTags);
+      processNode(element.childNodes[i], callback, newFormattingTags, listContext);
     }
     
     // Add a newline after paragraphs and divs
     if (element.tagName === 'P' || element.tagName === 'DIV') {
       if (element.nextElementSibling) {
-        callback('\n\n', false, []);
+        callback('\n\n', false, [], listContext);
       }
     }
   }

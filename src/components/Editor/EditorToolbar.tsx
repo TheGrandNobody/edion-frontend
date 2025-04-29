@@ -8,23 +8,52 @@ import {
   AlignCenter, 
   AlignRight,
   Code,
-  Type
+  Type,
+  List,
+  ListOrdered
 } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 interface EditorToolbarProps {
   showRawLatex: boolean;
   toggleRawLatex: () => void;
   onInsertMath: () => void;
+  editorRef: React.RefObject<HTMLDivElement>;
 }
 
 const EditorToolbar = ({ 
   showRawLatex, 
   toggleRawLatex,
-  onInsertMath
+  onInsertMath,
+  editorRef
 }: EditorToolbarProps) => {
   
   const execFormatCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
+    // Ensure the editor is focused before applying commands
+    if (editorRef.current) {
+      editorRef.current.focus();
+      
+      // For lists, we need to make sure we're in a valid container
+      if (command === 'insertUnorderedList' || command === 'insertOrderedList') {
+        // If no text is selected, and we're not in a paragraph, create one
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          if (range.collapsed) {
+            const container = range.startContainer;
+            // If we're directly in the editor div, wrap in a paragraph first
+            if (container === editorRef.current) {
+              document.execCommand('formatBlock', false, 'p');
+            }
+          }
+        }
+      }
+      
+      // Execute the command after ensuring focus
+      setTimeout(() => {
+        document.execCommand(command, false, value);
+      }, 0);
+    }
   };
   
   return (
@@ -68,6 +97,21 @@ const EditorToolbar = ({
           onClick={() => execFormatCommand('justifyRight')}
         >
           <AlignRight className="h-4 w-4" />
+        </Toggle>
+      </div>
+      
+      <div className="flex gap-1 mr-2">
+        <Toggle
+          aria-label="Bullet list"
+          onClick={() => execFormatCommand('insertUnorderedList')}
+        >
+          <List className="h-4 w-4" />
+        </Toggle>
+        <Toggle
+          aria-label="Numbered list"
+          onClick={() => execFormatCommand('insertOrderedList')}
+        >
+          <ListOrdered className="h-4 w-4" />
         </Toggle>
       </div>
       
