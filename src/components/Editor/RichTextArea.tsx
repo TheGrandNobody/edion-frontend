@@ -20,7 +20,50 @@ interface RichTextAreaProps {
 }
 
 const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
-  const { handleKeyDown } = useInlineMath();
+  const { handleKeyDown: handleInlineMathKeyDown, handleMathFieldDelete } = useInlineMath();
+  
+  // Handle keyboard events in the editor
+  const handleEditorKeyDown = (e: React.KeyboardEvent) => {
+    // First call the inline math handler
+    handleInlineMathKeyDown(e);
+    
+    // Handle deletion
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+      
+      const range = selection.getRangeAt(0);
+      const mathField = range.startContainer.parentElement?.closest('math-field');
+      
+      if (mathField) {
+        
+        // If we're at the edge of a math field
+        if (range.startOffset === 0 || range.startOffset === (range.startContainer.textContent || '').length) {
+          // Remove the entire math field
+          mathField.remove();
+          e.preventDefault();
+          
+          // Create a text node with a space to ensure proper cursor placement
+          const spaceNode = document.createTextNode('\u200B'); // Zero-width space
+          if (mathField.parentNode) {
+            mathField.parentNode.insertBefore(spaceNode, mathField.nextSibling);
+            
+            // Place cursor after the space
+            const newRange = document.createRange();
+            newRange.setStartAfter(spaceNode);
+            newRange.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+          }
+          
+          // Update content
+          if (editorRef.current) {
+            onChange(editorRef.current.innerHTML);
+          }
+        }
+      }
+    }
+  };
   
   // Initialize the editor with content
   useEffect(() => {
@@ -35,20 +78,33 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     if (!editor) return;
     
     const handleInput = () => {
+      
       // Get the current content and pass it back
       onChange(editor.innerHTML);
       
       // Initialize MathLive fields in any newly added inline math
       initializeMathLiveFields();
     };
+
+    const handleDOMKeyDown = (e: KeyboardEvent) => {
+      // Debug deletion attempts
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+        }
+      }
+    };
     
     editor.addEventListener('input', handleInput);
+    editor.addEventListener('keydown', handleDOMKeyDown);
     
     // Initialize MathLive fields on initial render
     initializeMathLiveFields();
     
     return () => {
       editor.removeEventListener('input', handleInput);
+      editor.removeEventListener('keydown', handleDOMKeyDown);
     };
   }, [onChange]);
   
@@ -71,6 +127,7 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     while ((currentNode = walker.nextNode() as Text)) {
       const matches = Array.from(currentNode.nodeValue?.matchAll(mathRegex) || []);
       if (matches.length > 0) {
+        console.log('Found math delimiters in text node:', currentNode.nodeValue);
         textNodesToReplace.push({ node: currentNode, matches });
       }
     }
@@ -102,16 +159,33 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     
     // Set up event listeners for math-field elements
     document.querySelectorAll('.math-field:not([data-initialized])').forEach(mathField => {
+      console.log('Initializing math field:', mathField);
       const latex = mathField.getAttribute('data-latex') || '';
       
       // Set the value of the math-field element
       (mathField as HTMLElement).setAttribute('value', latex);
       (mathField as HTMLElement).setAttribute('virtual-keyboard-mode', 'manual');
+      (mathField as HTMLElement).setAttribute('keypress-sound', 'none');
+      (mathField as HTMLElement).setAttribute('plonk-sound', 'none');
+      (mathField as any).enterKeypressAction = 'none'; // Disable default Enter behavior
+      
+      // Prevent default Enter behavior in math field
+      mathField.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter') {
+          console.log('Intercepting Enter in math field initialization');
+          e.stopPropagation();
+          e.preventDefault();
+          // Let our custom handler deal with it
+          handleMathFieldDelete(e);
+          return false;
+        }
+      }, true);  // Use capture phase to ensure we handle it first
       
       // Add change event listener
       mathField.addEventListener('input', () => {
         // Get updated LaTeX value
         const updatedLatex = (mathField as any).value;
+        console.log('Math field value updated:', updatedLatex);
         
         // Store the updated LaTeX
         mathField.setAttribute('data-latex', updatedLatex);
@@ -124,14 +198,8 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       
       // Mark as initialized
       mathField.setAttribute('data-initialized', 'true');
+      console.log('Math field initialization complete');
     });
-  };
-
-  // Add a debugging function to log the content structure
-  const handleFocus = () => {
-    if (editorRef.current) {
-      console.log('Editor HTML:', editorRef.current.innerHTML);
-    }
   };
   
   return (
@@ -140,8 +208,7 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       contentEditable
       className="p-4 min-h-[300px] focus:outline-none overflow-y-auto rich-text-editor"
       style={{ fontSize: '16px', lineHeight: '1.5' }}
-      onKeyDown={handleKeyDown}
-      onFocus={handleFocus}
+      onKeyDown={handleEditorKeyDown}
     />
   );
 };
@@ -203,6 +270,15 @@ const styles = `
 
 .dark .rich-text-editor .editor-table tr:nth-child(even) {
   background-color: #1e293b;
+}
+
+.rich-text-editor math-field {
+  transition: all 0.2s ease-in-out;
+}
+
+.rich-text-editor math-field:empty {
+  min-width: 2em;
+  display: inline-block;
 }
 `;
 

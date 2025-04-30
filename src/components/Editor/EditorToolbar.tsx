@@ -181,7 +181,6 @@ const EditorToolbar = ({
           <Type className="h-4 w-4" />
           <span>Math</span>
         </Button>
-        <TableSelector onSelectTable={onInsertTable} />
       </div>
       
       <div className="ml-auto">
