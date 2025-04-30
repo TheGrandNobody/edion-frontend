@@ -13,11 +13,13 @@ import {
   ListOrdered
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import TableSelector from "./TableSelector";
 
 interface EditorToolbarProps {
   showRawLatex: boolean;
   toggleRawLatex: () => void;
   onInsertMath: () => void;
+  onInsertTable: (rows: number, cols: number) => void;
   editorRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -25,6 +27,7 @@ const EditorToolbar = ({
   showRawLatex, 
   toggleRawLatex,
   onInsertMath,
+  onInsertTable,
   editorRef
 }: EditorToolbarProps) => {
   // Track formatting states
@@ -178,6 +181,7 @@ const EditorToolbar = ({
           <Type className="h-4 w-4" />
           <span>Math</span>
         </Button>
+        <TableSelector onSelectTable={onInsertTable} />
       </div>
       
       <div className="ml-auto">

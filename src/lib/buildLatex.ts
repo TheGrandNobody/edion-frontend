@@ -11,6 +11,7 @@ export const buildLatexDocument = (htmlContent: string): string => {
 \\usepackage{amsmath}
 \\usepackage{amssymb}
 \\usepackage{enumitem}
+\\usepackage{booktabs}
 \\begin{document}
 
 ${latexContent}
@@ -92,6 +93,25 @@ const processNode = (
       return; // Don't process children of math fields
     }
     
+    // Handle tables
+    if (element.tagName === 'TABLE' && element.classList.contains('editor-table')) {
+      const rows = parseInt(element.getAttribute('data-rows') || '0', 10);
+      const cols = parseInt(element.getAttribute('data-cols') || '0', 10);
+      
+      if (rows > 0 && cols > 0) {
+        // Start table environment
+        const colDef = Array(cols).fill('c').join(' | ');
+        callback('\n\\begin{table}[h]\n\\centering\n\\begin{tabular}{|' + colDef + '|}\n\\hline\n', false, [], listContext);
+        
+        // Process the table rows and cells
+        processTableContent(element, callback, formattingTags);
+        
+        // End table environment
+        callback('\\end{tabular}\n\\caption{Table Caption}\n\\label{tab:mytable}\n\\end{table}\n', false, [], listContext);
+        return; // Skip further processing - we've handled children
+      }
+    }
+    
     // Handle lists
     if (element.tagName === 'UL') {
       callback('\n\\begin{itemize}[leftmargin=*]\n', false, [], listContext);
@@ -143,6 +163,100 @@ const processNode = (
     if (element.tagName === 'P' || element.tagName === 'DIV') {
       if (element.nextElementSibling) {
         callback('\n\n', false, [], listContext);
+      }
+    }
+  }
+};
+
+/**
+ * Process table content for LaTeX conversion
+ */
+const processTableContent = (
+  tableElement: HTMLElement,
+  callback: (text: string, isMath: boolean, formattingTags: string[], listContext: string | null) => void,
+  formattingTags: string[] = []
+) => {
+  // Process table headers (TH elements)
+  const headerCells = tableElement.querySelectorAll('th');
+  if (headerCells.length > 0) {
+    for (let i = 0; i < headerCells.length; i++) {
+      const cell = headerCells[i];
+      // Process cell content
+      let cellLatex = '';
+      processNode(cell, (text, isMath, tags) => {
+        if (isMath) {
+          cellLatex += text;
+        } else {
+          let formattedText = escapeLatexSpecialChars(text);
+          tags.forEach(tag => {
+            switch (tag) {
+              case 'b':
+              case 'strong':
+                formattedText = `\\textbf{${formattedText}}`;
+                break;
+              case 'i':
+              case 'em':
+                formattedText = `\\textit{${formattedText}}`;
+                break;
+              case 'u':
+                formattedText = `\\underline{${formattedText}}`;
+                break;
+            }
+          });
+          cellLatex += formattedText;
+        }
+      }, ['b']);  // Default bold for headers
+      
+      callback(cellLatex, false, [], null);
+      
+      // Add cell separator or end of row
+      if (i < headerCells.length - 1) {
+        callback(' & ', false, [], null);
+      } else {
+        callback(' \\\\ \\hline\n', false, [], null);
+      }
+    }
+  }
+  
+  // Process table body rows (TR elements in TBODY)
+  const rows = tableElement.querySelectorAll('tbody tr');
+  for (let i = 0; i < rows.length; i++) {
+    const cells = rows[i].querySelectorAll('td');
+    for (let j = 0; j < cells.length; j++) {
+      const cell = cells[j];
+      // Process cell content
+      let cellLatex = '';
+      processNode(cell, (text, isMath, tags) => {
+        if (isMath) {
+          cellLatex += text;
+        } else {
+          let formattedText = escapeLatexSpecialChars(text);
+          tags.forEach(tag => {
+            switch (tag) {
+              case 'b':
+              case 'strong':
+                formattedText = `\\textbf{${formattedText}}`;
+                break;
+              case 'i':
+              case 'em':
+                formattedText = `\\textit{${formattedText}}`;
+                break;
+              case 'u':
+                formattedText = `\\underline{${formattedText}}`;
+                break;
+            }
+          });
+          cellLatex += formattedText;
+        }
+      }, formattingTags);
+      
+      callback(cellLatex, false, [], null);
+      
+      // Add cell separator or end of row
+      if (j < cells.length - 1) {
+        callback(' & ', false, [], null);
+      } else {
+        callback(' \\\\ \\hline\n', false, [], null);
       }
     }
   }

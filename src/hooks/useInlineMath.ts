@@ -154,7 +154,7 @@ export const useInlineMath = () => {
   const insertMathDelimiters = useCallback(() => {
     const selection = window.getSelection();
     if (!selection || !selection.rangeCount) return;
-    
+
     const range = selection.getRangeAt(0);
     const container = range.startContainer;
     
@@ -182,7 +182,7 @@ export const useInlineMath = () => {
     if (isInsideMathField()) {
       const mathField = findMathField(selection.anchorNode);
       if (!mathField) return;
-      
+            
       // Create a text node with a space after the math field
       const spaceNode = document.createTextNode(' ');
       mathField.parentNode?.insertBefore(spaceNode, mathField.nextSibling);
@@ -255,9 +255,9 @@ export const useInlineMath = () => {
           }
           
           // Focus the editor
-          const editor = document.querySelector('[contenteditable="true"]') as HTMLElement;
-          if (editor) {
-            editor.focus();
+        const editor = document.querySelector('[contenteditable="true"]') as HTMLElement;
+        if (editor) {
+          editor.focus();
           }
         }
         return;

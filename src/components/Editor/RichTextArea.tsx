@@ -146,7 +146,7 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
   );
 };
 
-// Add global styles for the editor
+// Add styles for tables
 const styles = `
 .rich-text-editor ul {
   list-style-type: disc;
@@ -162,6 +162,47 @@ const styles = `
 
 .rich-text-editor li {
   margin-bottom: 0.5em;
+}
+
+.rich-text-editor .editor-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  border: 1px solid #e2e8f0;
+}
+
+.rich-text-editor .editor-table th,
+.rich-text-editor .editor-table td {
+  border: 1px solid #e2e8f0;
+  padding: 0.5em;
+  min-width: 2em;
+}
+
+.rich-text-editor .editor-table th {
+  background-color: #f8fafc;
+  font-weight: 600;
+}
+
+.rich-text-editor .editor-table tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+/* Dark mode support */
+.dark .rich-text-editor .editor-table {
+  border-color: #334155;
+}
+
+.dark .rich-text-editor .editor-table th,
+.dark .rich-text-editor .editor-table td {
+  border-color: #334155;
+}
+
+.dark .rich-text-editor .editor-table th {
+  background-color: #1e293b;
+}
+
+.dark .rich-text-editor .editor-table tr:nth-child(even) {
+  background-color: #1e293b;
 }
 `;
 
