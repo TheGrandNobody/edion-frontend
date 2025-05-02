@@ -280,6 +280,33 @@ const styles = `
   min-width: 2em;
   display: inline-block;
 }
+
+/* Text and Background Color styling */
+.rich-text-editor [style*="color:"] {
+  transition: color 0.2s ease;
+}
+
+.rich-text-editor [style*="background-color:"] {
+  padding: 0 2px;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+/* Selection styles for better editing experience */
+.rich-text-editor::selection,
+.rich-text-editor *::selection {
+  background-color: rgba(59, 130, 246, 0.3);
+}
+
+.dark .rich-text-editor::selection,
+.dark .rich-text-editor *::selection {
+  background-color: rgba(59, 130, 246, 0.5);
+}
+
+/* Better text color visibility in dark mode */
+.dark .rich-text-editor {
+  color-scheme: dark;
+}
 `;
 
 // Apply the styles

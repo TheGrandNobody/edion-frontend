@@ -1,5 +1,6 @@
 import { Button } from "../ui/button";
 import { Toggle } from "../ui/toggle";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { 
   Bold, 
   Italic, 
@@ -10,7 +11,9 @@ import {
   Code,
   Type,
   List,
-  ListOrdered
+  ListOrdered,
+  Paintbrush,
+  Highlighter
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import TableSelector from "./TableSelector";
@@ -34,6 +37,17 @@ const EditorToolbar = ({
   const [isBulletList, setIsBulletList] = useState(false);
   const [isNumberedList, setIsNumberedList] = useState(false);
   
+  // Predefined colors for text and background
+  const textColors = [
+    "#000000", "#e60000", "#008a00", "#0066cc", "#9933cc", 
+    "#ff9900", "#0099ff", "#ff0000", "#38761d", "#134f5c", "#351c75"
+  ];
+  
+  const highlightColors = [
+    "#ffff00", "#00ffff", "#00ff00", "#ff00ff", "#ff9900", 
+    "#ff6600", "#ff0000", "#9999ff", "#99ffff", "#99ff99", "#ffcc99"
+  ];
+
   const execFormatCommand = (command: string, value?: string) => {
     // Ensure the editor is focused before applying commands
     if (editorRef.current) {
@@ -110,6 +124,16 @@ const EditorToolbar = ({
     };
   }, [editorRef]);
   
+  // Apply text color
+  const applyTextColor = (color: string) => {
+    execFormatCommand('foreColor', color);
+  };
+  
+  // Apply highlight color
+  const applyHighlightColor = (color: string) => {
+    execFormatCommand('hiliteColor', color);
+  };
+  
   return (
     <div className="bg-white dark:bg-zinc-800 rounded-md border p-2 flex flex-wrap gap-1">
       <div className="flex gap-1 mr-2">
@@ -171,6 +195,54 @@ const EditorToolbar = ({
         </Toggle>
       </div>
       
+      {/* Text Color */}
+      <div className="flex gap-1 mr-2">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Toggle aria-label="Text color">
+              <Paintbrush className="h-4 w-4" />
+            </Toggle>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" align="start">
+            <div className="flex flex-wrap gap-1 max-w-[180px]">
+              {textColors.map((color, index) => (
+                <button
+                  key={`text-${index}`}
+                  className="w-6 h-6 rounded-md border border-gray-200 cursor-pointer"
+                  style={{ backgroundColor: color }}
+                  onClick={() => applyTextColor(color)}
+                  aria-label={`Text color: ${color}`}
+                />
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {/* Highlight Color */}
+      <div className="flex gap-1 mr-2">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Toggle aria-label="Highlight color">
+              <Highlighter className="h-4 w-4" />
+            </Toggle>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" align="start">
+            <div className="flex flex-wrap gap-1 max-w-[180px]">
+              {highlightColors.map((color, index) => (
+                <button
+                  key={`highlight-${index}`}
+                  className="w-6 h-6 rounded-md border border-gray-200 cursor-pointer"
+                  style={{ backgroundColor: color }}
+                  onClick={() => applyHighlightColor(color)}
+                  aria-label={`Highlight color: ${color}`}
+                />
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+      
       <div className="flex gap-1 mr-2">
         <Button 
           variant="outline" 
@@ -181,6 +253,7 @@ const EditorToolbar = ({
           <Type className="h-4 w-4" />
           <span>Math</span>
         </Button>
+        <TableSelector onSelectTable={onInsertTable} />
       </div>
       
       <div className="ml-auto">

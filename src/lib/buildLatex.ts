@@ -12,6 +12,8 @@ export const buildLatexDocument = (htmlContent: string): string => {
 \\usepackage{amssymb}
 \\usepackage{enumitem}
 \\usepackage{booktabs}
+\\usepackage{xcolor}
+\\usepackage{soul}
 \\begin{document}
 
 ${latexContent}
@@ -154,9 +156,42 @@ const processNode = (
       newFormattingTags.push(element.tagName.toLowerCase());
     }
     
+    // Handle text with colors - created with 'foreColor' command
+    const computedStyle = window.getComputedStyle(element);
+    const textColor = element.style.color || computedStyle.color;
+    const bgColor = element.style.backgroundColor || computedStyle.backgroundColor;
+    
+    // If element has a text color or background color, create color command wrappers
+    let colorPrefix = '';
+    let colorSuffix = '';
+    
+    if (textColor && textColor !== 'rgb(0, 0, 0)' && textColor !== '#000000') {
+      const hexColor = rgbToHex(textColor);
+      colorPrefix += `\\textcolor{${hexColor}}{`;
+      colorSuffix = `}${colorSuffix}`;
+    }
+    
+    if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
+      const hexColor = rgbToHex(bgColor);
+      colorPrefix += `\\hl{`;
+      colorSuffix = `}${colorSuffix}`;
+      // Add a color definition for highlighting
+      callback(`\\definecolor{highlightcolor}{HTML}{${hexColor.replace('#', '')}}\n\\sethlcolor{highlightcolor}\n`, false, [], listContext);
+    }
+    
+    // Add color prefix if needed
+    if (colorPrefix) {
+      callback(colorPrefix, false, [], listContext);
+    }
+    
     // Process all child nodes
     for (let i = 0; i < element.childNodes.length; i++) {
       processNode(element.childNodes[i], callback, newFormattingTags, listContext);
+    }
+    
+    // Add color suffix if needed
+    if (colorSuffix) {
+      callback(colorSuffix, false, [], listContext);
     }
     
     // Add a newline after paragraphs and divs
@@ -277,4 +312,29 @@ const escapeLatexSpecialChars = (text: string): string => {
     .replace(/~/g, '\\textasciitilde{}')
     .replace(/\^/g, '\\textasciicircum{}')
     .replace(/%/g, '\\%');
+};
+
+/**
+ * Converts RGB color value to hex format
+ * @param rgb RGB color as string (e.g., 'rgb(255, 0, 0)')
+ * @returns Hex color (e.g., '#FF0000')
+ */
+const rgbToHex = (rgb: string): string => {
+  // If already in hex format, return as is
+  if (rgb.startsWith('#')) {
+    return rgb;
+  }
+  
+  // Parse RGB format
+  const rgbMatch = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
+  if (!rgbMatch) {
+    return '#000000'; // Default to black if unable to parse
+  }
+  
+  const r = parseInt(rgbMatch[1], 10);
+  const g = parseInt(rgbMatch[2], 10);
+  const b = parseInt(rgbMatch[3], 10);
+  
+  // Convert to hex
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }; 
