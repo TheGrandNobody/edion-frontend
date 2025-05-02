@@ -222,10 +222,44 @@ const styles = `
 }
 
 .rich-text-editor ol {
-  list-style-type: decimal;
-  margin-left: 1.5em;
-  padding-left: 1em;
+  list-style-type: none;
+  margin-left: 0;
+  padding-left: 0;
+  counter-reset: item;
 }
+
+.rich-text-editor ol > li {
+  counter-increment: item;
+  margin-bottom: 0.5em;
+  display: flex;
+  align-items: flex-start;
+}
+
+.rich-text-editor ol > li::before {
+  content: counter(item) ".";
+  display: inline-block;
+  width: 2em;
+  margin-right: 0.5em;
+  text-align: right;
+  font-weight: inherit;
+  font-style: inherit;
+  text-decoration: inherit;
+}
+
+/* Classes for list marker styling */
+.rich-text-editor ol > li.marker-bold::before {
+  font-weight: bold;
+}
+
+.rich-text-editor ol > li.marker-italic::before {
+  font-style: italic;
+}
+
+.rich-text-editor ol > li.marker-underline::before {
+  text-decoration: underline;
+}
+
+/* Tip: To format list markers, place cursor at beginning of list item and use the formatting buttons */
 
 .rich-text-editor li {
   margin-bottom: 0.5em;

@@ -134,11 +134,44 @@ const processNode = (
     }
     
     if (element.tagName === 'LI') {
-      callback('\\item ', false, [], listContext);
+      const isInOrderedList = listContext === 'enumerate';
+      
+      // Handle list item in the LaTeX output
+      if (isInOrderedList) {
+        // Check for marker formatting classes
+        const hasMarkerBold = element.classList.contains('marker-bold');
+        const hasMarkerItalic = element.classList.contains('marker-italic');
+        const hasMarkerUnderline = element.classList.contains('marker-underline');
+        
+        if (hasMarkerBold || hasMarkerItalic || hasMarkerUnderline) {
+          // Use LaTeX's \item[custom] feature to specify formatted counters
+          let markerFormat = '\\arabic*';
+          
+          if (hasMarkerBold) {
+            markerFormat = `\\textbf{${markerFormat}}`;
+          }
+          if (hasMarkerItalic) {
+            markerFormat = `\\textit{${markerFormat}}`;
+          }
+          if (hasMarkerUnderline) {
+            markerFormat = `\\underline{${markerFormat}}`;
+          }
+          
+          callback(`\\item[${markerFormat}.] `, false, [], listContext);
+        } else {
+          // Standard numbered list item
+          callback('\\item ', false, [], listContext);
+        }
+      } else {
+        // For unordered lists: Normal \item processing
+        callback('\\item ', false, [], listContext);
+      }
+      
       // Process all child nodes
       for (let i = 0; i < element.childNodes.length; i++) {
         processNode(element.childNodes[i], callback, formattingTags, listContext);
       }
+      
       callback('\n', false, [], listContext);
       return;
     }
