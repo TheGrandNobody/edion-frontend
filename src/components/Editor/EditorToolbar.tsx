@@ -83,6 +83,9 @@ const EditorToolbar = ({
   const [textAlignment, setTextAlignment] = useState<TextAlignment>('left');
   const [currentTextColor, setCurrentTextColor] = useState<string>('#000000');
   const [currentHighlightColor, setCurrentHighlightColor] = useState<string>('transparent');
+  const [isBold, setIsBold] = useState(false);
+  const [isItalic, setIsItalic] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
   
   // Track color history - maximum 6 recent colors
   const [recentColors, setRecentColors] = useState<string[]>([]);
@@ -103,109 +106,64 @@ const EditorToolbar = ({
     });
   };
   
-  const execFormatCommand = (command: string, value?: string) => {
-    // Ensure the editor is focused before applying commands
-    if (editorRef.current) {
-      editorRef.current.focus();
-      
-      // Check if we're in a list item and should format the marker instead
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        
-        // Store the selection boundaries
-        const startContainer = range.startContainer;
-        const startOffset = range.startOffset;
-        const endContainer = range.endContainer;
-        const endOffset = range.endOffset;
-        
-        // Find the current list item if we're in one
-        let currentLI = null;
-        let node = selection.anchorNode;
-        
-        while (node && node !== editorRef.current) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node as HTMLElement;
-            if (element.tagName === 'LI' && element.parentElement?.tagName === 'OL') {
-              currentLI = element;
-              break;
-            }
-          }
-          node = node.parentNode;
-        }
-        
-        // If we're in a numbered list item and trying to format the list marker
-        const isAtStart = range.startOffset === 0;
-        const isFullSelection = 
-          currentLI && 
-          (range.startContainer === currentLI || range.startContainer === currentLI.firstChild) && 
-          range.startOffset === 0 &&
-          (range.endContainer === currentLI || 
-           (range.endContainer.nodeType === Node.TEXT_NODE && 
-            range.endContainer.parentNode === currentLI)) &&
-          range.endOffset === (range.endContainer.nodeType === Node.TEXT_NODE ? 
-                               range.endContainer.textContent!.length : 
-                               range.endContainer.childNodes.length);
-        
-        if (currentLI && (isAtStart || isFullSelection)) {
-          // Map command to class
-          let className = '';
-          
-          if (command === 'bold') {
-            className = 'marker-bold';
-          } else if (command === 'italic') {
-            className = 'marker-italic';
-          } else if (command === 'underline') {
-            className = 'marker-underline';
-          }
-          
-          if (className) {
-            // Toggle the class
-            if (currentLI.classList.contains(className)) {
-              currentLI.classList.remove(className);
-            } else {
-              currentLI.classList.add(className);
-            }
-            
-            // Trigger a content update
-            if (editorRef.current) {
-              const event = new Event('input', { bubbles: true });
-              editorRef.current.dispatchEvent(event);
-            }
-          }
-          
-          // Always apply text formatting for full selections
-          if (isFullSelection) {
-            // Apply the formatting command
-            document.execCommand(command, false, value);
-            
-            // Restore the selection using the stored boundaries
-            const newRange = document.createRange();
-            newRange.setStart(startContainer, startOffset);
-            newRange.setEnd(endContainer, endOffset);
-            selection.removeAllRanges();
-            selection.addRange(newRange);
-            
-            // Update format states after command execution
-            updateFormatStates();
-            return;
-          }
-        }
-        
-        // Execute the regular formatting command if we didn't format a list marker
-        document.execCommand(command, false, value);
-        
-        // Restore the selection using the stored boundaries
-        const newRange = document.createRange();
-        newRange.setStart(startContainer, startOffset);
-        newRange.setEnd(endContainer, endOffset);
-        selection.removeAllRanges();
-        selection.addRange(newRange);
-        
-        // Update format states after command execution
-        updateFormatStates();
+  // Add new useEffect for focus handling
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    // Function to ensure editor focus
+    const ensureEditorFocus = () => {
+      if (document.activeElement !== editorRef.current) {
+        editorRef.current?.focus();
       }
+    };
+
+    // Add click listener to the editor
+    editorRef.current.addEventListener('blur', ensureEditorFocus);
+
+    return () => {
+      editorRef.current?.removeEventListener('blur', ensureEditorFocus);
+    };
+  }, [editorRef]);
+  
+  // Modify execFormatCommand to ensure focus
+  const execFormatCommand = (command: string, value?: string) => {
+    if (!editorRef.current) return;
+
+    // Ensure editor is focused
+    editorRef.current.focus();
+
+    // Store current selection if it exists
+    const selection = window.getSelection();
+    const hadSelection = selection && selection.rangeCount > 0;
+    const range = hadSelection ? selection?.getRangeAt(0).cloneRange() : null;
+
+    // If no selection, create one at the last known position
+    if (!hadSelection && editorRef.current.lastChild) {
+      const newRange = document.createRange();
+      newRange.selectNodeContents(editorRef.current.lastChild);
+      newRange.collapse(false);
+      selection?.removeAllRanges();
+      selection?.addRange(newRange);
     }
+
+    // Execute command
+    document.execCommand(command, false, value);
+
+    // Update states
+    switch (command) {
+      case 'bold':
+        setIsBold(document.queryCommandState(command));
+        break;
+      case 'italic':
+        setIsItalic(document.queryCommandState(command));
+        break;
+      case 'underline':
+        setIsUnderline(document.queryCommandState(command));
+        break;
+    }
+
+    // Update format states
+    updateFormatStates();
   };
   
   // Function to check if selection is in a specific list type
@@ -358,9 +316,29 @@ const EditorToolbar = ({
   
   // Update formatting states based on current selection
   const updateFormatStates = () => {
-    setIsBulletList(isInListType('UL'));
-    setIsNumberedList(isInListType('OL'));
-    setTextAlignment(getCurrentAlignment());
+    const isBullet = isInListType('UL');
+    const isNumbered = isInListType('OL');
+    const alignment = getCurrentAlignment();
+    
+    // Get the current selection
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      // Check if we're in a text node
+      let node = selection.anchorNode;
+      
+      // Check formatting states using document.queryCommandState
+      const boldState = document.queryCommandState('bold');
+      const italicState = document.queryCommandState('italic');
+      const underlineState = document.queryCommandState('underline');
+      
+      setIsBold(boldState);
+      setIsItalic(italicState);
+      setIsUnderline(underlineState);
+    }
+    
+    setIsBulletList(isBullet);
+    setIsNumberedList(isNumbered);
+    setTextAlignment(alignment);
     
     // Update text color
     const detectedColor = getColorAtSelection();
@@ -369,6 +347,23 @@ const EditorToolbar = ({
     // Update highlight color
     const detectedHighlight = getHighlightColorAtSelection();
     setCurrentHighlightColor(detectedHighlight);
+    
+    // If in a list, log the list element's properties
+    if (isBullet || isNumbered) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        let node = selection.anchorNode;
+        while (node && node !== editorRef.current) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as HTMLElement;
+            if (element.tagName === 'UL' || element.tagName === 'OL') {
+              break;
+            }
+          }
+          node = node.parentNode;
+        }
+      }
+    }
   };
   
   // Track selection changes to update format states
@@ -422,6 +417,87 @@ const EditorToolbar = ({
     }
   };
 
+  // Special handling for alignment to ensure it works with lists
+  const handleAlignment = (alignType: 'justifyLeft' | 'justifyCenter' | 'justifyRight') => {
+    if (!editorRef.current) return;
+    
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount) return;
+    
+    // Find if we're in a list
+    let listElement = null;
+    let node = selection.anchorNode;
+    
+    while (node && node !== editorRef.current) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement;
+        if (element.tagName === 'UL' || element.tagName === 'OL') {
+          listElement = element;
+          break;
+        }
+      }
+      node = node.parentNode;
+    }
+    
+    if (listElement) {
+      // The key issue: ordered lists (OL) created in non-left aligned text
+      // have their style.textAlign property directly set, which isn't being properly overridden
+      
+      // First, determine the actual target alignment value
+      const targetAlign = alignType === 'justifyLeft' ? 'left' : 
+                         alignType === 'justifyCenter' ? 'center' : 'right';
+      
+      // Clear any direct alignment style first to reset any previous alignment
+      (listElement as HTMLElement).style.removeProperty('text-align');
+      
+      // Then set the new alignment
+      (listElement as HTMLElement).style.textAlign = targetAlign;
+      
+      // For right and center alignment, ensure list items have the proper list-style-position
+      if (alignType !== 'justifyLeft' && listElement.tagName === 'UL') {
+        const listItems = listElement.querySelectorAll('li');
+        listItems.forEach(item => {
+          (item as HTMLElement).style.listStylePosition = 'inside';
+        });
+      }
+      
+      // For ordered lists, handle proper justification based on the align type
+      if (listElement.tagName === 'OL') {
+        const listItems = listElement.querySelectorAll('li');
+        listItems.forEach(item => {
+          // First clear any existing justify-content style
+          (item as HTMLElement).style.removeProperty('justify-content');
+          
+          if (alignType === 'justifyCenter') {
+            (item as HTMLElement).style.justifyContent = 'center';
+          } else if (alignType === 'justifyRight') {
+            (item as HTMLElement).style.justifyContent = 'flex-end';
+          }
+        });
+        
+        // Force a redraw to make the change take effect immediately
+        listElement.style.display = 'none';
+        listElement.offsetHeight; // Force reflow
+        listElement.style.display = '';
+      }
+      
+      // Update content
+      if (editorRef.current) {
+        const event = new Event('input', { bubbles: true });
+        editorRef.current.dispatchEvent(event);
+      }
+      
+      // Force update the UI state immediately
+      setTextAlignment(targetAlign as TextAlignment);
+      
+      // Update format states
+      updateFormatStates();
+    } else {
+      // Standard alignment for non-list elements
+      execFormatCommand(alignType);
+    }
+  };
+
   // Handle list formatting specifically
   const handleListFormatting = (listType: 'UL' | 'OL') => {
     if (!editorRef.current) return;
@@ -449,6 +525,29 @@ const EditorToolbar = ({
       node = node.parentNode;
     }
     
+    // Check for existing alignment before creating list
+    let currentAlignment = 'left';
+    let alignedParentNode = null;
+    
+    if (!currentList) {
+      // If not in a list, check for text alignment in the closest parent block element
+      node = selection.anchorNode;
+      while (node && node !== editorRef.current) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const element = node as HTMLElement;
+          const computedStyle = window.getComputedStyle(element);
+          const textAlign = computedStyle.textAlign;
+          
+          if (textAlign === 'center' || textAlign === 'right') {
+            currentAlignment = textAlign;
+            alignedParentNode = element;
+            break;
+          }
+        }
+        node = node.parentNode;
+      }
+    }
+    
     // If we're already in a list
     if (currentList && listItem) {
       // If trying to apply the same list type, remove the list formatting
@@ -463,8 +562,12 @@ const EditorToolbar = ({
           html: (item as HTMLElement).innerHTML,
           markerBold: (item as HTMLElement).classList.contains('marker-bold'),
           markerItalic: (item as HTMLElement).classList.contains('marker-italic'),
-          markerUnderline: (item as HTMLElement).classList.contains('marker-underline')
+          markerUnderline: (item as HTMLElement).classList.contains('marker-underline'),
+          justifyContent: (item as HTMLElement).style.justifyContent
         }));
+        
+        // Remember alignment of the current list
+        const currentAlign = currentList.style.textAlign;
         
         // 2. Remove the current list
         const range = document.createRange();
@@ -495,6 +598,31 @@ const EditorToolbar = ({
         
         // 5. If we found the new list, restore content and marker formatting
         if (newList) {
+          // Restore previous alignment
+          if (currentAlign) {
+            (newList as HTMLElement).style.textAlign = currentAlign;
+            
+            // For right and center alignment on UL lists, ensure proper bullet positioning
+            if ((currentAlign === 'right' || currentAlign === 'center') && listType === 'UL') {
+              const listItems = newList.querySelectorAll('li');
+              listItems.forEach(item => {
+                (item as HTMLElement).style.listStylePosition = 'inside';
+              });
+            }
+            
+            // For ordered lists with center/right alignment, set proper justification on list items
+            if (listType === 'OL' && (currentAlign === 'right' || currentAlign === 'center')) {
+              const listItems = newList.querySelectorAll('li');
+              listItems.forEach(item => {
+                if (currentAlign === 'center') {
+                  (item as HTMLElement).style.justifyContent = 'center';
+                } else if (currentAlign === 'right') {
+                  (item as HTMLElement).style.justifyContent = 'flex-end';
+                }
+              });
+            }
+          }
+          
           const newItems = Array.from(newList.querySelectorAll('li'));
           newItems.forEach((item, index) => {
             if (index < contents.length) {
@@ -505,6 +633,11 @@ const EditorToolbar = ({
                 if (contents[index].markerBold) (item as HTMLElement).classList.add('marker-bold');
                 if (contents[index].markerItalic) (item as HTMLElement).classList.add('marker-italic');
                 if (contents[index].markerUnderline) (item as HTMLElement).classList.add('marker-underline');
+                
+                // Restore justifyContent if it was set
+                if (contents[index].justifyContent) {
+                  (item as HTMLElement).style.justifyContent = contents[index].justifyContent;
+                }
               }
             }
           });
@@ -513,6 +646,51 @@ const EditorToolbar = ({
     } else {
       // Not in a list, use standard command
       document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
+      
+      // Find the newly created list in aligned content
+      if (currentAlignment !== 'left') {
+        // Find the newly created list
+        let newList = null;
+        const currentNode = selection.anchorNode;
+        if (currentNode) {
+          let node = currentNode;
+          while (node && node !== editorRef.current) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              const element = node as HTMLElement;
+              if (element.tagName === listType) {
+                newList = element;
+                break;
+              }
+            }
+            node = node.parentNode;
+          }
+        }
+        
+        // Apply alignment to the new list if found
+        if (newList) {
+          (newList as HTMLElement).style.textAlign = currentAlignment;
+          
+          // For right and center alignment on UL lists, ensure proper bullet positioning
+          if (listType === 'UL') {
+            const listItems = newList.querySelectorAll('li');
+            listItems.forEach(item => {
+              (item as HTMLElement).style.listStylePosition = 'inside';
+            });
+          }
+          
+          // For ordered lists with center/right alignment, set proper justification on list items
+          if (listType === 'OL') {
+            const listItems = newList.querySelectorAll('li');
+            listItems.forEach(item => {
+              if (currentAlignment === 'center') {
+                (item as HTMLElement).style.justifyContent = 'center';
+              } else if (currentAlignment === 'right') {
+                (item as HTMLElement).style.justifyContent = 'flex-end';
+              }
+            });
+          }
+        }
+      }
     }
     
     // Update formatting states
@@ -525,40 +703,60 @@ const EditorToolbar = ({
     }
   };
   
+  // Add handler to prevent toolbar clicks from removing focus
+  const handleToolbarClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+  };
+  
   return (
     <TooltipProvider>
-      <div className="bg-white dark:bg-zinc-800 rounded-md border p-2 flex flex-wrap gap-1 items-center">
+      <div 
+        className="bg-white dark:bg-zinc-800 rounded-md border p-2 flex flex-wrap gap-1 items-center"
+        onMouseDown={handleToolbarClick}
+      >
         {/* Text formatting */}
         <Tooltip>
           <TooltipTrigger asChild>
-        <Toggle 
-          aria-label="Toggle bold" 
-          onClick={() => execFormatCommand('bold')}
-        >
-          <Bold className="h-4 w-4" />
-        </Toggle>
+            <Toggle 
+              aria-label="Toggle bold" 
+              onClick={() => execFormatCommand('bold')}
+              pressed={isBold}
+              data-state={isBold ? 'on' : 'off'}
+              className="data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+            >
+              <Bold className="h-4 w-4" />
+            </Toggle>
           </TooltipTrigger>
           <TooltipContent>Bold</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-        <Toggle 
-          aria-label="Toggle italic" 
-          onClick={() => execFormatCommand('italic')}
-        >
-          <Italic className="h-4 w-4" />
-        </Toggle>
+            <Toggle 
+              aria-label="Toggle italic" 
+              onClick={() => execFormatCommand('italic')}
+              pressed={isItalic}
+              data-state={isItalic ? 'on' : 'off'}
+              className="data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+            >
+              <Italic className="h-4 w-4" />
+            </Toggle>
           </TooltipTrigger>
           <TooltipContent>Italic</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-        <Toggle 
-          aria-label="Toggle underline" 
-          onClick={() => execFormatCommand('underline')}
-        >
-          <Underline className="h-4 w-4" />
-        </Toggle>
+            <Toggle 
+              aria-label="Toggle underline" 
+              onClick={() => execFormatCommand('underline')}
+              pressed={isUnderline}
+              data-state={isUnderline ? 'on' : 'off'}
+              className="data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+            >
+              <Underline className="h-4 w-4" />
+            </Toggle>
           </TooltipTrigger>
           <TooltipContent>Underline</TooltipContent>
         </Tooltip>
@@ -569,37 +767,43 @@ const EditorToolbar = ({
         {/* Alignment */}
         <Tooltip>
           <TooltipTrigger asChild>
-        <Toggle 
-          aria-label="Align left" 
-          onClick={() => execFormatCommand('justifyLeft')}
+            <Toggle 
+              aria-label="Align left" 
+              onClick={() => handleAlignment('justifyLeft')}
               pressed={textAlignment === 'left'}
-        >
-          <AlignLeft className="h-4 w-4" />
-        </Toggle>
+              data-state={textAlignment === 'left' ? 'on' : 'off'}
+              className="data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+            >
+              <AlignLeft className="h-4 w-4" />
+            </Toggle>
           </TooltipTrigger>
           <TooltipContent>Align left</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-        <Toggle 
-          aria-label="Align center" 
-          onClick={() => execFormatCommand('justifyCenter')}
+            <Toggle 
+              aria-label="Align center" 
+              onClick={() => handleAlignment('justifyCenter')}
               pressed={textAlignment === 'center'}
-        >
-          <AlignCenter className="h-4 w-4" />
-        </Toggle>
+              data-state={textAlignment === 'center' ? 'on' : 'off'}
+              className="data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+            >
+              <AlignCenter className="h-4 w-4" />
+            </Toggle>
           </TooltipTrigger>
           <TooltipContent>Align center</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-        <Toggle 
-          aria-label="Align right" 
-          onClick={() => execFormatCommand('justifyRight')}
+            <Toggle 
+              aria-label="Align right" 
+              onClick={() => handleAlignment('justifyRight')}
               pressed={textAlignment === 'right'}
-        >
-          <AlignRight className="h-4 w-4" />
-        </Toggle>
+              data-state={textAlignment === 'right' ? 'on' : 'off'}
+              className="data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+            >
+              <AlignRight className="h-4 w-4" />
+            </Toggle>
           </TooltipTrigger>
           <TooltipContent>Align right</TooltipContent>
         </Tooltip>
@@ -610,25 +814,29 @@ const EditorToolbar = ({
         {/* Lists */}
         <Tooltip>
           <TooltipTrigger asChild>
-        <Toggle
-          aria-label="Bullet list"
+            <Toggle
+              aria-label="Bullet list"
               onClick={() => handleListFormatting('UL')}
-          pressed={isBulletList}
-        >
-          <List className="h-4 w-4" />
-        </Toggle>
+              pressed={isBulletList}
+              data-state={isBulletList ? 'on' : 'off'}
+              className="data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+            >
+              <List className="h-4 w-4" />
+            </Toggle>
           </TooltipTrigger>
           <TooltipContent>Bullet list</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-        <Toggle
-          aria-label="Numbered list"
+            <Toggle
+              aria-label="Numbered list"
               onClick={() => handleListFormatting('OL')}
-          pressed={isNumberedList}
-        >
-          <ListOrdered className="h-4 w-4" />
-        </Toggle>
+              pressed={isNumberedList}
+              data-state={isNumberedList ? 'on' : 'off'}
+              className="data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+            >
+              <ListOrdered className="h-4 w-4" />
+            </Toggle>
           </TooltipTrigger>
           <TooltipContent>Numbered list</TooltipContent>
         </Tooltip>
@@ -657,7 +865,7 @@ const EditorToolbar = ({
               triggerIcon={
                 <div className="relative">
                   <Highlighter className="h-4 w-4" />
-      </div>
+                </div>
               }
               label="Highlight color"
               initialColor={currentHighlightColor}
@@ -674,40 +882,33 @@ const EditorToolbar = ({
         {/* Special content */}
         <Tooltip>
           <TooltipTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onInsertMath}
-          className="flex items-center gap-1"
-        >
-          <Type className="h-4 w-4" />
-          <span>Math</span>
-        </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onInsertMath}
+              className="flex items-center gap-1"
+            >
+              <Type className="h-4 w-4" />
+              <span>Math</span>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>Insert math equation</TooltipContent>
         </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div>
-              <TableSelector onSelectTable={onInsertTable} />
-      </div>
-          </TooltipTrigger>
-          <TooltipContent>Insert table</TooltipContent>
-        </Tooltip>
-      
+
         {/* Push LaTeX toggle to the right */}
         <div className="flex-1"></div>
         <Tooltip>
           <TooltipTrigger asChild>
-        <Toggle 
-          pressed={showRawLatex}
-          onPressedChange={toggleRawLatex}
-          aria-label="Toggle raw LaTeX view"
-          className="flex items-center gap-1"
-        >
-          <Code className="h-4 w-4" />
-          <span>Raw LaTeX</span>
-        </Toggle>
+            <Toggle 
+              pressed={showRawLatex}
+              onPressedChange={toggleRawLatex}
+              aria-label="Toggle raw LaTeX view"
+              className="flex items-center gap-1 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
+              data-state={showRawLatex ? 'on' : 'off'}
+            >
+              <Code className="h-4 w-4" />
+              <span>Raw LaTeX</span>
+            </Toggle>
           </TooltipTrigger>
           <TooltipContent>Toggle raw LaTeX view</TooltipContent>
         </Tooltip>

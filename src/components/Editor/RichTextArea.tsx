@@ -127,7 +127,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     while ((currentNode = walker.nextNode() as Text)) {
       const matches = Array.from(currentNode.nodeValue?.matchAll(mathRegex) || []);
       if (matches.length > 0) {
-        console.log('Found math delimiters in text node:', currentNode.nodeValue);
         textNodesToReplace.push({ node: currentNode, matches });
       }
     }
@@ -159,7 +158,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     
     // Set up event listeners for math-field elements
     document.querySelectorAll('.math-field:not([data-initialized])').forEach(mathField => {
-      console.log('Initializing math field:', mathField);
       const latex = mathField.getAttribute('data-latex') || '';
       
       // Set the value of the math-field element
@@ -172,7 +170,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       // Prevent default Enter behavior in math field
       mathField.addEventListener('keydown', (e: KeyboardEvent) => {
         if (e.key === 'Enter') {
-          console.log('Intercepting Enter in math field initialization');
           e.stopPropagation();
           e.preventDefault();
           // Let our custom handler deal with it
@@ -185,7 +182,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       mathField.addEventListener('input', () => {
         // Get updated LaTeX value
         const updatedLatex = (mathField as any).value;
-        console.log('Math field value updated:', updatedLatex);
         
         // Store the updated LaTeX
         mathField.setAttribute('data-latex', updatedLatex);
@@ -198,7 +194,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       
       // Mark as initialized
       mathField.setAttribute('data-initialized', 'true');
-      console.log('Math field initialization complete');
     });
   };
   
@@ -233,6 +228,7 @@ const styles = `
   margin-bottom: 0.5em;
   display: flex;
   align-items: flex-start;
+  width: 100%; /* Ensure li takes full width to allow alignment */
 }
 
 .rich-text-editor ol > li::before {
@@ -263,6 +259,69 @@ const styles = `
 
 .rich-text-editor li {
   margin-bottom: 0.5em;
+}
+
+/* Support for aligned lists */
+.rich-text-editor ul[style*="text-align: center"],
+.rich-text-editor ol[style*="text-align: center"] {
+  text-align: center;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+.rich-text-editor ul[style*="text-align: right"],
+.rich-text-editor ol[style*="text-align: right"] {
+  text-align: right;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+/* Handle list items with right alignment, regardless of where the alignment is applied */
+.rich-text-editor ul[style*="text-align: center"] li,
+.rich-text-editor ul[style*="text-align: right"] li,
+.rich-text-editor [style*="text-align: center"] ul li,
+.rich-text-editor [style*="text-align: right"] ul li {
+  list-style-position: inside;
+}
+
+/* Ordered list alignment - ensure counter stays with text */
+.rich-text-editor ol > li[style*="justify-content: center"],
+.rich-text-editor ol > li[style*="justify-content: flex-end"] {
+  width: 100%;
+  padding-left: 0;
+}
+
+.rich-text-editor ol > li[style*="justify-content: center"]::before,
+.rich-text-editor ol > li[style*="justify-content: flex-end"]::before {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/* Important: Clear floats and adjust positioning for ordered lists */
+.rich-text-editor ol[style*="text-align: right"],
+.rich-text-editor ol[style*="text-align: center"] {
+  /* Override any inherited padding/margin */
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Ensure correct alignment of list items regardless of how alignment is applied */
+.rich-text-editor ol > li[style*="justify-content: center"] {
+  justify-content: center !important;
+}
+
+.rich-text-editor ol > li[style*="justify-content: flex-end"] {
+  justify-content: flex-end !important;
+}
+
+.rich-text-editor ol[style*="text-align: center"] > li,
+.rich-text-editor [style*="text-align: center"] ol > li {
+  justify-content: center !important;
+}
+
+.rich-text-editor ol[style*="text-align: right"] > li,
+.rich-text-editor [style*="text-align: right"] ol > li {
+  justify-content: flex-end !important;
 }
 
 .rich-text-editor .editor-table {
@@ -340,6 +399,55 @@ const styles = `
 /* Better text color visibility in dark mode */
 .dark .rich-text-editor {
   color-scheme: dark;
+}
+
+/* Ensure alignment styles work reliably */
+.rich-text-editor ol {
+  list-style-type: none;
+  margin-left: 0;
+  padding-left: 0;
+  counter-reset: item;
+}
+
+/* Direct alignment on LI elements for ordered lists */
+.rich-text-editor ol > li {
+  counter-increment: item;
+  margin-bottom: 0.5em;
+  display: flex;
+  align-items: flex-start;
+  width: 100%; /* Ensure li takes full width to allow alignment */
+}
+
+/* Fix for alignment changes not taking effect */
+.rich-text-editor ol[style*="text-align"] {
+  display: block;
+  width: 100%;
+}
+
+/* Override specificity issues with !important for alignment styles */
+.rich-text-editor ol[style*="text-align: left"] > li {
+  justify-content: flex-start !important;
+}
+
+.rich-text-editor ol[style*="text-align: center"] > li {
+  justify-content: center !important;
+}
+
+.rich-text-editor ol[style*="text-align: right"] > li {
+  justify-content: flex-end !important;
+}
+
+/* Ensure these rules have higher specificity */
+.rich-text-editor ol > li[style*="justify-content: flex-start"] {
+  justify-content: flex-start !important;
+}
+
+.rich-text-editor ol > li[style*="justify-content: center"] {
+  justify-content: center !important;
+}
+
+.rich-text-editor ol > li[style*="justify-content: flex-end"] {
+  justify-content: flex-end !important;
 }
 `;
 
