@@ -164,7 +164,7 @@ const processNode = (
         }
       } else {
         // For unordered lists: Normal \item processing
-        callback('\\item ', false, [], listContext);
+      callback('\\item ', false, [], listContext);
       }
       
       // Process all child nodes

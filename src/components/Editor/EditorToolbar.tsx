@@ -111,6 +111,14 @@ const EditorToolbar = ({
       // Check if we're in a list item and should format the marker instead
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        
+        // Store the selection boundaries
+        const startContainer = range.startContainer;
+        const startOffset = range.startOffset;
+        const endContainer = range.endContainer;
+        const endOffset = range.endOffset;
+        
         // Find the current list item if we're in one
         let currentLI = null;
         let node = selection.anchorNode;
@@ -127,11 +135,6 @@ const EditorToolbar = ({
         }
         
         // If we're in a numbered list item and trying to format the list marker
-        // This occurs when either:
-        // 1. User places cursor at the beginning of a list item
-        // 2. User selects the list marker by triple-clicking the list item
-        // 3. User selects the entire list item text
-        const range = selection.getRangeAt(0);
         const isAtStart = range.startOffset === 0;
         const isFullSelection = 
           currentLI && 
@@ -169,28 +172,39 @@ const EditorToolbar = ({
               const event = new Event('input', { bubbles: true });
               editorRef.current.dispatchEvent(event);
             }
+          }
+          
+          // Always apply text formatting for full selections
+          if (isFullSelection) {
+            // Apply the formatting command
+            document.execCommand(command, false, value);
             
-            // Don't execute normal formatting if it was a full selection
-            if (isFullSelection) {
-              // Apply the normal formatting to the text content
-              setTimeout(() => {
-                document.execCommand(command, false, value);
-                // Update format states after command execution
-                updateFormatStates();
-              }, 10);
-            }
+            // Restore the selection using the stored boundaries
+            const newRange = document.createRange();
+            newRange.setStart(startContainer, startOffset);
+            newRange.setEnd(endContainer, endOffset);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
             
-            return; // Skip regular command execution if it was just targeting the marker
+            // Update format states after command execution
+            updateFormatStates();
+            return;
           }
         }
-      }
-      
-      // Execute the regular formatting command if we didn't format a list marker
-      setTimeout(() => {
+        
+        // Execute the regular formatting command if we didn't format a list marker
         document.execCommand(command, false, value);
+        
+        // Restore the selection using the stored boundaries
+        const newRange = document.createRange();
+        newRange.setStart(startContainer, startOffset);
+        newRange.setEnd(endContainer, endOffset);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+        
         // Update format states after command execution
         updateFormatStates();
-      }, 10);
+      }
     }
   };
   
@@ -341,7 +355,7 @@ const EditorToolbar = ({
     // Default to transparent if no highlight color is detected
     return 'transparent';
   };
-
+  
   // Update formatting states based on current selection
   const updateFormatStates = () => {
     setIsBulletList(isInListType('UL'));
@@ -510,111 +524,111 @@ const EditorToolbar = ({
       editorRef.current.dispatchEvent(event);
     }
   };
-
+  
   return (
     <TooltipProvider>
       <div className="bg-white dark:bg-zinc-800 rounded-md border p-2 flex flex-wrap gap-1 items-center">
         {/* Text formatting */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle 
-              aria-label="Toggle bold" 
-              onClick={() => execFormatCommand('bold')}
-            >
-              <Bold className="h-4 w-4" />
-            </Toggle>
+        <Toggle 
+          aria-label="Toggle bold" 
+          onClick={() => execFormatCommand('bold')}
+        >
+          <Bold className="h-4 w-4" />
+        </Toggle>
           </TooltipTrigger>
           <TooltipContent>Bold</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle 
-              aria-label="Toggle italic" 
-              onClick={() => execFormatCommand('italic')}
-            >
-              <Italic className="h-4 w-4" />
-            </Toggle>
+        <Toggle 
+          aria-label="Toggle italic" 
+          onClick={() => execFormatCommand('italic')}
+        >
+          <Italic className="h-4 w-4" />
+        </Toggle>
           </TooltipTrigger>
           <TooltipContent>Italic</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle 
-              aria-label="Toggle underline" 
-              onClick={() => execFormatCommand('underline')}
-            >
-              <Underline className="h-4 w-4" />
-            </Toggle>
+        <Toggle 
+          aria-label="Toggle underline" 
+          onClick={() => execFormatCommand('underline')}
+        >
+          <Underline className="h-4 w-4" />
+        </Toggle>
           </TooltipTrigger>
           <TooltipContent>Underline</TooltipContent>
         </Tooltip>
-        
+      
         {/* Separator */}
         <div className="w-px h-6 bg-gray-200 dark:bg-zinc-700 mx-1"></div>
         
         {/* Alignment */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle 
-              aria-label="Align left" 
-              onClick={() => execFormatCommand('justifyLeft')}
+        <Toggle 
+          aria-label="Align left" 
+          onClick={() => execFormatCommand('justifyLeft')}
               pressed={textAlignment === 'left'}
-            >
-              <AlignLeft className="h-4 w-4" />
-            </Toggle>
+        >
+          <AlignLeft className="h-4 w-4" />
+        </Toggle>
           </TooltipTrigger>
           <TooltipContent>Align left</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle 
-              aria-label="Align center" 
-              onClick={() => execFormatCommand('justifyCenter')}
+        <Toggle 
+          aria-label="Align center" 
+          onClick={() => execFormatCommand('justifyCenter')}
               pressed={textAlignment === 'center'}
-            >
-              <AlignCenter className="h-4 w-4" />
-            </Toggle>
+        >
+          <AlignCenter className="h-4 w-4" />
+        </Toggle>
           </TooltipTrigger>
           <TooltipContent>Align center</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle 
-              aria-label="Align right" 
-              onClick={() => execFormatCommand('justifyRight')}
+        <Toggle 
+          aria-label="Align right" 
+          onClick={() => execFormatCommand('justifyRight')}
               pressed={textAlignment === 'right'}
-            >
-              <AlignRight className="h-4 w-4" />
-            </Toggle>
+        >
+          <AlignRight className="h-4 w-4" />
+        </Toggle>
           </TooltipTrigger>
           <TooltipContent>Align right</TooltipContent>
         </Tooltip>
-        
+      
         {/* Separator */}
         <div className="w-px h-6 bg-gray-200 dark:bg-zinc-700 mx-1"></div>
         
         {/* Lists */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle
-              aria-label="Bullet list"
+        <Toggle
+          aria-label="Bullet list"
               onClick={() => handleListFormatting('UL')}
-              pressed={isBulletList}
-            >
-              <List className="h-4 w-4" />
-            </Toggle>
+          pressed={isBulletList}
+        >
+          <List className="h-4 w-4" />
+        </Toggle>
           </TooltipTrigger>
           <TooltipContent>Bullet list</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle
-              aria-label="Numbered list"
+        <Toggle
+          aria-label="Numbered list"
               onClick={() => handleListFormatting('OL')}
-              pressed={isNumberedList}
-            >
-              <ListOrdered className="h-4 w-4" />
-            </Toggle>
+          pressed={isNumberedList}
+        >
+          <ListOrdered className="h-4 w-4" />
+        </Toggle>
           </TooltipTrigger>
           <TooltipContent>Numbered list</TooltipContent>
         </Tooltip>
@@ -643,7 +657,7 @@ const EditorToolbar = ({
               triggerIcon={
                 <div className="relative">
                   <Highlighter className="h-4 w-4" />
-                </div>
+      </div>
               }
               label="Highlight color"
               initialColor={currentHighlightColor}
@@ -660,15 +674,15 @@ const EditorToolbar = ({
         {/* Special content */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onInsertMath}
-              className="flex items-center gap-1"
-            >
-              <Type className="h-4 w-4" />
-              <span>Math</span>
-            </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onInsertMath}
+          className="flex items-center gap-1"
+        >
+          <Type className="h-4 w-4" />
+          <span>Math</span>
+        </Button>
           </TooltipTrigger>
           <TooltipContent>Insert math equation</TooltipContent>
         </Tooltip>
@@ -676,24 +690,24 @@ const EditorToolbar = ({
           <TooltipTrigger asChild>
             <div>
               <TableSelector onSelectTable={onInsertTable} />
-            </div>
+      </div>
           </TooltipTrigger>
           <TooltipContent>Insert table</TooltipContent>
         </Tooltip>
-        
+      
         {/* Push LaTeX toggle to the right */}
         <div className="flex-1"></div>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle 
-              pressed={showRawLatex}
-              onPressedChange={toggleRawLatex}
-              aria-label="Toggle raw LaTeX view"
-              className="flex items-center gap-1"
-            >
-              <Code className="h-4 w-4" />
-              <span>Raw LaTeX</span>
-            </Toggle>
+        <Toggle 
+          pressed={showRawLatex}
+          onPressedChange={toggleRawLatex}
+          aria-label="Toggle raw LaTeX view"
+          className="flex items-center gap-1"
+        >
+          <Code className="h-4 w-4" />
+          <span>Raw LaTeX</span>
+        </Toggle>
           </TooltipTrigger>
           <TooltipContent>Toggle raw LaTeX view</TooltipContent>
         </Tooltip>
