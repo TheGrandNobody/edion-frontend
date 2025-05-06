@@ -91,6 +91,11 @@ const EditorToolbar = ({
   const [recentColors, setRecentColors] = useState<string[]>([]);
   const MAX_RECENT_COLORS = 6;
   
+  // New ref to track if the editor has focus
+  const editorHasFocusRef = useRef<boolean>(false);
+  // New ref to store the last valid alignment when editor had focus
+  const lastKnownAlignmentRef = useRef<TextAlignment>('left');
+  
   // Function to add a color to the history
   const addToColorHistory = (color: string) => {
     // Don't add transparent to history
@@ -306,17 +311,13 @@ const EditorToolbar = ({
   
   // Function to determine the current text alignment
   const getCurrentAlignment = (): TextAlignment => {
-    if (!editorRef.current) return 'left';
+    if (!editorRef.current) return lastKnownAlignmentRef.current;
     
     const selection = window.getSelection();
-    if (!selection || !selection.rangeCount) return 'left';
+    if (!selection || !selection.rangeCount) return lastKnownAlignmentRef.current;
     
     // Get the current node where the cursor is
     let node = selection.anchorNode;
-    
-    console.log('[getCurrentAlignment] Initial anchor node:', node);
-    console.log('[getCurrentAlignment] Anchor node type:', node?.nodeType === Node.TEXT_NODE ? 'TEXT_NODE' : 'ELEMENT_NODE');
-    console.log('[getCurrentAlignment] Anchor node parent:', node?.parentNode);
     
     // First check if we're in a list, since lists need special handling
     let parentList = null;
@@ -329,11 +330,19 @@ const EditorToolbar = ({
           // Check the list's alignment directly
           const listStyle = window.getComputedStyle(element);
           const listAlign = listStyle.textAlign;
-          console.log('[getCurrentAlignment] Found parent list:', element.tagName, 'textAlign:', listAlign);
           
-          if (listAlign === 'center') return 'center';
-          if (listAlign === 'right') return 'right';
-          if (listAlign === 'left' || listAlign === 'start') return 'left';
+          if (listAlign === 'center') {
+            lastKnownAlignmentRef.current = 'center';
+            return 'center';
+          }
+          if (listAlign === 'right') {
+            lastKnownAlignmentRef.current = 'right';
+            return 'right';
+          }
+          if (listAlign === 'left' || listAlign === 'start') {
+            lastKnownAlignmentRef.current = 'left';
+            return 'left';
+          }
         }
       }
       currentNode = currentNode.parentNode;
@@ -348,20 +357,24 @@ const EditorToolbar = ({
         const computedStyle = window.getComputedStyle(element);
         const textAlign = computedStyle.textAlign;
         
-        console.log(`[getCurrentAlignment] Level ${depth} - Element:`, element.tagName, 
-                   'textAlign:', textAlign, 
-                   'inline style:', element.style.textAlign);
-        
-        if (textAlign === 'center') return 'center';
-        if (textAlign === 'right') return 'right';
-        if (textAlign === 'left' || textAlign === 'start') return 'left';
+        if (textAlign === 'center') {
+          lastKnownAlignmentRef.current = 'center';
+          return 'center';
+        }
+        if (textAlign === 'right') {
+          lastKnownAlignmentRef.current = 'right';
+          return 'right';
+        }
+        if (textAlign === 'left' || textAlign === 'start') {
+          lastKnownAlignmentRef.current = 'left';
+          return 'left';
+        }
       }
       node = node.parentNode;
       depth++;
     }
     
-    console.log('[getCurrentAlignment] No alignment found, returning default: left');
-    return 'left'; // Default
+    return lastKnownAlignmentRef.current; // Return last known alignment if nothing found
   };
   
   // Function to get the computed color at a specific selection point
@@ -467,16 +480,14 @@ const EditorToolbar = ({
   
   // Update formatting states based on current selection
   const updateFormatStates = () => {
-    console.log('[updateFormatStates] Updating format states...');
+    // If editor doesn't have focus, don't update the alignment in the toolbar
+    if (!editorHasFocusRef.current) {
+      return;
+    }
     
     const isBullet = isInListType('UL');
     const isNumbered = isInListType('OL');
     const alignment = getCurrentAlignment();
-    
-    console.log('[updateFormatStates] Current selection in list?', 
-               'UL:', isBullet, 
-               'OL:', isNumbered, 
-               'Alignment:', alignment);
     
     // Get the current selection
     const selection = window.getSelection();
@@ -534,9 +545,8 @@ const EditorToolbar = ({
     setIsBulletList(isBullet);
     setIsNumberedList(isNumbered);
     
-    // Only update if it's different to avoid unnecessary re-renders
+    // Only update alignment if it's different to avoid unnecessary re-renders
     if (textAlignment !== alignment) {
-      console.log('[updateFormatStates] Updating alignment state:', alignment);
       setTextAlignment(alignment);
     }
     
@@ -554,8 +564,10 @@ const EditorToolbar = ({
     if (!editorRef.current) return;
     
     const handleSelectionChange = () => {
-      console.log('[selectionchange] Selection changed');
-      updateFormatStates();
+      // Only update format states if the editor has focus
+      if (editorHasFocusRef.current) {
+        updateFormatStates();
+      }
     };
     
     // Update format states initially
@@ -568,7 +580,6 @@ const EditorToolbar = ({
     const handleEditorMouseUp = () => {
       // Small delay to ensure selection is fully updated
       setTimeout(() => {
-        console.log('[mouseup] Editor mouseup event');
         updateFormatStates();
       }, 10);
     };
@@ -577,12 +588,13 @@ const EditorToolbar = ({
     
     // Add focus/blur event listeners to track when editor loses/gains focus
     const handleEditorFocus = () => {
-      console.log('[focus] Editor gained focus');
+      editorHasFocusRef.current = true;
       updateFormatStates();
     };
     
     const handleEditorBlur = () => {
-      console.log('[blur] Editor lost focus');
+      editorHasFocusRef.current = false;
+      // Don't update the format states on blur to keep the current toolbar state
     };
     
     editorRef.current.addEventListener('focus', handleEditorFocus);
@@ -673,42 +685,14 @@ const EditorToolbar = ({
   const handleAlignment = (alignType: 'justifyLeft' | 'justifyCenter' | 'justifyRight') => {
     if (!editorRef.current) return;
     
-    console.log('[handleAlignment] Attempting to apply alignment:', alignType);
-    
     const selection = window.getSelection();
     if (!selection || !selection.rangeCount) {
-      console.log('[handleAlignment] No selection found, aborting');
       return;
     }
-    
-    console.log('[handleAlignment] Selection anchor node:', selection.anchorNode);
-    console.log('[handleAlignment] Selection anchor offset:', selection.anchorOffset);
     
     // Find if we're in a list
     let listElement = null;
     let node = selection.anchorNode;
-    
-    // Log the DOM path up to the editor
-    let currentNode = node;
-    let path = [];
-    while (currentNode && currentNode !== editorRef.current) {
-      if (currentNode.nodeType === Node.ELEMENT_NODE) {
-        const element = currentNode as HTMLElement;
-        path.push({
-          tag: element.tagName,
-          classes: element.className,
-          textAlign: element.style.textAlign,
-          justifyContent: element.style.justifyContent
-        });
-      } else {
-        path.push({
-          type: 'TEXT_NODE',
-          value: (currentNode.textContent || '').substring(0, 20) + '...'
-        });
-      }
-      currentNode = currentNode.parentNode;
-    }
-    console.log('[handleAlignment] DOM path to editor:', path);
     
     while (node && node !== editorRef.current) {
       if (node.nodeType === Node.ELEMENT_NODE) {
@@ -722,9 +706,6 @@ const EditorToolbar = ({
     }
     
     if (listElement) {
-      console.log('[handleAlignment] Found list element:', listElement.tagName);
-      console.log('[handleAlignment] Current list style.textAlign:', (listElement as HTMLElement).style.textAlign);
-      
       // The key issue: ordered lists (OL) created in non-left aligned text
       // have their style.textAlign property directly set, which isn't being properly overridden
       
@@ -732,19 +713,14 @@ const EditorToolbar = ({
       const targetAlign = alignType === 'justifyLeft' ? 'left' : 
                          alignType === 'justifyCenter' ? 'center' : 'right';
       
-      console.log('[handleAlignment] Target alignment:', targetAlign);
-      
       // Clear any direct alignment style first to reset any previous alignment
-      console.log('[handleAlignment] Removing existing text-align property');
       (listElement as HTMLElement).style.removeProperty('text-align');
       
       // Then set the new alignment
-      console.log('[handleAlignment] Setting style.textAlign to:', targetAlign);
       (listElement as HTMLElement).style.textAlign = targetAlign;
       
       // IMPORTANT FIX: Also clear and set text-align on all list items to prevent conflicting styles
       const listItems = listElement.querySelectorAll('li');
-      console.log('[handleAlignment] Updating text-align for list items:', listItems.length);
       listItems.forEach(item => {
         // Remove any text-align on list items that might override the parent
         (item as HTMLElement).style.removeProperty('text-align');
@@ -755,7 +731,6 @@ const EditorToolbar = ({
       // For right and center alignment, ensure list items have the proper list-style-position
       if (alignType !== 'justifyLeft' && listElement.tagName === 'UL') {
         const listItems = listElement.querySelectorAll('li');
-        console.log('[handleAlignment] Updating list-style-position for UL items:', listItems.length);
         listItems.forEach(item => {
           (item as HTMLElement).style.listStylePosition = 'inside';
         });
@@ -764,7 +739,6 @@ const EditorToolbar = ({
       // For ordered lists, handle proper justification based on the align type
       if (listElement.tagName === 'OL') {
         const listItems = listElement.querySelectorAll('li');
-        console.log('[handleAlignment] Updating justifyContent for OL items:', listItems.length);
         listItems.forEach(item => {
           // First clear any existing justify-content style
           (item as HTMLElement).style.removeProperty('justify-content');
@@ -777,7 +751,6 @@ const EditorToolbar = ({
         });
         
         // Force a redraw to make the change take effect immediately
-        console.log('[handleAlignment] Forcing redraw');
         listElement.style.display = 'none';
         listElement.offsetHeight; // Force reflow
         listElement.style.display = '';
@@ -785,38 +758,26 @@ const EditorToolbar = ({
       
       // Update content
       if (editorRef.current) {
-        console.log('[handleAlignment] Dispatching input event');
         const event = new Event('input', { bubbles: true });
         editorRef.current.dispatchEvent(event);
       }
       
       // Force update the UI state immediately
-      console.log('[handleAlignment] Setting toolbar alignment state to:', targetAlign);
       setTextAlignment(targetAlign as TextAlignment);
-      
-      // Verify the style was applied
-      setTimeout(() => {
-        console.log('[handleAlignment] Verification - style.textAlign after change:', 
-                   (listElement as HTMLElement).style.textAlign);
-        console.log('[handleAlignment] Verification - computed style.textAlign:', 
-                   window.getComputedStyle(listElement as HTMLElement).textAlign);
-        
-        // Also verify list items
-        const firstItem = listElement.querySelector('li');
-        if (firstItem) {
-          console.log('[handleAlignment] Verification - list item style.textAlign:',
-                     (firstItem as HTMLElement).style.textAlign);
-          console.log('[handleAlignment] Verification - list item computed style.textAlign:',
-                     window.getComputedStyle(firstItem as HTMLElement).textAlign);
-        }
-      }, 0);
+      // Also update the last known alignment ref
+      lastKnownAlignmentRef.current = targetAlign as TextAlignment;
       
       // Update format states
       updateFormatStates();
     } else {
       // Standard alignment for non-list elements
-      console.log('[handleAlignment] No list found, using standard execFormatCommand for alignment');
       execFormatCommand(alignType);
+      
+      // Update the last known alignment ref based on the command
+      const newAlignment: TextAlignment = 
+        alignType === 'justifyLeft' ? 'left' :
+        alignType === 'justifyCenter' ? 'center' : 'right';
+      lastKnownAlignmentRef.current = newAlignment;
     }
   };
 
