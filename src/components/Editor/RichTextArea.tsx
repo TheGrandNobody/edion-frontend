@@ -178,6 +178,43 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         }
       }, true);  // Use capture phase to ensure we handle it first
       
+      // Add focus handling for math fields
+      mathField.addEventListener('focus', () => {
+        // When a math field is focused, we should prevent the editor
+        // from trying to steal focus back
+      });
+      
+      // Add blur handling to restore editor state when done with math field
+      mathField.addEventListener('blur', (e: FocusEvent) => {
+        // Only refocus editor if we're not focusing another math field or interactive element
+        const relatedTarget = e.relatedTarget as HTMLElement;
+        const isMovingToMathField = relatedTarget && (
+          relatedTarget.tagName === 'MATH-FIELD' || 
+          relatedTarget.closest('.math-field')
+        );
+        
+        // Don't refocus if we're moving to another interactive element
+        const isMovingToInteractive = relatedTarget && (
+          relatedTarget.tagName === 'BUTTON' ||
+          relatedTarget.tagName === 'INPUT' ||
+          relatedTarget.closest('button') ||
+          relatedTarget.closest('input') ||
+          relatedTarget.closest('[role="dialog"]') ||
+          relatedTarget.closest('[role="menu"]') ||
+          relatedTarget.closest('.popover-content')
+        );
+        
+        if (!isMovingToMathField && !isMovingToInteractive) {
+          // Wait a bit to ensure we're not interrupting another focus action
+          setTimeout(() => {
+            // Only focus editor if it doesn't break user flow
+            if (document.activeElement === document.body) {
+              editorRef.current?.focus();
+            }
+          }, 100);
+        }
+      });
+      
       // Add change event listener
       mathField.addEventListener('input', () => {
         // Get updated LaTeX value

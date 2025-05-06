@@ -110,18 +110,11 @@ const EditorToolbar = ({
   useEffect(() => {
     if (!editorRef.current) return;
 
-    // Function to ensure editor focus
-    const ensureEditorFocus = () => {
-      if (document.activeElement !== editorRef.current) {
-        editorRef.current?.focus();
-      }
-    };
-
-    // Add click listener to the editor
-    editorRef.current.addEventListener('blur', ensureEditorFocus);
-
+    // Remove the aggressive focus handling
+    // We'll rely on more intentional focus management instead
+    
     return () => {
-      editorRef.current?.removeEventListener('blur', ensureEditorFocus);
+      // Clean up any remaining listeners
     };
   }, [editorRef]);
   
@@ -212,29 +205,36 @@ const EditorToolbar = ({
     return null;
   };
   
-  // Modify execFormatCommand to include list marker formatting
+  // Modify execFormatCommand to only focus when necessary for text operations
   const execFormatCommand = (command: string, value?: string) => {
     if (!editorRef.current) return;
 
-    // Ensure editor is focused
-    editorRef.current.focus();
+    // Only focus for direct text formatting commands
+    const shouldFocus = ['bold', 'italic', 'underline', 'foreColor', 'hiliteColor', 
+                        'justifyLeft', 'justifyCenter', 'justifyRight'].includes(command);
+    
+    if (shouldFocus) {
+      // Store current selection state
+      const selection = window.getSelection();
+      const hadSelection = selection && selection.rangeCount > 0;
+      const range = hadSelection ? selection?.getRangeAt(0).cloneRange() : null;
 
-    // Store current selection if it exists
-    const selection = window.getSelection();
-    const hadSelection = selection && selection.rangeCount > 0;
-    const range = hadSelection ? selection?.getRangeAt(0).cloneRange() : null;
-
-    // If no selection, create one at the last known position
-    if (!hadSelection && editorRef.current.lastChild) {
-      const newRange = document.createRange();
-      newRange.selectNodeContents(editorRef.current.lastChild);
-      newRange.collapse(false);
-      selection?.removeAllRanges();
-      selection?.addRange(newRange);
+      // Focus if needed for formatting commands
+      editorRef.current.focus();
+      
+      // If no selection, create one at the last known position
+      if (!hadSelection && editorRef.current.lastChild) {
+        const newRange = document.createRange();
+        newRange.selectNodeContents(editorRef.current.lastChild);
+        newRange.collapse(false);
+        selection?.removeAllRanges();
+        selection?.addRange(newRange);
+      }
     }
     
     // Check if a list item is fully selected - only for formatting commands
     let listItem: HTMLElement | null = null;
+    const selection = window.getSelection();
     if (selection && ['bold', 'italic', 'underline'].includes(command)) {
       listItem = isListItemFullySelected(selection);
     }
@@ -314,20 +314,53 @@ const EditorToolbar = ({
     // Get the current node where the cursor is
     let node = selection.anchorNode;
     
+    console.log('[getCurrentAlignment] Initial anchor node:', node);
+    console.log('[getCurrentAlignment] Anchor node type:', node?.nodeType === Node.TEXT_NODE ? 'TEXT_NODE' : 'ELEMENT_NODE');
+    console.log('[getCurrentAlignment] Anchor node parent:', node?.parentNode);
+    
+    // First check if we're in a list, since lists need special handling
+    let parentList = null;
+    let currentNode = node;
+    while (currentNode && currentNode !== editorRef.current) {
+      if (currentNode.nodeType === Node.ELEMENT_NODE) {
+        const element = currentNode as HTMLElement;
+        if (element.tagName === 'UL' || element.tagName === 'OL') {
+          parentList = element;
+          // Check the list's alignment directly
+          const listStyle = window.getComputedStyle(element);
+          const listAlign = listStyle.textAlign;
+          console.log('[getCurrentAlignment] Found parent list:', element.tagName, 'textAlign:', listAlign);
+          
+          if (listAlign === 'center') return 'center';
+          if (listAlign === 'right') return 'right';
+          if (listAlign === 'left' || listAlign === 'start') return 'left';
+        }
+      }
+      currentNode = currentNode.parentNode;
+    }
+    
+    // If we didn't find a list or its alignment, check normal elements
     // Find the nearest block element
+    let depth = 0;
     while (node && node !== editorRef.current) {
       if (node.nodeType === Node.ELEMENT_NODE) {
         const element = node as HTMLElement;
         const computedStyle = window.getComputedStyle(element);
         const textAlign = computedStyle.textAlign;
         
+        console.log(`[getCurrentAlignment] Level ${depth} - Element:`, element.tagName, 
+                   'textAlign:', textAlign, 
+                   'inline style:', element.style.textAlign);
+        
         if (textAlign === 'center') return 'center';
         if (textAlign === 'right') return 'right';
         if (textAlign === 'left' || textAlign === 'start') return 'left';
       }
       node = node.parentNode;
+      depth++;
     }
     
+    console.log('[getCurrentAlignment] No alignment found, returning default: left');
     return 'left'; // Default
   };
   
@@ -434,9 +467,16 @@ const EditorToolbar = ({
   
   // Update formatting states based on current selection
   const updateFormatStates = () => {
+    console.log('[updateFormatStates] Updating format states...');
+    
     const isBullet = isInListType('UL');
     const isNumbered = isInListType('OL');
     const alignment = getCurrentAlignment();
+    
+    console.log('[updateFormatStates] Current selection in list?', 
+               'UL:', isBullet, 
+               'OL:', isNumbered, 
+               'Alignment:', alignment);
     
     // Get the current selection
     const selection = window.getSelection();
@@ -490,9 +530,15 @@ const EditorToolbar = ({
       }
     }
     
+    // Update list states
     setIsBulletList(isBullet);
     setIsNumberedList(isNumbered);
-    setTextAlignment(alignment);
+    
+    // Only update if it's different to avoid unnecessary re-renders
+    if (textAlignment !== alignment) {
+      console.log('[updateFormatStates] Updating alignment state:', alignment);
+      setTextAlignment(alignment);
+    }
     
     // Update text color
     const detectedColor = getColorAtSelection();
@@ -508,6 +554,7 @@ const EditorToolbar = ({
     if (!editorRef.current) return;
     
     const handleSelectionChange = () => {
+      console.log('[selectionchange] Selection changed');
       updateFormatStates();
     };
     
@@ -521,22 +568,64 @@ const EditorToolbar = ({
     const handleEditorMouseUp = () => {
       // Small delay to ensure selection is fully updated
       setTimeout(() => {
+        console.log('[mouseup] Editor mouseup event');
         updateFormatStates();
       }, 10);
     };
     
     editorRef.current.addEventListener('mouseup', handleEditorMouseUp);
     
+    // Add focus/blur event listeners to track when editor loses/gains focus
+    const handleEditorFocus = () => {
+      console.log('[focus] Editor gained focus');
+      updateFormatStates();
+    };
+    
+    const handleEditorBlur = () => {
+      console.log('[blur] Editor lost focus');
+    };
+    
+    editorRef.current.addEventListener('focus', handleEditorFocus);
+    editorRef.current.addEventListener('blur', handleEditorBlur);
+    
     // Clean up
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange);
       editorRef.current?.removeEventListener('mouseup', handleEditorMouseUp);
+      editorRef.current?.removeEventListener('focus', handleEditorFocus);
+      editorRef.current?.removeEventListener('blur', handleEditorBlur);
     };
   }, [editorRef]);
   
   // Apply text color
   const applyTextColor = (color: string) => {
-    execFormatCommand('foreColor', color);
+    // Only force focus if we're not already in a color picker interaction
+    const isInColorPickerInteraction = document.activeElement && 
+      (document.activeElement.closest('.popover-content') !== null);
+    
+    if (!isInColorPickerInteraction) {
+      execFormatCommand('foreColor', color);
+    } else {
+      // If we're in a picker interaction, just apply the command without focusing
+      if (editorRef.current) {
+        // Store the current selection
+        const selection = window.getSelection();
+        
+        // Only proceed if there's a valid selection
+        if (selection && selection.rangeCount > 0) {
+          // Apply the color without forcing focus
+          document.execCommand('foreColor', false, color);
+          
+          // Update states
+          updateFormatStates();
+          
+          // Trigger input event
+          const event = new Event('input', { bubbles: true });
+          editorRef.current.dispatchEvent(event);
+        }
+      }
+    }
+    
     // Immediately update the current text color to reflect the change
     setCurrentTextColor(color);
     // Add to color history
@@ -545,7 +634,33 @@ const EditorToolbar = ({
   
   // Apply highlight color
   const applyHighlightColor = (color: string) => {
-    execFormatCommand('hiliteColor', color);
+    // Only force focus if we're not already in a color picker interaction
+    const isInColorPickerInteraction = document.activeElement && 
+      (document.activeElement.closest('.popover-content') !== null);
+    
+    if (!isInColorPickerInteraction) {
+      execFormatCommand('hiliteColor', color);
+    } else {
+      // If we're in a picker interaction, just apply the command without focusing
+      if (editorRef.current) {
+        // Store the current selection
+        const selection = window.getSelection();
+        
+        // Only proceed if there's a valid selection
+        if (selection && selection.rangeCount > 0) {
+          // Apply the highlight without forcing focus
+          document.execCommand('hiliteColor', false, color);
+          
+          // Update states
+          updateFormatStates();
+          
+          // Trigger input event
+          const event = new Event('input', { bubbles: true });
+          editorRef.current.dispatchEvent(event);
+        }
+      }
+    }
+    
     // Immediately update the current highlight color to reflect the change
     setCurrentHighlightColor(color);
     // Add to color history (except transparent)
@@ -558,12 +673,42 @@ const EditorToolbar = ({
   const handleAlignment = (alignType: 'justifyLeft' | 'justifyCenter' | 'justifyRight') => {
     if (!editorRef.current) return;
     
+    console.log('[handleAlignment] Attempting to apply alignment:', alignType);
+    
     const selection = window.getSelection();
-    if (!selection || !selection.rangeCount) return;
+    if (!selection || !selection.rangeCount) {
+      console.log('[handleAlignment] No selection found, aborting');
+      return;
+    }
+    
+    console.log('[handleAlignment] Selection anchor node:', selection.anchorNode);
+    console.log('[handleAlignment] Selection anchor offset:', selection.anchorOffset);
     
     // Find if we're in a list
     let listElement = null;
     let node = selection.anchorNode;
+    
+    // Log the DOM path up to the editor
+    let currentNode = node;
+    let path = [];
+    while (currentNode && currentNode !== editorRef.current) {
+      if (currentNode.nodeType === Node.ELEMENT_NODE) {
+        const element = currentNode as HTMLElement;
+        path.push({
+          tag: element.tagName,
+          classes: element.className,
+          textAlign: element.style.textAlign,
+          justifyContent: element.style.justifyContent
+        });
+      } else {
+        path.push({
+          type: 'TEXT_NODE',
+          value: (currentNode.textContent || '').substring(0, 20) + '...'
+        });
+      }
+      currentNode = currentNode.parentNode;
+    }
+    console.log('[handleAlignment] DOM path to editor:', path);
     
     while (node && node !== editorRef.current) {
       if (node.nodeType === Node.ELEMENT_NODE) {
@@ -577,6 +722,9 @@ const EditorToolbar = ({
     }
     
     if (listElement) {
+      console.log('[handleAlignment] Found list element:', listElement.tagName);
+      console.log('[handleAlignment] Current list style.textAlign:', (listElement as HTMLElement).style.textAlign);
+      
       // The key issue: ordered lists (OL) created in non-left aligned text
       // have their style.textAlign property directly set, which isn't being properly overridden
       
@@ -584,15 +732,30 @@ const EditorToolbar = ({
       const targetAlign = alignType === 'justifyLeft' ? 'left' : 
                          alignType === 'justifyCenter' ? 'center' : 'right';
       
+      console.log('[handleAlignment] Target alignment:', targetAlign);
+      
       // Clear any direct alignment style first to reset any previous alignment
+      console.log('[handleAlignment] Removing existing text-align property');
       (listElement as HTMLElement).style.removeProperty('text-align');
       
       // Then set the new alignment
+      console.log('[handleAlignment] Setting style.textAlign to:', targetAlign);
       (listElement as HTMLElement).style.textAlign = targetAlign;
+      
+      // IMPORTANT FIX: Also clear and set text-align on all list items to prevent conflicting styles
+      const listItems = listElement.querySelectorAll('li');
+      console.log('[handleAlignment] Updating text-align for list items:', listItems.length);
+      listItems.forEach(item => {
+        // Remove any text-align on list items that might override the parent
+        (item as HTMLElement).style.removeProperty('text-align');
+        // Apply the same alignment to ensure consistency
+        (item as HTMLElement).style.textAlign = targetAlign;
+      });
       
       // For right and center alignment, ensure list items have the proper list-style-position
       if (alignType !== 'justifyLeft' && listElement.tagName === 'UL') {
         const listItems = listElement.querySelectorAll('li');
+        console.log('[handleAlignment] Updating list-style-position for UL items:', listItems.length);
         listItems.forEach(item => {
           (item as HTMLElement).style.listStylePosition = 'inside';
         });
@@ -601,6 +764,7 @@ const EditorToolbar = ({
       // For ordered lists, handle proper justification based on the align type
       if (listElement.tagName === 'OL') {
         const listItems = listElement.querySelectorAll('li');
+        console.log('[handleAlignment] Updating justifyContent for OL items:', listItems.length);
         listItems.forEach(item => {
           // First clear any existing justify-content style
           (item as HTMLElement).style.removeProperty('justify-content');
@@ -613,6 +777,7 @@ const EditorToolbar = ({
         });
         
         // Force a redraw to make the change take effect immediately
+        console.log('[handleAlignment] Forcing redraw');
         listElement.style.display = 'none';
         listElement.offsetHeight; // Force reflow
         listElement.style.display = '';
@@ -620,17 +785,37 @@ const EditorToolbar = ({
       
       // Update content
       if (editorRef.current) {
+        console.log('[handleAlignment] Dispatching input event');
         const event = new Event('input', { bubbles: true });
         editorRef.current.dispatchEvent(event);
       }
       
       // Force update the UI state immediately
+      console.log('[handleAlignment] Setting toolbar alignment state to:', targetAlign);
       setTextAlignment(targetAlign as TextAlignment);
+      
+      // Verify the style was applied
+      setTimeout(() => {
+        console.log('[handleAlignment] Verification - style.textAlign after change:', 
+                   (listElement as HTMLElement).style.textAlign);
+        console.log('[handleAlignment] Verification - computed style.textAlign:', 
+                   window.getComputedStyle(listElement as HTMLElement).textAlign);
+        
+        // Also verify list items
+        const firstItem = listElement.querySelector('li');
+        if (firstItem) {
+          console.log('[handleAlignment] Verification - list item style.textAlign:',
+                     (firstItem as HTMLElement).style.textAlign);
+          console.log('[handleAlignment] Verification - list item computed style.textAlign:',
+                     window.getComputedStyle(firstItem as HTMLElement).textAlign);
+        }
+      }, 0);
       
       // Update format states
       updateFormatStates();
     } else {
       // Standard alignment for non-list elements
+      console.log('[handleAlignment] No list found, using standard execFormatCommand for alignment');
       execFormatCommand(alignType);
     }
   };
@@ -840,12 +1025,11 @@ const EditorToolbar = ({
     }
   };
   
-  // Add handler to prevent toolbar clicks from removing focus
+  // Update handleToolbarClick to only prevent default but not force focus
   const handleToolbarClick = (e: React.MouseEvent) => {
+    // Only prevent default to avoid losing selection
+    // Don't force focus back to editor
     e.preventDefault();
-    if (editorRef.current) {
-      editorRef.current.focus();
-    }
   };
   
   return (

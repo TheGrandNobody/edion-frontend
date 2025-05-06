@@ -134,9 +134,26 @@ export const useInlineMath = () => {
             (newMathField as HTMLElement).scrollIntoView({ block: 'nearest' });
           }
           
-          // Focus the math field
-          (newMathField as HTMLElement).focus();
+          // Add zero-width space after the field to ensure proper cursor placement
+          // when exiting the math field
           addZeroWidthSpace(newMathField);
+          
+          // Focus the math field - this needs to happen after adding the space
+          // and should be the last operation to ensure proper focus
+          (newMathField as HTMLElement).focus();
+          
+          // Store a reference to prevent automatic refocus on the editor
+          const editor = document.querySelector('[contenteditable="true"]');
+          if (editor) {
+            // Allow time for the focus to take effect
+            setTimeout(() => {
+              // Prevent any pending focus operations on the editor
+              const activeElement = document.activeElement;
+              if (activeElement !== newMathField) {
+                (newMathField as HTMLElement).focus();
+              }
+            }, 50);
+          }
         }
       }
     }, 0);
