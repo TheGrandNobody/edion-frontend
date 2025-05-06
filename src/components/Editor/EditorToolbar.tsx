@@ -125,7 +125,94 @@ const EditorToolbar = ({
     };
   }, [editorRef]);
   
-  // Modify execFormatCommand to ensure focus
+  // Function to check if a list item is fully selected
+  const isListItemFullySelected = (selection: Selection): HTMLElement | null => {
+    if (!selection || !selection.rangeCount) return null;
+    
+    const range = selection.getRangeAt(0);
+    
+    // Find the list item parent
+    let node = range.commonAncestorContainer;
+    let listItem: HTMLElement | null = null;
+    
+    // Walk up the DOM tree to find if we're in a list item
+    while (node && node !== editorRef.current) {
+      if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'LI') {
+        listItem = node as HTMLElement;
+        break;
+      }
+      node = node.parentNode;
+    }
+    
+    // If not in a list item, return null
+    if (!listItem) return null;
+    
+    // Now we need to determine if the entire content is selected
+    // We have several cases to handle:
+    
+    // Case 1: Selection starts and ends outside the list item but encompasses it
+    if (range.startContainer !== listItem && 
+        range.endContainer !== listItem && 
+        range.intersectsNode(listItem)) {
+      
+      // Check if the selection contains the entire list item
+      const listItemRange = document.createRange();
+      listItemRange.selectNodeContents(listItem);
+      
+      // If the selection contains the entire list item's content
+      if (range.compareBoundaryPoints(Range.START_TO_START, listItemRange) <= 0 &&
+          range.compareBoundaryPoints(Range.END_TO_END, listItemRange) >= 0) {
+        return listItem;
+      }
+    }
+    
+    // Case 2: Selection starts and ends inside the list item
+    // Check if the selection covers all the content
+    
+    // Create a range for the entire list item content
+    const listItemContentRange = document.createRange();
+    listItemContentRange.selectNodeContents(listItem);
+    
+    // Check if the selection range covers the entire content
+    const selectionStartsAtBeginning = 
+      (range.startContainer === listItem && range.startOffset === 0) ||
+      (range.startContainer === listItem.firstChild && range.startOffset === 0);
+    
+    const selectionEndsAtEnd =
+      (range.endContainer === listItem && range.endOffset === listItem.childNodes.length) ||
+      (range.endContainer === listItem.lastChild && 
+       range.endOffset === (range.endContainer.nodeType === Node.TEXT_NODE ? 
+                           range.endContainer.textContent?.length || 0 : 
+                           (range.endContainer as HTMLElement).childNodes.length));
+
+    if (selectionStartsAtBeginning && selectionEndsAtEnd) {
+      return listItem;
+    }
+    
+    // Case 3: If the list item only has one text node child and it's fully selected
+    if (listItem.childNodes.length === 1 && 
+        listItem.firstChild?.nodeType === Node.TEXT_NODE && 
+        range.startContainer === listItem.firstChild && 
+        range.endContainer === listItem.firstChild) {
+      const textNode = listItem.firstChild;
+      if (range.startOffset === 0 && range.endOffset === textNode.textContent?.length) {
+        return listItem;
+      }
+    }
+    
+    // Case 4: Compare text content as a fallback
+    // This is less reliable but can catch additional cases
+    const listItemText = listItem.textContent || '';
+    const selectedText = range.toString();
+    
+    if (selectedText.trim() === listItemText.trim() && selectedText.length > 0) {
+      return listItem;
+    }
+    
+    return null;
+  };
+  
+  // Modify execFormatCommand to include list marker formatting
   const execFormatCommand = (command: string, value?: string) => {
     if (!editorRef.current) return;
 
@@ -145,8 +232,33 @@ const EditorToolbar = ({
       selection?.removeAllRanges();
       selection?.addRange(newRange);
     }
+    
+    // Check if a list item is fully selected - only for formatting commands
+    let listItem: HTMLElement | null = null;
+    if (selection && ['bold', 'italic', 'underline'].includes(command)) {
+      listItem = isListItemFullySelected(selection);
+    }
+    
+    // Handle list marker formatting for both ordered and unordered lists
+    if (listItem) {
+      // Determine marker class based on the command
+      const markerClass = `marker-${command}`;
+      
+      // Toggle the marker class on the list item
+      if (listItem.classList.contains(markerClass)) {
+        listItem.classList.remove(markerClass);
+      } else {
+        listItem.classList.add(markerClass);
+      }
+      
+      // If it's a bullet list, we need to apply styling to the ::marker in addition to the ::before
+      if (listItem.closest('ul')) {
+        // We can't directly style ::marker with JS, but we can add a class to the list item
+        // The CSS in RichTextArea.tsx should be updated to style UL markers as well
+      }
+    }
 
-    // Execute command
+    // Execute command for the content
     document.execCommand(command, false, value);
 
     // Update states
@@ -164,6 +276,12 @@ const EditorToolbar = ({
 
     // Update format states
     updateFormatStates();
+    
+    // Trigger input event to ensure changes are saved
+    if (editorRef.current) {
+      const event = new Event('input', { bubbles: true });
+      editorRef.current.dispatchEvent(event);
+    }
   };
   
   // Function to check if selection is in a specific list type
@@ -334,6 +452,42 @@ const EditorToolbar = ({
       setIsBold(boldState);
       setIsItalic(italicState);
       setIsUnderline(underlineState);
+      
+      // Check for list item marker formatting
+      const isInList = isBullet || isNumbered;
+      if (isInList) {
+        // Find the list item containing the selection
+        let listItemElement = null;
+        let currentNode = node;
+        
+        while (currentNode && currentNode !== editorRef.current) {
+          if (currentNode.nodeType === Node.ELEMENT_NODE && 
+              (currentNode as HTMLElement).tagName === 'LI') {
+            listItemElement = currentNode as HTMLElement;
+            break;
+          }
+          currentNode = currentNode.parentNode;
+        }
+        
+        // If we found a list item, check for marker formatting classes
+        if (listItemElement) {
+          // If the entire list item is selected, consider the marker formatting
+          const isFullySelected = isListItemFullySelected(selection);
+          
+          if (isFullySelected) {
+            // Update toolbar states based on marker classes
+            const hasMarkerBold = listItemElement.classList.contains('marker-bold');
+            const hasMarkerItalic = listItemElement.classList.contains('marker-italic');
+            const hasMarkerUnderline = listItemElement.classList.contains('marker-underline');
+            
+            // Update the state only if the marker has formatting
+            // (This might override the content formatting, but that's ok when selecting the whole item)
+            if (hasMarkerBold) setIsBold(true);
+            if (hasMarkerItalic) setIsItalic(true);
+            if (hasMarkerUnderline) setIsUnderline(true);
+          }
+        }
+      }
     }
     
     setIsBulletList(isBullet);
@@ -347,23 +501,6 @@ const EditorToolbar = ({
     // Update highlight color
     const detectedHighlight = getHighlightColorAtSelection();
     setCurrentHighlightColor(detectedHighlight);
-    
-    // If in a list, log the list element's properties
-    if (isBullet || isNumbered) {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        let node = selection.anchorNode;
-        while (node && node !== editorRef.current) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node as HTMLElement;
-            if (element.tagName === 'UL' || element.tagName === 'OL') {
-              break;
-            }
-          }
-          node = node.parentNode;
-        }
-      }
-    }
   };
   
   // Track selection changes to update format states

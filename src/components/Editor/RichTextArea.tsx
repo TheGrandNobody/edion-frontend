@@ -242,7 +242,7 @@ const styles = `
   text-decoration: inherit;
 }
 
-/* Classes for list marker styling */
+/* Marker styling for ordered lists using ::before pseudo-element */
 .rich-text-editor ol > li.marker-bold::before {
   font-weight: bold;
 }
@@ -253,6 +253,24 @@ const styles = `
 
 .rich-text-editor ol > li.marker-underline::before {
   text-decoration: underline;
+}
+
+/* Marker styling for unordered lists using ::marker pseudo-element */
+.rich-text-editor ul > li.marker-bold::marker {
+  font-weight: bold;
+}
+
+.rich-text-editor ul > li.marker-italic::marker {
+  font-style: italic;
+}
+
+.rich-text-editor ul > li.marker-underline::marker {
+  text-decoration: underline;
+}
+
+/* Additional styling for bullet lists to ensure marker styling works consistently */
+.rich-text-editor ul > li {
+  padding-left: 0.5em;
 }
 
 /* Tip: To format list markers, place cursor at beginning of list item and use the formatting buttons */
