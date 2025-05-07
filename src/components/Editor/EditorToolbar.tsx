@@ -322,25 +322,78 @@ const EditorToolbar = ({
     // First check if we're in a list, since lists need special handling
     let parentList = null;
     let currentNode = node;
+    let foundAlignedElement = false;
+    
+    // Check direct parents for inline alignment style first (highest priority)
     while (currentNode && currentNode !== editorRef.current) {
       if (currentNode.nodeType === Node.ELEMENT_NODE) {
         const element = currentNode as HTMLElement;
+        
+        // First check for direct inline style (highest priority)
+        if (element.style && element.style.textAlign) {
+          // Only consider valid alignments
+          if (element.style.textAlign === 'center') {
+            lastKnownAlignmentRef.current = 'center';
+            return 'center';
+          }
+          if (element.style.textAlign === 'right') {
+            lastKnownAlignmentRef.current = 'right';
+            return 'right';
+          }
+          if (element.style.textAlign === 'left') {
+            lastKnownAlignmentRef.current = 'left';
+            return 'left';
+          }
+        }
+        
+        // Special handling for lists
         if (element.tagName === 'UL' || element.tagName === 'OL') {
           parentList = element;
           // Check the list's alignment directly
           const listStyle = window.getComputedStyle(element);
           const listAlign = listStyle.textAlign;
           
+          // Only update if we found a meaningful alignment
           if (listAlign === 'center') {
             lastKnownAlignmentRef.current = 'center';
+            foundAlignedElement = true;
             return 'center';
           }
           if (listAlign === 'right') {
             lastKnownAlignmentRef.current = 'right';
+            foundAlignedElement = true;
             return 'right';
           }
           if (listAlign === 'left' || listAlign === 'start') {
             lastKnownAlignmentRef.current = 'left';
+            foundAlignedElement = true;
+            return 'left';
+          }
+        }
+        
+        // Special handling for paragraphs and div elements
+        if (element.tagName === 'P' || element.tagName === 'DIV') {
+          const computedStyle = window.getComputedStyle(element);
+          const textAlign = computedStyle.textAlign;
+          
+          // Check if we have the data-alignment-fixed attribute (our custom marker)
+          const hasFixedAlignment = element.hasAttribute('data-alignment-fixed');
+          
+          // Only update if it's not the default left alignment or it has our fixed attribute
+          if (textAlign === 'center' || hasFixedAlignment) {
+            lastKnownAlignmentRef.current = 'center';
+            foundAlignedElement = true;
+            return 'center';
+          }
+          if (textAlign === 'right' || hasFixedAlignment) {
+            lastKnownAlignmentRef.current = 'right';
+            foundAlignedElement = true;
+            return 'right';
+          }
+          if (hasFixedAlignment) {
+            // If we explicitly set left alignment, ensure it's honored
+            lastKnownAlignmentRef.current = 'left';
+            foundAlignedElement = true;
             return 'left';
           }
         }
@@ -348,30 +401,32 @@ const EditorToolbar = ({
       currentNode = currentNode.parentNode;
     }
     
-    // If we didn't find a list or its alignment, check normal elements
-    // Find the nearest block element
-    let depth = 0;
-    while (node && node !== editorRef.current) {
+    // If we haven't found list or paragraph with alignment, check any element's computed style
+    while (node && node !== editorRef.current && !foundAlignedElement) {
       if (node.nodeType === Node.ELEMENT_NODE) {
         const element = node as HTMLElement;
         const computedStyle = window.getComputedStyle(element);
         const textAlign = computedStyle.textAlign;
         
+        // Only update for non-default alignments (center/right) - leave left alone
+        // unless it's explicitly set as an inline style
         if (textAlign === 'center') {
           lastKnownAlignmentRef.current = 'center';
+          foundAlignedElement = true;
           return 'center';
         }
         if (textAlign === 'right') {
           lastKnownAlignmentRef.current = 'right';
+          foundAlignedElement = true;
           return 'right';
         }
-        if (textAlign === 'left' || textAlign === 'start') {
+        if (element.style.textAlign === 'left') {
           lastKnownAlignmentRef.current = 'left';
+          foundAlignedElement = true;
           return 'left';
         }
       }
       node = node.parentNode;
-      depth++;
     }
     
     return lastKnownAlignmentRef.current; // Return last known alignment if nothing found
@@ -611,6 +666,9 @@ const EditorToolbar = ({
   
   // Apply text color
   const applyTextColor = (color: string) => {
+    // Immediately update the current text color to reflect the change
+    setCurrentTextColor(color);
+    
     // Only force focus if we're not already in a color picker interaction
     const isInColorPickerInteraction = document.activeElement && 
       (document.activeElement.closest('.popover-content') !== null);
@@ -638,14 +696,15 @@ const EditorToolbar = ({
       }
     }
     
-    // Immediately update the current text color to reflect the change
-    setCurrentTextColor(color);
     // Add to color history
     addToColorHistory(color);
   };
   
   // Apply highlight color
   const applyHighlightColor = (color: string) => {
+    // Immediately update the current highlight color to reflect the change
+    setCurrentHighlightColor(color);
+    
     // Only force focus if we're not already in a color picker interaction
     const isInColorPickerInteraction = document.activeElement && 
       (document.activeElement.closest('.popover-content') !== null);
@@ -673,8 +732,6 @@ const EditorToolbar = ({
       }
     }
     
-    // Immediately update the current highlight color to reflect the change
-    setCurrentHighlightColor(color);
     // Add to color history (except transparent)
     if (color !== 'transparent') {
       addToColorHistory(color);
@@ -705,6 +762,12 @@ const EditorToolbar = ({
       node = node.parentNode;
     }
     
+    // Also check what element we're directly in
+    node = selection.anchorNode;
+    if (node.nodeType === Node.TEXT_NODE) {
+      node = node.parentNode;
+    }
+
     if (listElement) {
       // The key issue: ordered lists (OL) created in non-left aligned text
       // have their style.textAlign property directly set, which isn't being properly overridden
@@ -835,7 +898,88 @@ const EditorToolbar = ({
     if (currentList && listItem) {
       // If trying to apply the same list type, remove the list formatting
       if (currentList.tagName === listType) {
-        document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
+        // Store the current list alignment before removing
+        const listAlignmentBeforeRemoval = (currentList as HTMLElement).style.textAlign;
+        const computedAlignmentBeforeRemoval = window.getComputedStyle(currentList).textAlign;
+        
+        // Remember alignment for transfer to paragraph
+        const alignmentToTransfer = listAlignmentBeforeRemoval || 
+                                   (computedAlignmentBeforeRemoval === 'center' || 
+                                    computedAlignmentBeforeRemoval === 'right' ? 
+                                    computedAlignmentBeforeRemoval : '');
+
+        // If list has alignment, we need to preserve it
+        if (alignmentToTransfer && alignmentToTransfer !== 'left' && alignmentToTransfer !== 'start') {
+          // Method 1: Direct approach to apply alignment to each list item content
+          const items = Array.from(currentList.querySelectorAll('li'));
+          const contents = items.map(item => (item as HTMLElement).innerHTML);
+          
+          // Remove the list but keep the content
+          document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
+          
+          // Find all paragraphs that were created from the list items
+          const range = selection.getRangeAt(0);
+          const commonAncestor = range.commonAncestorContainer;
+          let paragraphs: HTMLElement[] = [];
+          
+          if (commonAncestor.nodeType === Node.ELEMENT_NODE) {
+            // Walk up a few levels to find paragraphs or divs that were created
+            let container = commonAncestor as HTMLElement;
+            if (container.tagName !== 'DIV' && container.tagName !== 'P') {
+              container = container.parentElement || editorRef.current;
+            }
+            
+            // Find all paragraphs that might have been created
+            paragraphs = Array.from(container.querySelectorAll('p'));
+          }
+          
+          // Apply the alignment to all created paragraphs
+          paragraphs.forEach((p) => {
+            p.style.textAlign = alignmentToTransfer;
+            p.setAttribute('data-alignment-fixed', 'true');
+          });
+          
+          // Update the last known alignment
+          lastKnownAlignmentRef.current = alignmentToTransfer as TextAlignment;
+          setTextAlignment(alignmentToTransfer as TextAlignment);
+          
+          // Special case for single paragraph - make sure it gets the alignment
+          if (paragraphs.length === 0) {
+            // If we can't find paragraphs, try a different approach - look at the selection
+            const selNode = selection.anchorNode;
+            if (selNode) {
+              let paragraphNode = selNode;
+              if (selNode.nodeType === Node.TEXT_NODE) {
+                paragraphNode = selNode.parentNode;
+              }
+              
+              // Apply alignment to the closest paragraph or div
+              while (paragraphNode && paragraphNode !== editorRef.current) {
+                if (paragraphNode.nodeType === Node.ELEMENT_NODE) {
+                  const element = paragraphNode as HTMLElement;
+                  if (element.tagName === 'P' || element.tagName === 'DIV') {
+                    element.style.textAlign = alignmentToTransfer;
+                    element.setAttribute('data-alignment-fixed', 'true');
+                    break;
+                  }
+                }
+                paragraphNode = paragraphNode.parentNode;
+              }
+            }
+          }
+        } else {
+          // Standard removal for left-aligned lists
+          document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
+        }
+        
+        // Update format states immediately
+        updateFormatStates();
+        
+        // Trigger content update
+        if (editorRef.current) {
+          const event = new Event('input', { bubbles: true });
+          editorRef.current.dispatchEvent(event);
+        }
       } 
       // If trying to change list type, convert it
       else {
@@ -930,39 +1074,29 @@ const EditorToolbar = ({
       // Not in a list, use standard command
       document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
       
-      // Find the newly created list in aligned content
+      // Store the current alignment to apply to the new list
       if (currentAlignment !== 'left') {
-        // Find the newly created list
+        // Find the newly created list immediately
         let newList = null;
-        const currentNode = selection.anchorNode;
-        if (currentNode) {
-          let node = currentNode;
-          while (node && node !== editorRef.current) {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              const element = node as HTMLElement;
-              if (element.tagName === listType) {
-                newList = element;
-                break;
-              }
+        node = selection.anchorNode;
+        
+        while (node && node !== editorRef.current) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as HTMLElement;
+            if (element.tagName === 'UL' || element.tagName === 'OL') {
+              newList = element;
+              break;
             }
-            node = node.parentNode;
           }
+          node = node.parentNode;
         }
         
         // Apply alignment to the new list if found
         if (newList) {
           (newList as HTMLElement).style.textAlign = currentAlignment;
           
-          // For right and center alignment on UL lists, ensure proper bullet positioning
-          if (listType === 'UL') {
-            const listItems = newList.querySelectorAll('li');
-            listItems.forEach(item => {
-              (item as HTMLElement).style.listStylePosition = 'inside';
-            });
-          }
-          
-          // For ordered lists with center/right alignment, set proper justification on list items
-          if (listType === 'OL') {
+          // For ordered lists with center/right alignment, set proper justification
+          if ((newList as HTMLElement).tagName === 'OL') {
             const listItems = newList.querySelectorAll('li');
             listItems.forEach(item => {
               if (currentAlignment === 'center') {
@@ -972,17 +1106,29 @@ const EditorToolbar = ({
               }
             });
           }
+          
+          // For unordered lists, set list-style-position for center/right alignment
+          if ((newList as HTMLElement).tagName === 'UL' && currentAlignment !== 'left') {
+            const listItems = newList.querySelectorAll('li');
+            listItems.forEach(item => {
+              (item as HTMLElement).style.listStylePosition = 'inside';
+            });
+          }
+          
+          // Update the last known alignment
+          lastKnownAlignmentRef.current = currentAlignment as TextAlignment;
+          setTextAlignment(currentAlignment as TextAlignment);
         }
       }
-    }
-    
-    // Update formatting states
-    updateFormatStates();
-    
-    // Trigger update
-    if (editorRef.current) {
-      const event = new Event('input', { bubbles: true });
-      editorRef.current.dispatchEvent(event);
+      
+      // Update format states immediately
+      updateFormatStates();
+      
+      // Trigger content update
+      if (editorRef.current) {
+        const event = new Event('input', { bubbles: true });
+        editorRef.current.dispatchEvent(event);
+      }
     }
   };
   
