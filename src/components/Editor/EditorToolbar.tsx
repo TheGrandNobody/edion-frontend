@@ -881,6 +881,15 @@ const EditorToolbar = ({
         
         // 5. If we found the new list, restore content and marker formatting
         if (newList) {
+          // Add the appropriate list style class
+          if (listType === 'UL') {
+            newList.classList.add('list-disc');
+            newList.style.listStyleType = 'disc';
+          } else {
+            newList.classList.add('list-decimal');
+            newList.style.listStyleType = 'decimal';
+          }
+          
           // Restore previous alignment
           if (currentAlign) {
             (newList as HTMLElement).style.textAlign = currentAlign;
@@ -930,27 +939,36 @@ const EditorToolbar = ({
       // Not in a list, use standard command
       document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
       
-      // Find the newly created list in aligned content
-      if (currentAlignment !== 'left') {
-        // Find the newly created list
-        let newList = null;
-        const currentNode = selection.anchorNode;
-        if (currentNode) {
-          let node = currentNode;
-          while (node && node !== editorRef.current) {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              const element = node as HTMLElement;
-              if (element.tagName === listType) {
-                newList = element;
-                break;
-              }
+      // Find the newly created list
+      let newList = null;
+      const currentNode = selection.anchorNode;
+      if (currentNode) {
+        let node = currentNode;
+        while (node && node !== editorRef.current) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as HTMLElement;
+            if (element.tagName === listType) {
+              newList = element;
+              break;
             }
-            node = node.parentNode;
           }
+          node = node.parentNode;
+        }
+      }
+      
+      // If we found the new list, add the appropriate style class
+      if (newList) {
+        // Add default style class based on list type
+        if (listType === 'UL') {
+          newList.classList.add('list-disc');
+          newList.style.listStyleType = 'disc';
+        } else {
+          newList.classList.add('list-decimal');
+          newList.style.listStyleType = 'decimal';
         }
         
-        // Apply alignment to the new list if found
-        if (newList) {
+        // Apply alignment to the new list if needed
+        if (currentAlignment !== 'left') {
           (newList as HTMLElement).style.textAlign = currentAlignment;
           
           // For right and center alignment on UL lists, ensure proper bullet positioning

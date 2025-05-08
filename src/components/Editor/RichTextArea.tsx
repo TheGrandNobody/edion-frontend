@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'mathlive';
 import useInlineMath from '../../hooks/useInlineMath';
 
@@ -19,13 +19,80 @@ interface RichTextAreaProps {
   editorRef: React.RefObject<HTMLDivElement>;
 }
 
+// List style definitions for both ordered and unordered lists
+interface ListStyle {
+  className: string;
+  marker: string;
+}
+
 const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
   const { handleKeyDown: handleInlineMathKeyDown, handleMathFieldDelete } = useInlineMath();
+  
+  // Define ordered list styles in sequence: decimal (1, 2, 3), alpha (a, b, c), roman (i, ii, iii)
+  const orderedListStyles: ListStyle[] = [
+    { className: 'list-decimal', marker: 'decimal' },
+    { className: 'list-alpha', marker: 'lower-alpha' },
+    { className: 'list-roman', marker: 'lower-roman' }
+  ];
+  
+  // Define unordered list styles in sequence: disc, circle, square
+  const unorderedListStyles: ListStyle[] = [
+    { className: 'list-disc', marker: 'disc' },
+    { className: 'list-circle', marker: 'circle' },
+    { className: 'list-square', marker: 'square' }
+  ];
   
   // Handle keyboard events in the editor
   const handleEditorKeyDown = (e: React.KeyboardEvent) => {
     // First call the inline math handler
     handleInlineMathKeyDown(e);
+    
+    // Handle tab key for list indentation and style changes
+    if (e.key === 'Tab') {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+      
+      // Find if we're in a list item
+      const range = selection.getRangeAt(0);
+      let listItem = null;
+      let listElement = null;
+      let node = range.startContainer;
+      
+      // Walk up the DOM tree to find if we're in a list item
+      while (node && node !== editorRef.current) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const element = node as HTMLElement;
+          if (element.tagName === 'LI') {
+            listItem = element;
+          }
+          if (element.tagName === 'UL' || element.tagName === 'OL') {
+            listElement = element;
+            break;
+          }
+        }
+        node = node.parentNode;
+      }
+      
+      // If we're in a list item
+      if (listItem && listElement) {
+        e.preventDefault(); // Prevent default tab behavior
+        
+        if (e.shiftKey) {
+          // Shift+Tab: Outdent or change list style in reverse
+          handleOutdent(listItem, listElement);
+        } else {
+          // Tab: Indent or change list style
+          handleIndent(listItem, listElement);
+        }
+        
+        // Update content
+        if (editorRef.current) {
+          onChange(editorRef.current.innerHTML);
+        }
+      }
+      
+      return;
+    }
     
     // Handle deletion
     if (e.key === 'Backspace' || e.key === 'Delete') {
@@ -65,6 +132,176 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     }
   };
   
+  // Handle indentation (Tab key) of list items
+  const handleIndent = (listItem: HTMLElement, listElement: HTMLElement) => {
+    const isOrderedList = listElement.tagName === 'OL';
+    const listStyles = isOrderedList ? orderedListStyles : unorderedListStyles;
+    
+    // Check current indentation level
+    const indentLevel = getIndentLevel(listItem);
+    
+    // Get parent list and its style
+    const parentList = listElement as HTMLElement;
+    const currentListStyle = getListStyle(parentList, isOrderedList);
+    
+    // Calculate next style index
+    const currentStyleIndex = listStyles.findIndex(style => style.className === currentListStyle);
+    const nextStyleIndex = (currentStyleIndex + 1) % listStyles.length;
+    
+    // Determine if this is the first item in the list
+    const isFirstItem = !listItem.previousElementSibling;
+    
+    if (isFirstItem && indentLevel === 0) {
+      // If this is the first item with no indentation, just change the list style
+      applyListStyle(parentList, listStyles[nextStyleIndex].className, listStyles[nextStyleIndex].marker);
+    } else {
+      // Create or find a nested list
+      
+      // Check if there's already a nested list inside this item
+      let nestedList = Array.from(listItem.children).find(child => 
+        child.tagName === 'UL' || child.tagName === 'OL'
+      ) as HTMLElement | undefined;
+      
+      if (!nestedList) {
+        // Create a new nested list with appropriate style
+        nestedList = document.createElement(isOrderedList ? 'OL' : 'UL');
+        
+        // Choose the style based on nesting level
+        // For better visual hierarchy, use a different style than the parent list
+        const nestedLevel = indentLevel + 1;
+        const nestedStyleIndex = nestedLevel % listStyles.length;
+        
+        // Apply appropriate style based on nesting level
+        nestedList.className = listStyles[nestedStyleIndex].className;
+        nestedList.setAttribute('style', `list-style-type: ${listStyles[nestedStyleIndex].marker};`);
+        
+        // Append nested list to the list item
+        listItem.appendChild(nestedList);
+      }
+      
+      // Move subsequent siblings into nested list until we hit another list or the end
+      let nextSibling = listItem.nextElementSibling;
+      while (nextSibling && nextSibling.tagName === 'LI') {
+        const current = nextSibling;
+        nextSibling = nextSibling.nextElementSibling;
+        nestedList.appendChild(current);
+      }
+    }
+  };
+  
+  // Handle outdenting (Shift+Tab) of list items
+  const handleOutdent = (listItem: HTMLElement, listElement: HTMLElement) => {
+    const isOrderedList = listElement.tagName === 'OL';
+    const listStyles = isOrderedList ? orderedListStyles : unorderedListStyles;
+    
+    // Get parent list
+    const parentList = listElement;
+    
+    // Check if this is a nested list within another list item
+    const parentListItem = parentList.parentElement?.closest('li');
+    const isNested = !!parentListItem;
+    
+    if (isNested) {
+      // This is a nested list, move this item out to parent level
+      const grandparentList = parentList.parentElement?.closest(isOrderedList ? 'ol' : 'ul') as HTMLElement;
+      
+      // If there's no next sibling in the current list, move up to the parent list
+      if (!listItem.nextElementSibling) {
+        // Insert the list item after the parent list item
+        if (parentListItem.nextElementSibling) {
+          grandparentList.insertBefore(listItem, parentListItem.nextElementSibling);
+        } else {
+          grandparentList.appendChild(listItem);
+        }
+        
+        // If this was the only item in the nested list, remove the empty nested list
+        if (parentList.children.length === 0) {
+          parentList.remove();
+        }
+      } else {
+        // Create a new list for this item and subsequent siblings
+        const newList = document.createElement(isOrderedList ? 'OL' : 'UL');
+        
+        // Get the style of the grandparent list
+        // We need to determine what style would be appropriate for this level
+        const parentLevel = getIndentLevel(parentListItem);
+        const grandparentStyle = getListStyle(grandparentList, isOrderedList);
+        
+        // Calculate the style for this level, based on the parent's indentation level
+        // This ensures the new list fits visually in the hierarchy
+        const styleIndex = (parentLevel + 1) % listStyles.length;
+        const styleClass = listStyles[styleIndex].className;
+        const styleMarker = listStyles[styleIndex].marker;
+        
+        // Apply the appropriate style
+        newList.className = styleClass;
+        newList.setAttribute('style', `list-style-type: ${styleMarker};`);
+        
+        // Add this item to the new list
+        newList.appendChild(listItem);
+        
+        // Insert the new list after the parent list item
+        if (parentListItem.nextElementSibling) {
+          grandparentList.insertBefore(newList, parentListItem.nextElementSibling);
+        } else {
+          grandparentList.appendChild(newList);
+        }
+      }
+    } else {
+      // This is not nested, just rotate through styles in reverse
+      const currentStyle = getListStyle(parentList, isOrderedList);
+      const currentIndex = listStyles.findIndex(style => style.className === currentStyle);
+      const prevIndex = (currentIndex - 1 + listStyles.length) % listStyles.length;
+      
+      applyListStyle(parentList, listStyles[prevIndex].className, listStyles[prevIndex].marker);
+    }
+  };
+  
+  // Get the indentation level of a list item
+  const getIndentLevel = (listItem: HTMLElement): number => {
+    let level = 0;
+    let parentList = listItem.closest('ul, ol');
+    
+    while (parentList) {
+      // Check if parent list is nested within another list item
+      const parentListItem = parentList.parentElement?.closest('li');
+      if (!parentListItem) break;
+      
+      level++;
+      parentList = parentListItem.closest('ul, ol');
+    }
+    
+    return level;
+  };
+  
+  // Get the current list style of a list element
+  const getListStyle = (listElement: HTMLElement, isOrderedList: boolean): string => {
+    const listStyles = isOrderedList ? orderedListStyles : unorderedListStyles;
+    
+    // Check for list style classes
+    for (const style of listStyles) {
+      if (listElement.classList.contains(style.className)) {
+        return style.className;
+      }
+    }
+    
+    // If no style class is found, return default
+    return listStyles[0].className;
+  };
+  
+  // Apply a specific list style to a list element
+  const applyListStyle = (listElement: HTMLElement, className: string, marker: string) => {
+    // Clear existing style classes
+    const allClasses = [...orderedListStyles, ...unorderedListStyles].map(style => style.className);
+    listElement.classList.remove(...allClasses);
+    
+    // Add new style class
+    listElement.classList.add(className);
+    
+    // Set direct style attribute for better compatibility
+    listElement.setAttribute('style', `list-style-type: ${marker};`);
+  };
+  
   // Initialize the editor with content
   useEffect(() => {
     if (editorRef.current) {
@@ -78,7 +315,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     if (!editor) return;
     
     const handleInput = () => {
-      
       // Get the current content and pass it back
       onChange(editor.innerHTML);
       
@@ -245,10 +481,9 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
   );
 };
 
-// Add styles for tables
+// Add styles for tables and lists
 const styles = `
 .rich-text-editor ul {
-  list-style-type: disc;
   margin-left: 1.5em;
   padding-left: 1em;
 }
@@ -260,6 +495,40 @@ const styles = `
   counter-reset: item;
 }
 
+/* Default list styles */
+.rich-text-editor ul.list-disc {
+  list-style-type: disc;
+  margin-left: 1.5em;
+}
+
+.rich-text-editor ul.list-circle {
+  list-style-type: circle;
+  margin-left: 2em; /* More indentation */
+}
+
+.rich-text-editor ul.list-square {
+  list-style-type: square;
+  margin-left: 2.5em; /* Even more indentation */
+}
+
+/* Ordered list styles with progressive indentation */
+.rich-text-editor ol.list-decimal > li::before {
+  content: counter(item) ".";
+  width: 2em; /* Base width */
+}
+
+.rich-text-editor ol.list-alpha > li::before {
+  content: counter(item, lower-alpha) ".";
+  width: 2.5em; /* Wider for alphabets */
+  margin-left: 0.5em; /* Extra indentation */
+}
+
+.rich-text-editor ol.list-roman > li::before {
+  content: counter(item, lower-roman) ".";
+  width: 3em; /* Wider for roman numerals */
+  margin-left: 1em; /* Even more indentation */
+}
+
 .rich-text-editor ol > li {
   counter-increment: item;
   margin-bottom: 0.5em;
@@ -269,14 +538,100 @@ const styles = `
 }
 
 .rich-text-editor ol > li::before {
-  content: counter(item) ".";
   display: inline-block;
-  width: 2em;
   margin-right: 0.5em;
   text-align: right;
   font-weight: inherit;
   font-style: inherit;
   text-decoration: inherit;
+}
+
+/* Progressive indentation for nested lists - each level indents more */
+.rich-text-editor li > ul,
+.rich-text-editor li > ol {
+  margin-top: 0.5em;
+  margin-left: 1.5em; /* Base indentation for nested lists */
+}
+
+/* Additional indentation for nested lists based on type */
+.rich-text-editor li > ol.list-alpha {
+  margin-left: 2em;
+}
+
+.rich-text-editor li > ol.list-roman {
+  margin-left: 2.5em;
+}
+
+.rich-text-editor li > ul.list-circle {
+  margin-left: 2em;
+}
+
+.rich-text-editor li > ul.list-square {
+  margin-left: 2.5em;
+}
+
+/* Deeper nesting styles - increase indentation for each level */
+.rich-text-editor li li > ol.list-decimal {
+  margin-left: 1.8em;
+}
+
+.rich-text-editor li li > ol.list-alpha {
+  margin-left: 2.3em;
+}
+
+.rich-text-editor li li > ol.list-roman {
+  margin-left: 2.8em;
+}
+
+.rich-text-editor li li > ul.list-disc {
+  margin-left: 1.8em;
+}
+
+.rich-text-editor li li > ul.list-circle {
+  margin-left: 2.3em;
+}
+
+.rich-text-editor li li > ul.list-square {
+  margin-left: 2.8em;
+}
+
+/* Even deeper nesting */
+.rich-text-editor li li li > ol,
+.rich-text-editor li li li > ul {
+  margin-left: 3em;
+}
+
+/* Ensure visual distinction between different types of ordered lists */
+/* Use different color tints for the different list types to enhance visual distinction */
+.rich-text-editor ol.list-decimal > li::before {
+  color: #000000; /* Default black for numbers */
+}
+
+.rich-text-editor ol.list-alpha > li::before {
+  color: #444444; /* Darker gray for alphabets */
+}
+
+.rich-text-editor ol.list-roman > li::before {
+  color: #666666; /* Medium gray for roman numerals */
+}
+
+/* Different bullet colors for unordered lists */
+.rich-text-editor ul.list-disc > li {
+  color: #000000; /* Default black for disc */
+}
+
+.rich-text-editor ul.list-circle > li {
+  color: #444444; /* Darker gray for circle */
+}
+
+.rich-text-editor ul.list-square > li {
+  color: #666666; /* Medium gray for square */
+}
+
+/* Restore text color for list item content */
+.rich-text-editor ul.list-circle > li *,
+.rich-text-editor ul.list-square > li * {
+  color: inherit;
 }
 
 /* Marker styling for ordered lists using ::before pseudo-element */
