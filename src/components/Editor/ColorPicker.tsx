@@ -42,12 +42,14 @@ export const ColorPicker = forwardRef<HTMLButtonElement, ColorPickerProps>(
     const colorIndicatorRef = useRef<HTMLDivElement>(null);
     const hueIndicatorRef = useRef<HTMLDivElement>(null);
     
-    // Sync with initialColor when it changes
+    // Sync with initialColor when it changes or component mounts
     useEffect(() => {
-      if (initialColor && initialColor !== selectedColor) {
+      if (initialColor && selectedColor === null) {
+        // Only set selectedColor from initialColor if selectedColor is null
+        // This ensures user's selection persists between opens
         setSelectedColor(initialColor);
       }
-    }, [initialColor]);
+    }, [initialColor, selectedColor]);
     
     // Reset to default view when popover closes
     const handleOpenChange = (newOpen: boolean) => {
@@ -338,7 +340,10 @@ export const ColorPicker = forwardRef<HTMLButtonElement, ColorPickerProps>(
     };
 
     const handleSelectColor = (color: string) => {
+      // First update the internal state
       setSelectedColor(color);
+      
+      // Then call the parent callback
       onSelectColor(color);
       
       // Auto-close after delay
@@ -367,7 +372,7 @@ export const ColorPicker = forwardRef<HTMLButtonElement, ColorPickerProps>(
             {triggerIcon}
             {(selectedColor || initialColor) && (
               <div 
-                className="absolute bottom-0 left-0 right-0 h-1 rounded-sm" 
+                className="absolute bottom-1 left-1/2 w-5 h-1 rounded-sm transform -translate-x-1/2" 
                 style={{ 
                   backgroundColor: selectedColor || initialColor,
                   // For transparent colors, show a checkerboard pattern or light border
