@@ -1083,48 +1083,29 @@ const EditorToolbar = ({
       // Not in a list, use standard command
       document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
       
-      // Find the newly created list
-      let newList = null;
-      const currentNode = selection.anchorNode;
-      if (currentNode) {
-        let node = currentNode;
+      // Store the current alignment to apply to the new list
+      if (currentAlignment !== 'left') {
+        // Find the newly created list immediately
+        let newList = null;
+        node = selection.anchorNode;
+        
         while (node && node !== editorRef.current) {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as HTMLElement;
-            if (element.tagName === listType) {
+            if (element.tagName === 'UL' || element.tagName === 'OL') {
               newList = element;
               break;
             }
           }
           node = node.parentNode;
         }
-      }
-      
-      // If we found the new list, add the appropriate style class
-      if (newList) {
-        // Add default style class based on list type
-        if (listType === 'UL') {
-          newList.classList.add('list-disc');
-          newList.style.listStyleType = 'disc';
-        } else {
-          newList.classList.add('list-decimal');
-          newList.style.listStyleType = 'decimal';
-        }
         
-        // Apply alignment to the new list if needed
-        if (currentAlignment !== 'left') {
+        // Apply alignment to the new list if found
+        if (newList) {
           (newList as HTMLElement).style.textAlign = currentAlignment;
           
-          // For right and center alignment on UL lists, ensure proper bullet positioning
-          if (listType === 'UL') {
-            const listItems = newList.querySelectorAll('li');
-            listItems.forEach(item => {
-              (item as HTMLElement).style.listStylePosition = 'inside';
-            });
-          }
-          
-          // For ordered lists with center/right alignment, set proper justification on list items
-          if (listType === 'OL') {
+          // For ordered lists with center/right alignment, set proper justification
+          if ((newList as HTMLElement).tagName === 'OL') {
             const listItems = newList.querySelectorAll('li');
             listItems.forEach(item => {
               if (currentAlignment === 'center') {
@@ -1134,17 +1115,29 @@ const EditorToolbar = ({
               }
             });
           }
+          
+          // For unordered lists, set list-style-position for center/right alignment
+          if ((newList as HTMLElement).tagName === 'UL' && currentAlignment !== 'left') {
+            const listItems = newList.querySelectorAll('li');
+            listItems.forEach(item => {
+              (item as HTMLElement).style.listStylePosition = 'inside';
+            });
+          }
+          
+          // Update the last known alignment
+          lastKnownAlignmentRef.current = currentAlignment as TextAlignment;
+          setTextAlignment(currentAlignment as TextAlignment);
         }
       }
-    }
-    
-    // Update formatting states
-    updateFormatStates();
-    
-    // Trigger update
-    if (editorRef.current) {
-      const event = new Event('input', { bubbles: true });
-      editorRef.current.dispatchEvent(event);
+      
+      // Update format states immediately
+      updateFormatStates();
+      
+      // Trigger content update
+      if (editorRef.current) {
+        const event = new Event('input', { bubbles: true });
+        editorRef.current.dispatchEvent(event);
+      }
     }
   };
   
