@@ -894,19 +894,14 @@ const EditorToolbar = ({
       }
     }
     
-    // If we're already in a list
-    if (currentList && listItem) {
-      // If trying to apply the same list type, remove the list formatting
-      if (currentList.tagName === listType) {
-        // Store the current list alignment before removing
-        const listAlignmentBeforeRemoval = (currentList as HTMLElement).style.textAlign;
-        const computedAlignmentBeforeRemoval = window.getComputedStyle(currentList).textAlign;
-        
-        // Remember alignment for transfer to paragraph
-        const alignmentToTransfer = listAlignmentBeforeRemoval || 
-                                   (computedAlignmentBeforeRemoval === 'center' || 
-                                    computedAlignmentBeforeRemoval === 'right' ? 
-                                    computedAlignmentBeforeRemoval : '');
+    // If already in a list, but not of the desired type, convert between UL and OL
+    if (currentList && currentList.tagName !== listType) {
+      const currentListType = currentList.tagName;
+      const alignmentToTransfer = currentList.style.textAlign;
+      
+      // Check if we're trying to convert between list types
+      if (currentListType === 'UL' && listType === 'OL' || currentListType === 'OL' && listType === 'UL') {
+        // Remember the content and any marker formatting classes
 
         // If list has alignment, we need to preserve it
         if (alignmentToTransfer && alignmentToTransfer !== 'left' && alignmentToTransfer !== 'start') {
@@ -980,7 +975,7 @@ const EditorToolbar = ({
           const event = new Event('input', { bubbles: true });
           editorRef.current.dispatchEvent(event);
         }
-      } 
+      }
       // If trying to change list type, convert it
       else {
         // 1. Remember the content and any marker formatting classes
@@ -1073,6 +1068,110 @@ const EditorToolbar = ({
     } else {
       // Not in a list, use standard command
       document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
+      
+      // For ordered lists, ensure there's always a space after the number
+      if (listType === 'OL') {
+        // Small delay to allow the browser to finish creating the list
+        setTimeout(() => {
+          console.log('EmptyList: Processing newly created ordered list');
+          
+          // Find the newly created list
+          let newList = null;
+          const currentSelection = window.getSelection();
+          if (!currentSelection) return;
+          
+          let node = currentSelection.anchorNode;
+          console.log('EmptyList: Selection after list creation:', {
+            anchorNodeType: node?.nodeType === Node.TEXT_NODE ? 'TEXT_NODE' : 
+                           (node as HTMLElement)?.tagName || node?.nodeName || 'unknown',
+            textContent: node?.textContent || 'none'
+          });
+          
+          while (node && node !== editorRef.current) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              const element = node as HTMLElement;
+              if (element.tagName === 'OL') {
+                newList = element;
+                console.log('EmptyList: Found new OL element:', {
+                  childNodes: element.childNodes.length,
+                  innerHTML: element.innerHTML
+                });
+                break;
+              }
+            }
+            node = node.parentNode;
+          }
+          
+          // Add a class to handle spacing for all list items
+          if (newList) {
+            const items = newList.querySelectorAll('li');
+            console.log('EmptyList: New list items found:', items.length);
+            
+            items.forEach(item => {
+              // Add class for CSS ::marker styling
+              (item as HTMLElement).classList.add('list-spacing-fixed');
+              
+              console.log('EmptyList: List item details:', {
+                innerHTML: (item as HTMLElement).innerHTML,
+                textContent: (item as HTMLElement).textContent,
+                childNodes: item.childNodes.length
+              });
+              
+              // Improve empty detection - check if the item is really empty
+              const isEmpty = !(item as HTMLElement).textContent?.trim() || 
+                (item.childNodes.length === 1 && item.firstChild?.nodeName === 'BR') ||
+                (item as HTMLElement).innerHTML === '&nbsp;' ||
+                (item as HTMLElement).innerHTML === '';
+              
+              console.log('EmptyList: List item empty status:', isEmpty);
+              
+              // If the list item is empty, insert a spacer for proper positioning
+              if (isEmpty) {
+                console.log('EmptyList: Empty list item detected, adding spacer');
+                
+                // Remove the BR if it exists
+                if (item.childNodes.length === 1 && item.firstChild?.nodeName === 'BR') {
+                  item.removeChild(item.firstChild);
+                }
+                
+                // Clear any existing content to ensure we start fresh
+                (item as HTMLElement).innerHTML = '';
+                
+                // Create a span with a zero-width space that will follow the number
+                const spacerSpan = document.createElement('span');
+                spacerSpan.className = 'list-item-spacer';
+                // Use zero-width space which is less likely to be modified by browser
+                spacerSpan.textContent = '\u200B'; 
+                
+                // Insert the spacer at the beginning of the list item
+                item.appendChild(spacerSpan);
+                
+                // Set a data attribute to mark this as a truly empty item
+                (item as HTMLElement).setAttribute('data-empty-item', 'true');
+                
+                console.log('EmptyList: List item after adding spacer:', (item as HTMLElement).innerHTML);
+                
+                // Create a selection after the spacer
+                const range = document.createRange();
+                range.setStartAfter(spacerSpan);
+                range.collapse(true);
+                currentSelection.removeAllRanges();
+                currentSelection.addRange(range);
+                
+                console.log('EmptyList: Cursor positioned after spacer');
+              }
+            });
+            
+            // Trigger content update to save the changes
+            if (editorRef.current) {
+              const event = new Event('input', { bubbles: true });
+              editorRef.current.dispatchEvent(event);
+            }
+          } else {
+            console.log('EmptyList: No OL element found after creation');
+          }
+        }, 10); // Small delay to ensure the list is fully created
+      }
       
       // Store the current alignment to apply to the new list
       if (currentAlignment !== 'left') {

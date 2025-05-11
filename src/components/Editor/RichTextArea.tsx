@@ -97,7 +97,198 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       }
     }
     
-    // Handle deletion
+    // Handle Backspace key for list item deletion
+    if (e.key === 'Backspace') {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+      
+      const range = selection.getRangeAt(0);
+      
+      // Our diagnostic logging
+      console.log('EmptyList: Handling backspace key, selection info:', {
+        collapsed: range.collapsed,
+        startOffset: range.startOffset,
+        startContainer: range.startContainer.nodeType === Node.TEXT_NODE ? 'TEXT_NODE' : 
+          (range.startContainer as HTMLElement).tagName || range.startContainer.nodeName
+      });
+      
+      // Check if cursor is at the beginning of a list item
+      if (range.collapsed && range.startOffset === 0) {
+        let node = range.startContainer;
+        let listItem: HTMLElement | null = null;
+        
+        // If we're in a text node, check if it's the first child of a list item
+        if (node.nodeType === Node.TEXT_NODE) {
+          // Check if this is the first text node in the list item
+          const parent = node.parentNode;
+          if (parent && parent.firstChild === node) {
+            // Now check if the parent or an ancestor is a list item
+            let ancestor = parent;
+            while (ancestor && ancestor !== editorRef.current) {
+              if (ancestor.nodeType === Node.ELEMENT_NODE && (ancestor as HTMLElement).tagName === 'LI') {
+                listItem = ancestor as HTMLElement;
+                break;
+              }
+              ancestor = ancestor.parentNode;
+            }
+          }
+        } 
+        // If we're directly in a list item element
+        else if (node.nodeType === Node.ELEMENT_NODE) {
+          const element = node as HTMLElement;
+          
+          // Our diagnostic logging
+          console.log('EmptyList: Element detected:', {
+            tagName: element.tagName,
+            classList: Array.from(element.classList),
+            isSpacerElement: element.classList.contains('list-item-spacer'),
+            parentTagName: element.parentElement?.tagName || 'none',
+            isFirstChild: element.parentElement?.firstChild === element
+          });
+          
+          // Check if we're in a list-item-spacer span
+          if (element.classList.contains('list-item-spacer')) {
+            // Find the parent list item
+            listItem = element.closest('li');
+            console.log('EmptyList: Found list item via spacer:', listItem);
+            // Force range to be at the start of the list item
+            range.setStartBefore(element);
+          }
+          // Check if we're directly in a list item
+          else if (element.tagName === 'LI' && range.startOffset === 0) {
+            listItem = element;
+            console.log('EmptyList: Found list item directly:', listItem);
+          }
+          // Check if we're in a span or other element at the beginning of a list item
+          else if (element.parentElement?.tagName === 'LI' && 
+                   element.parentElement.firstChild === element && 
+                   range.startOffset === 0) {
+            listItem = element.parentElement;
+            console.log('EmptyList: Found list item via parent element:', listItem);
+          }
+        }
+        
+        // If we've found a list item and we're at its beginning
+        if (listItem) {
+          console.log('Debug - Backspace at start of list item, handling deletion');
+          
+          // Special handling for our spacer spans
+          const spacer = listItem.querySelector('.list-item-spacer');
+          if (spacer && range.startContainer === spacer || range.startContainer.parentNode === spacer) {
+            // If cursor is in or before the spacer, it should act like we're at the beginning of the list item
+            listItem.insertBefore(document.createTextNode(''), spacer);
+            range.setStartBefore(spacer);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+          
+          // Check if this is the only item in the list
+          const parentList = listItem.parentElement;
+          if (parentList && parentList.children.length === 1) {
+            // If this is the only item, remove the entire list
+            console.log('Debug - Removing entire list');
+            
+            // Check if the list item is empty or only contains a BR
+            const isEmpty = !listItem.textContent?.trim() || 
+              listItem.hasAttribute('data-empty-item') ||
+              listItem.innerHTML === '<br>' || 
+              (listItem.childNodes.length === 1 && listItem.firstChild?.nodeName === 'BR') ||
+              (listItem.childNodes.length === 1 && listItem.firstChild instanceof HTMLElement && 
+                listItem.firstChild.classList.contains('list-item-spacer'));
+            
+            // Replace the list with a paragraph
+            const p = document.createElement('p');
+            
+            // If the list item is empty, just create an empty paragraph
+            if (isEmpty) {
+              p.innerHTML = '<br>'; // Empty paragraph needs a <br> to be visible
+            } else {
+              p.innerHTML = listItem.innerHTML;
+              
+              // Clean up any spacers
+              const spacers = p.querySelectorAll('.list-item-spacer');
+              spacers.forEach(s => s.remove());
+            }
+            
+            // Replace the list with the paragraph
+            parentList.parentNode?.replaceChild(p, parentList);
+            
+            // Set the cursor to the beginning of the new paragraph
+            const newRange = document.createRange();
+            newRange.setStart(p, 0);
+            newRange.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+            
+            // Prevent default backspace behavior
+            e.preventDefault();
+            
+            // Update content
+            if (editorRef.current) {
+              onChange(editorRef.current.innerHTML);
+            }
+            
+            return;
+          }
+          
+          // If there are other items, let the browser handle it, but we need to
+          // make sure our spacers don't get in the way
+          
+          // Check if there's a list-item-spacer as the first child or if the list item only contains a BR
+          const firstSpan = listItem.querySelector('.list-item-spacer');
+          const onlyContainsBr = listItem.childNodes.length === 1 && listItem.firstChild?.nodeName === 'BR';
+          
+          if ((firstSpan && (firstSpan === listItem.firstChild || 
+              (listItem.firstChild?.nodeType === Node.TEXT_NODE && 
+               listItem.firstChild.textContent === '' && 
+               listItem.firstChild.nextSibling === firstSpan))) || onlyContainsBr) {
+            
+            // If the span is the only content or is preceded by an empty text node,
+            // or if the list item only contains a BR, we need to handle this specially
+            if (listItem.childNodes.length <= 2 || 
+                (listItem.childNodes.length === 3 && 
+                 listItem.firstChild?.nodeType === Node.TEXT_NODE && 
+                 listItem.firstChild.textContent === '') ||
+                listItem.hasAttribute('data-empty-item') ||
+                onlyContainsBr) {
+              
+              console.log('Debug - Empty list item with spacer/BR, removing');
+              
+              // This is effectively an empty list item, so we should remove it
+              const parentList = listItem.parentElement;
+              parentList?.removeChild(listItem);
+              
+              // If the list is now empty, remove it too
+              if (parentList && parentList.children.length === 0) {
+                const p = document.createElement('p');
+                p.innerHTML = '<br>'; // Empty paragraph needs a <br> to be visible
+                parentList.parentNode?.replaceChild(p, parentList);
+                
+                // Position cursor in the paragraph
+                const newRange = document.createRange();
+                newRange.setStart(p, 0);
+                newRange.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+              }
+              
+              // Prevent default backspace behavior
+              e.preventDefault();
+              
+              // Update content
+              if (editorRef.current) {
+                onChange(editorRef.current.innerHTML);
+              }
+              
+              return;
+            }
+          }
+        }
+      }
+    }
+    
+    // Handle deletion for math fields
     if (e.key === 'Backspace' || e.key === 'Delete') {
       const selection = window.getSelection();
       if (!selection || !selection.rangeCount) return;
@@ -133,6 +324,167 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         }
       }
     }
+  };
+  
+  // Fix ordered list spacing after creation
+  const fixOrderedListSpacing = () => {
+    if (!editorRef.current) return;
+    
+    // Watch for mutations in the editor to detect list creation
+    const observer = new MutationObserver((mutations) => {
+      let shouldProcessLists = false;
+      let newListItems: HTMLLIElement[] = [];
+      
+      // Check if any mutations involve ordered lists or list items
+      mutations.forEach(mutation => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // Direct OL element added
+              if ((node as HTMLElement).tagName === 'OL') {
+                shouldProcessLists = true;
+                console.log('EmptyList: OL element added directly');
+              }
+              
+              // OL element inside the added node
+              const nestedOl = (node as HTMLElement).querySelector('ol');
+              if (nestedOl) {
+                shouldProcessLists = true;
+                console.log('EmptyList: Nested OL element found');
+              }
+              
+              // Check for newly added list items
+              if ((node as HTMLElement).tagName === 'LI') {
+                newListItems.push(node as HTMLLIElement);
+                shouldProcessLists = true;
+                console.log('EmptyList: LI element added directly');
+              }
+              
+              // Check for list items inside the added node
+              const nestedItems = (node as HTMLElement).querySelectorAll('li');
+              if (nestedItems.length > 0) {
+                nestedItems.forEach(item => {
+                  newListItems.push(item as HTMLLIElement);
+                });
+                shouldProcessLists = true;
+                console.log('EmptyList: Nested LI elements found:', nestedItems.length);
+              }
+            }
+          });
+        }
+      });
+      
+      // Process lists if needed
+      if (shouldProcessLists) {
+        console.log('EmptyList: Processing lists due to mutation');
+        
+        // First process any directly identified new list items
+        if (newListItems.length > 0) {
+          console.log('EmptyList: Processing new list items:', newListItems.length);
+          
+          newListItems.forEach(item => {
+            const isInOrderedList = item.closest('ol') !== null;
+            
+            if (isInOrderedList) {
+              // Only process if it doesn't already have our special marker
+              if (!item.classList.contains('list-spacing-fixed')) {
+                console.log('EmptyList: Adding spacing fix to list item:', {
+                  innerHTML: item.innerHTML,
+                  textContent: item.textContent
+                });
+                
+                // Add the special class
+                item.classList.add('list-spacing-fixed');
+                
+                // If the list item is empty or only has a BR, add a spacer
+                if (!item.textContent?.trim() || (item.childNodes.length === 1 && item.firstChild?.nodeName === 'BR')) {
+                  // Remove BR if present
+                  if (item.firstChild?.nodeName === 'BR') {
+                    item.removeChild(item.firstChild);
+                  }
+                  
+                  // Clear existing content
+                  (item as HTMLElement).innerHTML = '';
+                  
+                  // Create a spacer element
+                  const spacerSpan = document.createElement('span');
+                  spacerSpan.className = 'list-item-spacer';
+                  spacerSpan.textContent = '\u200B'; // Zero-width space
+                  
+                  // Add it to the list item
+                  item.appendChild(spacerSpan);
+                  
+                  // Mark as empty
+                  (item as HTMLElement).setAttribute('data-empty-item', 'true');
+                  
+                  // Position cursor after the spacer
+                  const selection = window.getSelection();
+                  if (selection) {
+                    const range = document.createRange();
+                    range.setStartAfter(spacerSpan);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                  }
+                  
+                  console.log('Debug - Added spacer to empty list item');
+                }
+              }
+            }
+          });
+        }
+        
+        // Also check for any ordered lists to make sure we didn't miss anything
+        const orderedLists = editorRef.current?.querySelectorAll('ol');
+        if (orderedLists?.length) {
+          console.log('EmptyList: Checking ordered lists:', orderedLists.length);
+          
+          orderedLists.forEach(list => {
+            const items = list.querySelectorAll('li:not(.list-spacing-fixed)');
+            if (items.length > 0) {
+              console.log('EmptyList: Found unfixed list items:', items.length);
+              
+              items.forEach(item => {
+                // Add the special class
+                item.classList.add('list-spacing-fixed');
+                
+                // If the list item is empty, add a spacer
+                if (!item.textContent?.trim()) {
+                  // Create a spacer element
+                  const spacerSpan = document.createElement('span');
+                  spacerSpan.className = 'list-item-spacer';
+                  spacerSpan.textContent = '\u200B'; // Zero-width space
+                  
+                  // Add it to the list item
+                  if (item.firstChild) {
+                    item.insertBefore(spacerSpan, item.firstChild);
+                  } else {
+                    item.appendChild(spacerSpan);
+                  }
+                  
+                  // Mark as empty
+                  (item as HTMLElement).setAttribute('data-empty-item', 'true');
+                  
+                  console.log('Debug - Added spacer to unfixed list item');
+                }
+              });
+            }
+          });
+        }
+        
+        // Update content after fixing spacing
+        onChange(editorRef.current.innerHTML);
+      }
+    });
+    
+    // Start observing the editor with specific configuration
+    observer.observe(editorRef.current, { 
+      childList: true, 
+      subtree: true,
+      characterData: true
+    });
+    
+    return observer;
   };
   
   // Initialize the editor with content
@@ -172,9 +524,15 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     // Initialize MathLive fields on initial render
     initializeMathLiveFields();
     
+    // Fix list spacing and get observer
+    const observer = fixOrderedListSpacing();
+    
     return () => {
       editor.removeEventListener('input', handleInput);
       editor.removeEventListener('keydown', handleDOMKeyDown);
+      if (observer) {
+        observer.disconnect();
+      }
     };
   }, [onChange]);
   
@@ -322,6 +680,7 @@ const styles = `
 .rich-text-editor ol {
   padding-left: 0;
   margin-left: 0;
+  list-style-position: outside; /* Use outside positioning by default */
 }
 
 .rich-text-editor ol {
@@ -345,12 +704,44 @@ const styles = `
   text-decoration: underline;
 }
 
-/* All list items (including non-indented) use consistent spacing */
-.rich-text-editor ul li,
-.rich-text-editor ol li {
+/* All list items use consistent spacing - for unordered lists */
+.rich-text-editor ul li {
   position: relative;
   list-style-position: inside;
   padding-left: 1.5em; /* Base padding for all list items */
+}
+
+/* Add space after ordered list numbers */
+.rich-text-editor ol li::marker {
+  content: counter(list-item) ". "; /* Add space after the period */
+}
+
+/* For browsers that don't support ::marker properly, use pseudo-elements */
+.rich-text-editor ol {
+  counter-reset: list-item;
+}
+
+.rich-text-editor ol li {
+  display: block;
+  position: relative;
+  padding-left: 2.2em; /* Adjusted padding to provide space for the numbers */
+  list-style-type: none !important; /* Hide the default numbers with higher specificity */
+}
+
+.rich-text-editor ol li:before {
+  content: counter(list-item) "."; /* Remove the \u00A0 non-breaking space */
+  counter-increment: list-item;
+  position: absolute;
+  left: 0.5em; /* Position the custom number */
+  width: 1.5em; /* Fixed width for the number */
+  white-space: nowrap;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+/* Add more space after the list marker */
+.rich-text-editor ol li.list-spacing-fixed:before {
+  margin-right: 0.5em; /* Extra margin after the number */
 }
 
 /* Note: Indentation is primarily handled by inline styles for reliability */
@@ -462,6 +853,13 @@ const styles = `
 /* Dark mode text color */
 .dark .rich-text-editor {
   color-scheme: dark;
+}
+
+/* Spacer for list items */
+.rich-text-editor li .list-item-spacer {
+  display: inline-block;
+  min-width: 0.1em; /* Reduced from 0.4em to minimize visible space */
+  white-space: pre;
 }
 `;
 
