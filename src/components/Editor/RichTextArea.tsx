@@ -27,6 +27,76 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     // First call the inline math handler
     handleInlineMathKeyDown(e);
     
+    // Handle Tab key for list indentation
+    if (e.key === 'Tab') {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+      
+      // Find if we're in a list item
+      let node = selection.anchorNode;
+      let listItem: HTMLElement | null = null;
+      
+      while (node && node !== editorRef.current) {
+        if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'LI') {
+          listItem = node as HTMLElement;
+          break;
+        }
+        node = node.parentNode;
+      }
+      
+      // If we're in a list item, handle indentation
+      if (listItem) {
+        e.preventDefault(); // Prevent default tab behavior
+        
+        // Find the parent list element
+        const listElement = listItem.closest('ul, ol');
+        if (!listElement) return;
+        
+        // Get the current indentation level
+        let currentLevel = 0;
+        const indentMatch = Array.from(listItem.classList)
+          .find(cls => cls.startsWith('indent-'));
+        
+        if (indentMatch) {
+          currentLevel = parseInt(indentMatch.split('-')[1], 10) || 0;
+        }
+        
+        // Remove any existing indent classes
+        listItem.classList.forEach(cls => {
+          if (cls.startsWith('indent-')) {
+            listItem?.classList.remove(cls);
+          }
+        });
+        
+        // Shift+Tab: decrease level, Tab: increase level
+        if (e.shiftKey) {
+          // Prevent going below 0
+          currentLevel = Math.max(0, currentLevel - 1);
+        } else {
+          // Increase level with an upper limit of 20 to prevent issues
+          currentLevel = Math.min(20, currentLevel + 1);
+        }
+        
+        // Apply the new indentation class (only if level > 0)
+        if (currentLevel > 0) {
+          listItem.classList.add(`indent-${currentLevel}`);
+          
+          // Apply direct inline style as a backup to ensure correct indentation
+          listItem.style.paddingLeft = `${1.5 + (currentLevel * 1.5)}em`;
+        } else {
+          // Reset to default padding if no indentation
+          listItem.style.paddingLeft = '1.5em';
+        }
+        
+        // Update content
+        if (editorRef.current) {
+          onChange(editorRef.current.innerHTML);
+        }
+        
+        return;
+      }
+    }
+    
     // Handle deletion
     if (e.key === 'Backspace' || e.key === 'Delete') {
       const selection = window.getSelection();
@@ -247,91 +317,67 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
 
 // Add styles for tables
 const styles = `
-.rich-text-editor ul {
-  list-style-type: disc;
-  margin-left: 1.5em;
-  padding-left: 1em;
+/* Reset list styles for consistency */
+.rich-text-editor ul,
+.rich-text-editor ol {
+  padding-left: 0;
+  margin-left: 0;
 }
 
 .rich-text-editor ol {
-  list-style-type: none;
-  margin-left: 0;
-  padding-left: 0;
-  counter-reset: item;
+  list-style-type: decimal;
 }
 
-.rich-text-editor ol > li {
-  counter-increment: item;
-  margin-bottom: 0.5em;
-  display: flex;
-  align-items: flex-start;
-  width: 100%; /* Ensure li takes full width to allow alignment */
+.rich-text-editor ul {
+  list-style-type: disc;
 }
 
-.rich-text-editor ol > li::before {
-  content: counter(item) ".";
-  display: inline-block;
-  width: 2em;
-  margin-right: 0.5em;
-  text-align: right;
-  font-weight: inherit;
-  font-style: inherit;
-  text-decoration: inherit;
-}
-
-/* Marker styling for ordered lists using ::before pseudo-element */
-.rich-text-editor ol > li.marker-bold::before {
+/* Marker styling for lists */
+.rich-text-editor li.marker-bold {
   font-weight: bold;
 }
 
-.rich-text-editor ol > li.marker-italic::before {
+.rich-text-editor li.marker-italic {
   font-style: italic;
 }
 
-.rich-text-editor ol > li.marker-underline::before {
+.rich-text-editor li.marker-underline {
   text-decoration: underline;
 }
 
-/* Marker styling for unordered lists using ::marker pseudo-element */
-.rich-text-editor ul > li.marker-bold::marker {
-  font-weight: bold;
+/* All list items (including non-indented) use consistent spacing */
+.rich-text-editor ul li,
+.rich-text-editor ol li {
+  position: relative;
+  list-style-position: inside;
+  padding-left: 1.5em; /* Base padding for all list items */
 }
 
-.rich-text-editor ul > li.marker-italic::marker {
-  font-style: italic;
-}
+/* Note: Indentation is primarily handled by inline styles for reliability */
+/* These are just fallbacks */
+.rich-text-editor li.indent-1 { padding-left: 3em; }
+.rich-text-editor li.indent-2 { padding-left: 4.5em; }
+.rich-text-editor li.indent-3 { padding-left: 6em; }
+.rich-text-editor li.indent-4 { padding-left: 7.5em; }
+.rich-text-editor li.indent-5 { padding-left: 9em; }
 
-.rich-text-editor ul > li.marker-underline::marker {
-  text-decoration: underline;
-}
-
-/* Additional styling for bullet lists to ensure marker styling works consistently */
-.rich-text-editor ul > li {
-  padding-left: 0.5em;
-}
-
-/* Tip: To format list markers, place cursor at beginning of list item and use the formatting buttons */
-
+/* Standard spacing */
 .rich-text-editor li {
   margin-bottom: 0.5em;
 }
 
-/* Support for aligned lists */
+/* Alignment handling */
 .rich-text-editor ul[style*="text-align: center"],
 .rich-text-editor ol[style*="text-align: center"] {
   text-align: center;
-  padding-left: 0;
-  margin-left: 0;
 }
 
 .rich-text-editor ul[style*="text-align: right"],
 .rich-text-editor ol[style*="text-align: right"] {
   text-align: right;
-  padding-left: 0;
-  margin-left: 0;
 }
 
-/* Handle list items with right alignment, regardless of where the alignment is applied */
+/* For centered and right-aligned lists, keep bullets/numbers with text */
 .rich-text-editor ul[style*="text-align: center"] li,
 .rich-text-editor ul[style*="text-align: right"] li,
 .rich-text-editor [style*="text-align: center"] ul li,
@@ -339,46 +385,7 @@ const styles = `
   list-style-position: inside;
 }
 
-/* Ordered list alignment - ensure counter stays with text */
-.rich-text-editor ol > li[style*="justify-content: center"],
-.rich-text-editor ol > li[style*="justify-content: flex-end"] {
-  width: 100%;
-  padding-left: 0;
-}
-
-.rich-text-editor ol > li[style*="justify-content: center"]::before,
-.rich-text-editor ol > li[style*="justify-content: flex-end"]::before {
-  position: relative;
-  flex: 0 0 auto;
-}
-
-/* Important: Clear floats and adjust positioning for ordered lists */
-.rich-text-editor ol[style*="text-align: right"],
-.rich-text-editor ol[style*="text-align: center"] {
-  /* Override any inherited padding/margin */
-  padding-left: 0 !important;
-  margin-left: 0 !important;
-}
-
-/* Ensure correct alignment of list items regardless of how alignment is applied */
-.rich-text-editor ol > li[style*="justify-content: center"] {
-  justify-content: center !important;
-}
-
-.rich-text-editor ol > li[style*="justify-content: flex-end"] {
-  justify-content: flex-end !important;
-}
-
-.rich-text-editor ol[style*="text-align: center"] > li,
-.rich-text-editor [style*="text-align: center"] ol > li {
-  justify-content: center !important;
-}
-
-.rich-text-editor ol[style*="text-align: right"] > li,
-.rich-text-editor [style*="text-align: right"] ol > li {
-  justify-content: flex-end !important;
-}
-
+/* Tables */
 .rich-text-editor .editor-table {
   border-collapse: collapse;
   width: 100%;
@@ -420,6 +427,7 @@ const styles = `
   background-color: #1e293b;
 }
 
+/* Math fields */
 .rich-text-editor math-field {
   transition: all 0.2s ease-in-out;
 }
@@ -429,7 +437,7 @@ const styles = `
   display: inline-block;
 }
 
-/* Text and Background Color styling */
+/* Text and background styling */
 .rich-text-editor [style*="color:"] {
   transition: color 0.2s ease;
 }
@@ -440,7 +448,7 @@ const styles = `
   transition: background-color 0.2s ease;
 }
 
-/* Selection styles for better editing experience */
+/* Selection styles */
 .rich-text-editor::selection,
 .rich-text-editor *::selection {
   background-color: rgba(59, 130, 246, 0.3);
@@ -451,58 +459,9 @@ const styles = `
   background-color: rgba(59, 130, 246, 0.5);
 }
 
-/* Better text color visibility in dark mode */
+/* Dark mode text color */
 .dark .rich-text-editor {
   color-scheme: dark;
-}
-
-/* Ensure alignment styles work reliably */
-.rich-text-editor ol {
-  list-style-type: none;
-  margin-left: 0;
-  padding-left: 0;
-  counter-reset: item;
-}
-
-/* Direct alignment on LI elements for ordered lists */
-.rich-text-editor ol > li {
-  counter-increment: item;
-  margin-bottom: 0.5em;
-  display: flex;
-  align-items: flex-start;
-  width: 100%; /* Ensure li takes full width to allow alignment */
-}
-
-/* Fix for alignment changes not taking effect */
-.rich-text-editor ol[style*="text-align"] {
-  display: block;
-  width: 100%;
-}
-
-/* Override specificity issues with !important for alignment styles */
-.rich-text-editor ol[style*="text-align: left"] > li {
-  justify-content: flex-start !important;
-}
-
-.rich-text-editor ol[style*="text-align: center"] > li {
-  justify-content: center !important;
-}
-
-.rich-text-editor ol[style*="text-align: right"] > li {
-  justify-content: flex-end !important;
-}
-
-/* Ensure these rules have higher specificity */
-.rich-text-editor ol > li[style*="justify-content: flex-start"] {
-  justify-content: flex-start !important;
-}
-
-.rich-text-editor ol > li[style*="justify-content: center"] {
-  justify-content: center !important;
-}
-
-.rich-text-editor ol > li[style*="justify-content: flex-end"] {
-  justify-content: flex-end !important;
 }
 `;
 
