@@ -94,7 +94,268 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       return;
     }
     
-    // Handle deletion
+    // Handle Tab key for list indentation
+    if (e.key === 'Tab') {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+      
+      // Find if we're in a list item
+      let node = selection.anchorNode;
+      let listItem: HTMLElement | null = null;
+      
+      while (node && node !== editorRef.current) {
+        if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'LI') {
+          listItem = node as HTMLElement;
+          break;
+        }
+        node = node.parentNode;
+      }
+      
+      // If we're in a list item, handle indentation
+      if (listItem) {
+        e.preventDefault(); // Prevent default tab behavior
+        
+        // Find the parent list element
+        const listElement = listItem.closest('ul, ol');
+        if (!listElement) return;
+        
+        // Get the current indentation level
+        let currentLevel = 0;
+        const indentMatch = Array.from(listItem.classList)
+          .find(cls => cls.startsWith('indent-'));
+        
+        if (indentMatch) {
+          currentLevel = parseInt(indentMatch.split('-')[1], 10) || 0;
+        }
+        
+        // Remove any existing indent classes
+        listItem.classList.forEach(cls => {
+          if (cls.startsWith('indent-')) {
+            listItem?.classList.remove(cls);
+          }
+        });
+        
+        // Shift+Tab: decrease level, Tab: increase level
+        if (e.shiftKey) {
+          // Prevent going below 0
+          currentLevel = Math.max(0, currentLevel - 1);
+        } else {
+          // Increase level with an upper limit of 20 to prevent issues
+          currentLevel = Math.min(20, currentLevel + 1);
+        }
+        
+        // Apply the new indentation class (only if level > 0)
+        if (currentLevel > 0) {
+          listItem.classList.add(`indent-${currentLevel}`);
+          
+          // Apply direct inline style as a backup to ensure correct indentation
+          listItem.style.paddingLeft = `${1.5 + (currentLevel * 1.5)}em`;
+        } else {
+          // Reset to default padding if no indentation
+          listItem.style.paddingLeft = '1.5em';
+        }
+        
+        // Update content
+        if (editorRef.current) {
+          onChange(editorRef.current.innerHTML);
+        }
+        
+        return;
+      }
+    }
+    
+    // Handle Backspace key for list item deletion
+    if (e.key === 'Backspace') {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+      
+      const range = selection.getRangeAt(0);
+      
+      // Our diagnostic logging
+      console.log('EmptyList: Handling backspace key, selection info:', {
+        collapsed: range.collapsed,
+        startOffset: range.startOffset,
+        startContainer: range.startContainer.nodeType === Node.TEXT_NODE ? 'TEXT_NODE' : 
+          (range.startContainer as HTMLElement).tagName || range.startContainer.nodeName
+      });
+      
+      // Check if cursor is at the beginning of a list item
+      if (range.collapsed && range.startOffset === 0) {
+        let node = range.startContainer;
+        let listItem: HTMLElement | null = null;
+        
+        // If we're in a text node, check if it's the first child of a list item
+        if (node.nodeType === Node.TEXT_NODE) {
+          // Check if this is the first text node in the list item
+          const parent = node.parentNode;
+          if (parent && parent.firstChild === node) {
+            // Now check if the parent or an ancestor is a list item
+            let ancestor = parent;
+            while (ancestor && ancestor !== editorRef.current) {
+              if (ancestor.nodeType === Node.ELEMENT_NODE && (ancestor as HTMLElement).tagName === 'LI') {
+                listItem = ancestor as HTMLElement;
+                break;
+              }
+              ancestor = ancestor.parentNode;
+            }
+          }
+        } 
+        // If we're directly in a list item element
+        else if (node.nodeType === Node.ELEMENT_NODE) {
+          const element = node as HTMLElement;
+          
+          // Our diagnostic logging
+          console.log('EmptyList: Element detected:', {
+            tagName: element.tagName,
+            classList: Array.from(element.classList),
+            isSpacerElement: element.classList.contains('list-item-spacer'),
+            parentTagName: element.parentElement?.tagName || 'none',
+            isFirstChild: element.parentElement?.firstChild === element
+          });
+          
+          // Check if we're in a list-item-spacer span
+          if (element.classList.contains('list-item-spacer')) {
+            // Find the parent list item
+            listItem = element.closest('li');
+            console.log('EmptyList: Found list item via spacer:', listItem);
+            // Force range to be at the start of the list item
+            range.setStartBefore(element);
+          }
+          // Check if we're directly in a list item
+          else if (element.tagName === 'LI' && range.startOffset === 0) {
+            listItem = element;
+            console.log('EmptyList: Found list item directly:', listItem);
+          }
+          // Check if we're in a span or other element at the beginning of a list item
+          else if (element.parentElement?.tagName === 'LI' && 
+                   element.parentElement.firstChild === element && 
+                   range.startOffset === 0) {
+            listItem = element.parentElement;
+            console.log('EmptyList: Found list item via parent element:', listItem);
+          }
+        }
+        
+        // If we've found a list item and we're at its beginning
+        if (listItem) {
+          console.log('Debug - Backspace at start of list item, handling deletion');
+          
+          // Special handling for our spacer spans
+          const spacer = listItem.querySelector('.list-item-spacer');
+          if (spacer && range.startContainer === spacer || range.startContainer.parentNode === spacer) {
+            // If cursor is in or before the spacer, it should act like we're at the beginning of the list item
+            listItem.insertBefore(document.createTextNode(''), spacer);
+            range.setStartBefore(spacer);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+          
+          // Check if this is the only item in the list
+          const parentList = listItem.parentElement;
+          if (parentList && parentList.children.length === 1) {
+            // If this is the only item, remove the entire list
+            console.log('Debug - Removing entire list');
+            
+            // Check if the list item is empty or only contains a BR
+            const isEmpty = !listItem.textContent?.trim() || 
+              listItem.hasAttribute('data-empty-item') ||
+              listItem.innerHTML === '<br>' || 
+              (listItem.childNodes.length === 1 && listItem.firstChild?.nodeName === 'BR') ||
+              (listItem.childNodes.length === 1 && listItem.firstChild instanceof HTMLElement && 
+                listItem.firstChild.classList.contains('list-item-spacer'));
+            
+            // Replace the list with a paragraph
+            const p = document.createElement('p');
+            
+            // If the list item is empty, just create an empty paragraph
+            if (isEmpty) {
+              p.innerHTML = '<br>'; // Empty paragraph needs a <br> to be visible
+            } else {
+              p.innerHTML = listItem.innerHTML;
+              
+              // Clean up any spacers
+              const spacers = p.querySelectorAll('.list-item-spacer');
+              spacers.forEach(s => s.remove());
+            }
+            
+            // Replace the list with the paragraph
+            parentList.parentNode?.replaceChild(p, parentList);
+            
+            // Set the cursor to the beginning of the new paragraph
+            const newRange = document.createRange();
+            newRange.setStart(p, 0);
+            newRange.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+            
+            // Prevent default backspace behavior
+            e.preventDefault();
+            
+            // Update content
+            if (editorRef.current) {
+              onChange(editorRef.current.innerHTML);
+            }
+            
+            return;
+          }
+          
+          // If there are other items, let the browser handle it, but we need to
+          // make sure our spacers don't get in the way
+          
+          // Check if there's a list-item-spacer as the first child or if the list item only contains a BR
+          const firstSpan = listItem.querySelector('.list-item-spacer');
+          const onlyContainsBr = listItem.childNodes.length === 1 && listItem.firstChild?.nodeName === 'BR';
+          
+          if ((firstSpan && (firstSpan === listItem.firstChild || 
+              (listItem.firstChild?.nodeType === Node.TEXT_NODE && 
+               listItem.firstChild.textContent === '' && 
+               listItem.firstChild.nextSibling === firstSpan))) || onlyContainsBr) {
+            
+            // If the span is the only content or is preceded by an empty text node,
+            // or if the list item only contains a BR, we need to handle this specially
+            if (listItem.childNodes.length <= 2 || 
+                (listItem.childNodes.length === 3 && 
+                 listItem.firstChild?.nodeType === Node.TEXT_NODE && 
+                 listItem.firstChild.textContent === '') ||
+                listItem.hasAttribute('data-empty-item') ||
+                onlyContainsBr) {
+              
+              console.log('Debug - Empty list item with spacer/BR, removing');
+              
+              // This is effectively an empty list item, so we should remove it
+              const parentList = listItem.parentElement;
+              parentList?.removeChild(listItem);
+              
+              // If the list is now empty, remove it too
+              if (parentList && parentList.children.length === 0) {
+                const p = document.createElement('p');
+                p.innerHTML = '<br>'; // Empty paragraph needs a <br> to be visible
+                parentList.parentNode?.replaceChild(p, parentList);
+                
+                // Position cursor in the paragraph
+                const newRange = document.createRange();
+                newRange.setStart(p, 0);
+                newRange.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+              }
+              
+              // Prevent default backspace behavior
+              e.preventDefault();
+              
+              // Update content
+              if (editorRef.current) {
+                onChange(editorRef.current.innerHTML);
+              }
+              
+              return;
+            }
+          }
+        }
+      }
+    }
+    
+    // Handle deletion for math fields
     if (e.key === 'Backspace' || e.key === 'Delete') {
       const selection = window.getSelection();
       if (!selection || !selection.rangeCount) return;
@@ -132,174 +393,165 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     }
   };
   
-  // Handle indentation (Tab key) of list items
-  const handleIndent = (listItem: HTMLElement, listElement: HTMLElement) => {
-    const isOrderedList = listElement.tagName === 'OL';
-    const listStyles = isOrderedList ? orderedListStyles : unorderedListStyles;
+  // Fix ordered list spacing after creation
+  const fixOrderedListSpacing = () => {
+    if (!editorRef.current) return;
     
-    // Check current indentation level
-    const indentLevel = getIndentLevel(listItem);
-    
-    // Get parent list and its style
-    const parentList = listElement as HTMLElement;
-    const currentListStyle = getListStyle(parentList, isOrderedList);
-    
-    // Calculate next style index
-    const currentStyleIndex = listStyles.findIndex(style => style.className === currentListStyle);
-    const nextStyleIndex = (currentStyleIndex + 1) % listStyles.length;
-    
-    // Determine if this is the first item in the list
-    const isFirstItem = !listItem.previousElementSibling;
-    
-    if (isFirstItem && indentLevel === 0) {
-      // If this is the first item with no indentation, just change the list style
-      applyListStyle(parentList, listStyles[nextStyleIndex].className, listStyles[nextStyleIndex].marker);
-    } else {
-      // Create or find a nested list
+    // Watch for mutations in the editor to detect list creation
+    const observer = new MutationObserver((mutations) => {
+      let shouldProcessLists = false;
+      let newListItems: HTMLLIElement[] = [];
       
-      // Check if there's already a nested list inside this item
-      let nestedList = Array.from(listItem.children).find(child => 
-        child.tagName === 'UL' || child.tagName === 'OL'
-      ) as HTMLElement | undefined;
+      // Check if any mutations involve ordered lists or list items
+      mutations.forEach(mutation => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // Direct OL element added
+              if ((node as HTMLElement).tagName === 'OL') {
+                shouldProcessLists = true;
+                console.log('EmptyList: OL element added directly');
+              }
+              
+              // OL element inside the added node
+              const nestedOl = (node as HTMLElement).querySelector('ol');
+              if (nestedOl) {
+                shouldProcessLists = true;
+                console.log('EmptyList: Nested OL element found');
+              }
+              
+              // Check for newly added list items
+              if ((node as HTMLElement).tagName === 'LI') {
+                newListItems.push(node as HTMLLIElement);
+                shouldProcessLists = true;
+                console.log('EmptyList: LI element added directly');
+              }
+              
+              // Check for list items inside the added node
+              const nestedItems = (node as HTMLElement).querySelectorAll('li');
+              if (nestedItems.length > 0) {
+                nestedItems.forEach(item => {
+                  newListItems.push(item as HTMLLIElement);
+                });
+                shouldProcessLists = true;
+                console.log('EmptyList: Nested LI elements found:', nestedItems.length);
+              }
+            }
+          });
+        }
+      });
       
-      if (!nestedList) {
-        // Create a new nested list with appropriate style
-        nestedList = document.createElement(isOrderedList ? 'OL' : 'UL');
+      // Process lists if needed
+      if (shouldProcessLists) {
+        console.log('EmptyList: Processing lists due to mutation');
         
-        // Choose the style based on nesting level
-        // For better visual hierarchy, use a different style than the parent list
-        const nestedLevel = indentLevel + 1;
-        const nestedStyleIndex = nestedLevel % listStyles.length;
-        
-        // Apply appropriate style based on nesting level
-        nestedList.className = listStyles[nestedStyleIndex].className;
-        nestedList.setAttribute('style', `list-style-type: ${listStyles[nestedStyleIndex].marker};`);
-        
-        // Append nested list to the list item
-        listItem.appendChild(nestedList);
-      }
-      
-      // Move subsequent siblings into nested list until we hit another list or the end
-      let nextSibling = listItem.nextElementSibling;
-      while (nextSibling && nextSibling.tagName === 'LI') {
-        const current = nextSibling;
-        nextSibling = nextSibling.nextElementSibling;
-        nestedList.appendChild(current);
-      }
-    }
-  };
-  
-  // Handle outdenting (Shift+Tab) of list items
-  const handleOutdent = (listItem: HTMLElement, listElement: HTMLElement) => {
-    const isOrderedList = listElement.tagName === 'OL';
-    const listStyles = isOrderedList ? orderedListStyles : unorderedListStyles;
-    
-    // Get parent list
-    const parentList = listElement;
-    
-    // Check if this is a nested list within another list item
-    const parentListItem = parentList.parentElement?.closest('li');
-    const isNested = !!parentListItem;
-    
-    if (isNested) {
-      // This is a nested list, move this item out to parent level
-      const grandparentList = parentList.parentElement?.closest(isOrderedList ? 'ol' : 'ul') as HTMLElement;
-      
-      // If there's no next sibling in the current list, move up to the parent list
-      if (!listItem.nextElementSibling) {
-        // Insert the list item after the parent list item
-        if (parentListItem.nextElementSibling) {
-          grandparentList.insertBefore(listItem, parentListItem.nextElementSibling);
-        } else {
-          grandparentList.appendChild(listItem);
+        // First process any directly identified new list items
+        if (newListItems.length > 0) {
+          console.log('EmptyList: Processing new list items:', newListItems.length);
+          
+          newListItems.forEach(item => {
+            const isInOrderedList = item.closest('ol') !== null;
+            
+            if (isInOrderedList) {
+              // Only process if it doesn't already have our special marker
+              if (!item.classList.contains('list-spacing-fixed')) {
+                console.log('EmptyList: Adding spacing fix to list item:', {
+                  innerHTML: item.innerHTML,
+                  textContent: item.textContent
+                });
+                
+                // Add the special class
+                item.classList.add('list-spacing-fixed');
+                
+                // If the list item is empty or only has a BR, add a spacer
+                if (!item.textContent?.trim() || (item.childNodes.length === 1 && item.firstChild?.nodeName === 'BR')) {
+                  // Remove BR if present
+                  if (item.firstChild?.nodeName === 'BR') {
+                    item.removeChild(item.firstChild);
+                  }
+                  
+                  // Clear existing content
+                  (item as HTMLElement).innerHTML = '';
+                  
+                  // Create a spacer element
+                  const spacerSpan = document.createElement('span');
+                  spacerSpan.className = 'list-item-spacer';
+                  spacerSpan.textContent = '\u200B'; // Zero-width space
+                  
+                  // Add it to the list item
+                  item.appendChild(spacerSpan);
+                  
+                  // Mark as empty
+                  (item as HTMLElement).setAttribute('data-empty-item', 'true');
+                  
+                  // Position cursor after the spacer
+                  const selection = window.getSelection();
+                  if (selection) {
+                    const range = document.createRange();
+                    range.setStartAfter(spacerSpan);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                  }
+                  
+                  console.log('Debug - Added spacer to empty list item');
+                }
+              }
+            }
+          });
         }
         
-        // If this was the only item in the nested list, remove the empty nested list
-        if (parentList.children.length === 0) {
-          parentList.remove();
+        // Also check for any ordered lists to make sure we didn't miss anything
+        const orderedLists = editorRef.current?.querySelectorAll('ol');
+        if (orderedLists?.length) {
+          console.log('EmptyList: Checking ordered lists:', orderedLists.length);
+          
+          orderedLists.forEach(list => {
+            const items = list.querySelectorAll('li:not(.list-spacing-fixed)');
+            if (items.length > 0) {
+              console.log('EmptyList: Found unfixed list items:', items.length);
+              
+              items.forEach(item => {
+                // Add the special class
+                item.classList.add('list-spacing-fixed');
+                
+                // If the list item is empty, add a spacer
+                if (!item.textContent?.trim()) {
+                  // Create a spacer element
+                  const spacerSpan = document.createElement('span');
+                  spacerSpan.className = 'list-item-spacer';
+                  spacerSpan.textContent = '\u200B'; // Zero-width space
+                  
+                  // Add it to the list item
+                  if (item.firstChild) {
+                    item.insertBefore(spacerSpan, item.firstChild);
+                  } else {
+                    item.appendChild(spacerSpan);
+                  }
+                  
+                  // Mark as empty
+                  (item as HTMLElement).setAttribute('data-empty-item', 'true');
+                  
+                  console.log('Debug - Added spacer to unfixed list item');
+                }
+              });
+            }
+          });
         }
-      } else {
-        // Create a new list for this item and subsequent siblings
-        const newList = document.createElement(isOrderedList ? 'OL' : 'UL');
         
-        // Get the style of the grandparent list
-        // We need to determine what style would be appropriate for this level
-        const parentLevel = getIndentLevel(parentListItem);
-        const grandparentStyle = getListStyle(grandparentList, isOrderedList);
-        
-        // Calculate the style for this level, based on the parent's indentation level
-        // This ensures the new list fits visually in the hierarchy
-        const styleIndex = (parentLevel + 1) % listStyles.length;
-        const styleClass = listStyles[styleIndex].className;
-        const styleMarker = listStyles[styleIndex].marker;
-        
-        // Apply the appropriate style
-        newList.className = styleClass;
-        newList.setAttribute('style', `list-style-type: ${styleMarker};`);
-        
-        // Add this item to the new list
-        newList.appendChild(listItem);
-        
-        // Insert the new list after the parent list item
-        if (parentListItem.nextElementSibling) {
-          grandparentList.insertBefore(newList, parentListItem.nextElementSibling);
-        } else {
-          grandparentList.appendChild(newList);
-        }
+        // Update content after fixing spacing
+        onChange(editorRef.current.innerHTML);
       }
-    } else {
-      // This is not nested, just rotate through styles in reverse
-      const currentStyle = getListStyle(parentList, isOrderedList);
-      const currentIndex = listStyles.findIndex(style => style.className === currentStyle);
-      const prevIndex = (currentIndex - 1 + listStyles.length) % listStyles.length;
-      
-      applyListStyle(parentList, listStyles[prevIndex].className, listStyles[prevIndex].marker);
-    }
-  };
-  
-  // Get the indentation level of a list item
-  const getIndentLevel = (listItem: HTMLElement): number => {
-    let level = 0;
-    let parentList = listItem.closest('ul, ol');
+    });
     
-    while (parentList) {
-      // Check if parent list is nested within another list item
-      const parentListItem = parentList.parentElement?.closest('li');
-      if (!parentListItem) break;
-      
-      level++;
-      parentList = parentListItem.closest('ul, ol');
-    }
+    // Start observing the editor with specific configuration
+    observer.observe(editorRef.current, { 
+      childList: true, 
+      subtree: true,
+      characterData: true
+    });
     
-    return level;
-  };
-  
-  // Get the current list style of a list element
-  const getListStyle = (listElement: HTMLElement, isOrderedList: boolean): string => {
-    const listStyles = isOrderedList ? orderedListStyles : unorderedListStyles;
-    
-    // Check for list style classes
-    for (const style of listStyles) {
-      if (listElement.classList.contains(style.className)) {
-        return style.className;
-      }
-    }
-    
-    // If no style class is found, return default
-    return listStyles[0].className;
-  };
-  
-  // Apply a specific list style to a list element
-  const applyListStyle = (listElement: HTMLElement, className: string, marker: string) => {
-    // Clear existing style classes
-    const allClasses = [...orderedListStyles, ...unorderedListStyles].map(style => style.className);
-    listElement.classList.remove(...allClasses);
-    
-    // Add new style class
-    listElement.classList.add(className);
-    
-    // Set direct style attribute for better compatibility
-    listElement.setAttribute('style', `list-style-type: ${marker};`);
+    return observer;
   };
   
   // Initialize the editor with content
@@ -338,9 +590,15 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     // Initialize MathLive fields on initial render
     initializeMathLiveFields();
     
+    // Fix list spacing and get observer
+    const observer = fixOrderedListSpacing();
+    
     return () => {
       editor.removeEventListener('input', handleInput);
       editor.removeEventListener('keydown', handleDOMKeyDown);
+      if (observer) {
+        observer.disconnect();
+      }
     };
   }, [onChange]);
   
@@ -484,49 +742,14 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
 // Add styles for tables and lists
 const styles = `
 .rich-text-editor ul {
+  list-style-type: disc;
   margin-left: 1.5em;
   padding-left: 1em;
 }
 
 .rich-text-editor ol {
-  list-style-type: none;
-  margin-left: 0;
   padding-left: 0;
   counter-reset: item;
-}
-
-/* Default list styles */
-.rich-text-editor ul.list-disc {
-  list-style-type: disc;
-  margin-left: 1.5em;
-}
-
-.rich-text-editor ul.list-circle {
-  list-style-type: circle;
-  margin-left: 2em; /* More indentation */
-}
-
-.rich-text-editor ul.list-square {
-  list-style-type: square;
-  margin-left: 2.5em; /* Even more indentation */
-}
-
-/* Ordered list styles with progressive indentation */
-.rich-text-editor ol.list-decimal > li::before {
-  content: counter(item) ".";
-  width: 2em; /* Base width */
-}
-
-.rich-text-editor ol.list-alpha > li::before {
-  content: counter(item, lower-alpha) ".";
-  width: 2.5em; /* Wider for alphabets */
-  margin-left: 0.5em; /* Extra indentation */
-}
-
-.rich-text-editor ol.list-roman > li::before {
-  content: counter(item, lower-roman) ".";
-  width: 3em; /* Wider for roman numerals */
-  margin-left: 1em; /* Even more indentation */
 }
 
 .rich-text-editor ol > li {
@@ -538,7 +761,9 @@ const styles = `
 }
 
 .rich-text-editor ol > li::before {
+  content: counter(item) ".";
   display: inline-block;
+  width: 2em;
   margin-right: 0.5em;
   text-align: right;
   font-weight: inherit;
@@ -634,59 +859,84 @@ const styles = `
   color: inherit;
 }
 
-/* Marker styling for ordered lists using ::before pseudo-element */
-.rich-text-editor ol > li.marker-bold::before {
+/* Marker styling for lists */
+.rich-text-editor li.marker-bold {
   font-weight: bold;
 }
 
-.rich-text-editor ol > li.marker-italic::before {
+.rich-text-editor li.marker-italic {
   font-style: italic;
 }
 
-.rich-text-editor ol > li.marker-underline::before {
+.rich-text-editor li.marker-underline {
   text-decoration: underline;
 }
 
-/* Marker styling for unordered lists using ::marker pseudo-element */
-.rich-text-editor ul > li.marker-bold::marker {
-  font-weight: bold;
+/* All list items use consistent spacing - for unordered lists */
+.rich-text-editor ul li {
+  position: relative;
+  list-style-position: inside;
+  padding-left: 1.5em; /* Base padding for all list items */
 }
 
-.rich-text-editor ul > li.marker-italic::marker {
-  font-style: italic;
+/* Add space after ordered list numbers */
+.rich-text-editor ol li::marker {
+  content: counter(list-item) ". "; /* Add space after the period */
 }
 
-.rich-text-editor ul > li.marker-underline::marker {
-  text-decoration: underline;
+/* For browsers that don't support ::marker properly, use pseudo-elements */
+.rich-text-editor ol {
+  counter-reset: list-item;
 }
 
-/* Additional styling for bullet lists to ensure marker styling works consistently */
-.rich-text-editor ul > li {
-  padding-left: 0.5em;
+.rich-text-editor ol li {
+  display: block;
+  position: relative;
+  padding-left: 2.2em; /* Adjusted padding to provide space for the numbers */
+  list-style-type: none !important; /* Hide the default numbers with higher specificity */
 }
 
-/* Tip: To format list markers, place cursor at beginning of list item and use the formatting buttons */
+.rich-text-editor ol li:before {
+  content: counter(list-item) "."; /* Remove the \u00A0 non-breaking space */
+  counter-increment: list-item;
+  position: absolute;
+  left: 0.5em; /* Position the custom number */
+  width: 1.5em; /* Fixed width for the number */
+  white-space: nowrap;
+  text-align: right;
+  box-sizing: border-box;
+}
 
+/* Add more space after the list marker */
+.rich-text-editor ol li.list-spacing-fixed:before {
+  margin-right: 0.5em; /* Extra margin after the number */
+}
+
+/* Note: Indentation is primarily handled by inline styles for reliability */
+/* These are just fallbacks */
+.rich-text-editor li.indent-1 { padding-left: 3em; }
+.rich-text-editor li.indent-2 { padding-left: 4.5em; }
+.rich-text-editor li.indent-3 { padding-left: 6em; }
+.rich-text-editor li.indent-4 { padding-left: 7.5em; }
+.rich-text-editor li.indent-5 { padding-left: 9em; }
+
+/* Standard spacing */
 .rich-text-editor li {
   margin-bottom: 0.5em;
 }
 
-/* Support for aligned lists */
+/* Alignment handling */
 .rich-text-editor ul[style*="text-align: center"],
 .rich-text-editor ol[style*="text-align: center"] {
   text-align: center;
-  padding-left: 0;
-  margin-left: 0;
 }
 
 .rich-text-editor ul[style*="text-align: right"],
 .rich-text-editor ol[style*="text-align: right"] {
   text-align: right;
-  padding-left: 0;
-  margin-left: 0;
 }
 
-/* Handle list items with right alignment, regardless of where the alignment is applied */
+/* For centered and right-aligned lists, keep bullets/numbers with text */
 .rich-text-editor ul[style*="text-align: center"] li,
 .rich-text-editor ul[style*="text-align: right"] li,
 .rich-text-editor [style*="text-align: center"] ul li,
@@ -694,46 +944,7 @@ const styles = `
   list-style-position: inside;
 }
 
-/* Ordered list alignment - ensure counter stays with text */
-.rich-text-editor ol > li[style*="justify-content: center"],
-.rich-text-editor ol > li[style*="justify-content: flex-end"] {
-  width: 100%;
-  padding-left: 0;
-}
-
-.rich-text-editor ol > li[style*="justify-content: center"]::before,
-.rich-text-editor ol > li[style*="justify-content: flex-end"]::before {
-  position: relative;
-  flex: 0 0 auto;
-}
-
-/* Important: Clear floats and adjust positioning for ordered lists */
-.rich-text-editor ol[style*="text-align: right"],
-.rich-text-editor ol[style*="text-align: center"] {
-  /* Override any inherited padding/margin */
-  padding-left: 0 !important;
-  margin-left: 0 !important;
-}
-
-/* Ensure correct alignment of list items regardless of how alignment is applied */
-.rich-text-editor ol > li[style*="justify-content: center"] {
-  justify-content: center !important;
-}
-
-.rich-text-editor ol > li[style*="justify-content: flex-end"] {
-  justify-content: flex-end !important;
-}
-
-.rich-text-editor ol[style*="text-align: center"] > li,
-.rich-text-editor [style*="text-align: center"] ol > li {
-  justify-content: center !important;
-}
-
-.rich-text-editor ol[style*="text-align: right"] > li,
-.rich-text-editor [style*="text-align: right"] ol > li {
-  justify-content: flex-end !important;
-}
-
+/* Tables */
 .rich-text-editor .editor-table {
   border-collapse: collapse;
   width: 100%;
@@ -775,6 +986,7 @@ const styles = `
   background-color: #1e293b;
 }
 
+/* Math fields */
 .rich-text-editor math-field {
   transition: all 0.2s ease-in-out;
 }
@@ -784,7 +996,7 @@ const styles = `
   display: inline-block;
 }
 
-/* Text and Background Color styling */
+/* Text and background styling */
 .rich-text-editor [style*="color:"] {
   transition: color 0.2s ease;
 }
@@ -795,7 +1007,7 @@ const styles = `
   transition: background-color 0.2s ease;
 }
 
-/* Selection styles for better editing experience */
+/* Selection styles */
 .rich-text-editor::selection,
 .rich-text-editor *::selection {
   background-color: rgba(59, 130, 246, 0.3);
@@ -806,58 +1018,16 @@ const styles = `
   background-color: rgba(59, 130, 246, 0.5);
 }
 
-/* Better text color visibility in dark mode */
+/* Dark mode text color */
 .dark .rich-text-editor {
   color-scheme: dark;
 }
 
-/* Ensure alignment styles work reliably */
-.rich-text-editor ol {
-  list-style-type: none;
-  margin-left: 0;
-  padding-left: 0;
-  counter-reset: item;
-}
-
-/* Direct alignment on LI elements for ordered lists */
-.rich-text-editor ol > li {
-  counter-increment: item;
-  margin-bottom: 0.5em;
-  display: flex;
-  align-items: flex-start;
-  width: 100%; /* Ensure li takes full width to allow alignment */
-}
-
-/* Fix for alignment changes not taking effect */
-.rich-text-editor ol[style*="text-align"] {
-  display: block;
-  width: 100%;
-}
-
-/* Override specificity issues with !important for alignment styles */
-.rich-text-editor ol[style*="text-align: left"] > li {
-  justify-content: flex-start !important;
-}
-
-.rich-text-editor ol[style*="text-align: center"] > li {
-  justify-content: center !important;
-}
-
-.rich-text-editor ol[style*="text-align: right"] > li {
-  justify-content: flex-end !important;
-}
-
-/* Ensure these rules have higher specificity */
-.rich-text-editor ol > li[style*="justify-content: flex-start"] {
-  justify-content: flex-start !important;
-}
-
-.rich-text-editor ol > li[style*="justify-content: center"] {
-  justify-content: center !important;
-}
-
-.rich-text-editor ol > li[style*="justify-content: flex-end"] {
-  justify-content: flex-end !important;
+/* Spacer for list items */
+.rich-text-editor li .list-item-spacer {
+  display: inline-block;
+  min-width: 0.1em; /* Reduced from 0.4em to minimize visible space */
+  white-space: pre;
 }
 `;
 
