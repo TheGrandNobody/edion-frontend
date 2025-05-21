@@ -102,27 +102,68 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       const selection = window.getSelection();
       if (!selection || !selection.rangeCount) return;
       
-      const range = selection.getRangeAt(0);
+      let range = selection.getRangeAt(0);
+
+      // Pre-adjustment for LI with startOffset 1 that is effectively empty
+      if (range.collapsed &&
+          range.startContainer.nodeType === Node.ELEMENT_NODE &&
+          (range.startContainer as HTMLElement).tagName === 'LI' &&
+          range.startOffset === 1) {
+        
+        const currentLi = range.startContainer as HTMLElement;
+        
+        const isEffectivelyEmptyLi = 
+            currentLi.hasAttribute('data-empty-item') ||
+            !currentLi.textContent?.trim() || // Check if visually empty
+            (currentLi.childNodes.length === 0) || // No children at all
+            (currentLi.childNodes.length === 1 && currentLi.firstChild?.nodeName === 'BR') || // Only a BR tag
+            (currentLi.childNodes.length === 1 && currentLi.firstChild instanceof HTMLElement && currentLi.firstChild.classList.contains('list-item-spacer')); // Only our spacer
+
+        if (isEffectivelyEmptyLi) {
+          const newRange = document.createRange();
+          newRange.setStart(currentLi, 0);
+          newRange.collapse(true);
+          selection.removeAllRanges(); 
+          selection.addRange(newRange);   
+          range = newRange;
+        }
+      }
       
-      // Our diagnostic logging
-      console.log('EmptyList: Handling backspace key, selection info:', {
-        collapsed: range.collapsed,
-        startOffset: range.startOffset,
-        startContainer: range.startContainer.nodeType === Node.TEXT_NODE ? 'TEXT_NODE' : 
-          (range.startContainer as HTMLElement).tagName || range.startContainer.nodeName
-      });
+      let node = range.startContainer;
+      let listItem: HTMLElement | null = null;
+
+      // Attempt to find the list item more directly, especially considering spacers
+      if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).classList.contains('list-item-spacer')) {
+        listItem = (node as HTMLElement).closest('li');
+        if (listItem) {
+          // If the spacer is the only content, or at the very start, adjust range
+          const parentLi = node.parentElement;
+          if (parentLi === listItem && (listItem.childNodes.length === 1 || (listItem.childNodes.length === 2 && listItem.firstChild?.nodeType === Node.TEXT_NODE && listItem.firstChild.textContent === ''))) {
+            range.setStartBefore(node);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range); 
+          }
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'LI') {
+        listItem = node as HTMLElement;
+      } else if (node.parentNode && (node.parentNode as HTMLElement).tagName === 'LI') {
+        // If cursor is in a text node that is the first child of LI (or after an empty text node)
+        const parentLi = node.parentNode as HTMLElement;
+        if (range.startOffset === 0 && (parentLi.firstChild === node || (parentLi.firstChild?.nodeType === Node.TEXT_NODE && parentLi.firstChild?.textContent === '' && parentLi.firstChild?.nextSibling === node))) {
+           listItem = parentLi;
+        }
+      }
       
       // Check if cursor is at the beginning of a list item
       if (range.collapsed && range.startOffset === 0) {
         let node = range.startContainer;
         let listItem: HTMLElement | null = null;
-        
+
         // If we're in a text node, check if it's the first child of a list item
         if (node.nodeType === Node.TEXT_NODE) {
-          // Check if this is the first text node in the list item
           const parent = node.parentNode;
           if (parent && parent.firstChild === node) {
-            // Now check if the parent or an ancestor is a list item
             let ancestor = parent;
             while (ancestor && ancestor !== editorRef.current) {
               if (ancestor.nodeType === Node.ELEMENT_NODE && (ancestor as HTMLElement).tagName === 'LI') {
@@ -131,104 +172,138 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
               }
               ancestor = ancestor.parentNode;
             }
+          } else if (parent) {
+            // Check if parent is LI and this text node is effectively at the start
+            if (parent.nodeType === Node.ELEMENT_NODE && (parent as HTMLElement).tagName === 'LI') {
+              listItem = parent as HTMLElement;
+            } else {
+              // Try to find LI by going up from parent if text node is not first child
+              let liCandidate = parent.parentElement;
+              while(liCandidate && liCandidate !== editorRef.current && liCandidate.tagName !== 'LI') {
+                liCandidate = liCandidate.parentElement;
+              }
+              if (liCandidate && liCandidate.tagName === 'LI') {
+                listItem = liCandidate as HTMLElement;
+              }
+            }
           }
         } 
         // If we're directly in a list item element
         else if (node.nodeType === Node.ELEMENT_NODE) {
           const element = node as HTMLElement;
-          
-          // Our diagnostic logging
-          console.log('EmptyList: Element detected:', {
-            tagName: element.tagName,
-            classList: Array.from(element.classList),
-            isSpacerElement: element.classList.contains('list-item-spacer'),
-            parentTagName: element.parentElement?.tagName || 'none',
-            isFirstChild: element.parentElement?.firstChild === element
-          });
-          
-          // Check if we're in a list-item-spacer span
           if (element.classList.contains('list-item-spacer')) {
-            // Find the parent list item
             listItem = element.closest('li');
-            console.log('EmptyList: Found list item via spacer:', listItem);
-            // Force range to be at the start of the list item
-            range.setStartBefore(element);
-          }
-          // Check if we're directly in a list item
-          else if (element.tagName === 'LI' && range.startOffset === 0) {
+          } else if (element.tagName === 'LI' && range.startOffset === 0) {
             listItem = element;
-            console.log('EmptyList: Found list item directly:', listItem);
-          }
-          // Check if we're in a span or other element at the beginning of a list item
-          else if (element.parentElement?.tagName === 'LI' && 
-                   element.parentElement.firstChild === element && 
-                   range.startOffset === 0) {
+          } else if (element.parentElement?.tagName === 'LI' && 
+                    element.parentElement.firstChild === element && 
+                    range.startOffset === 0) {
             listItem = element.parentElement;
-            console.log('EmptyList: Found list item via parent element:', listItem);
           }
         }
         
-        // If we've found a list item and we're at its beginning
         if (listItem) {
-          console.log('Debug - Backspace at start of list item, handling deletion');
-          
           // Special handling for our spacer spans
           const spacer = listItem.querySelector('.list-item-spacer');
-          if (spacer && range.startContainer === spacer || range.startContainer.parentNode === spacer) {
-            // If cursor is in or before the spacer, it should act like we're at the beginning of the list item
-            listItem.insertBefore(document.createTextNode(''), spacer);
-            range.setStartBefore(spacer);
-            range.collapse(true);
-            selection.removeAllRanges();
-            selection.addRange(range);
+          if (spacer && (range.startContainer === spacer || range.startContainer.parentNode === spacer || (range.startContainer.nodeType === Node.TEXT_NODE && range.startContainer.parentNode === listItem && listItem.firstChild === spacer))) {
+            // Check if text node before spacer is empty or doesn't exist
+            if (spacer.previousSibling === null || (spacer.previousSibling.nodeType === Node.TEXT_NODE && spacer.previousSibling.textContent === '')) {
+              // Let the existing logic handle it
+            } else if (spacer.previousSibling?.nodeType === Node.TEXT_NODE) {
+                range.setStart(spacer.previousSibling, spacer.previousSibling.textContent?.length || 0);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                return;
+            }
           }
           
           // Check if this is the only item in the list
           const parentList = listItem.parentElement;
           if (parentList && parentList.children.length === 1) {
-            // If this is the only item, remove the entire list
-            console.log('Debug - Removing entire list');
-            
-            // Check if the list item is empty or only contains a BR
-            const isEmpty = !listItem.textContent?.trim() || 
+            const isEmpty = !listItem.textContent?.trim() ||
               listItem.hasAttribute('data-empty-item') ||
-              listItem.innerHTML === '<br>' || 
+              listItem.innerHTML === '<br>' ||
               (listItem.childNodes.length === 1 && listItem.firstChild?.nodeName === 'BR') ||
-              (listItem.childNodes.length === 1 && listItem.firstChild instanceof HTMLElement && 
+              (listItem.childNodes.length === 1 && listItem.firstChild instanceof HTMLElement &&
                 listItem.firstChild.classList.contains('list-item-spacer'));
-            
-            // Replace the list with a paragraph
-            const p = document.createElement('p');
-            
-            // If the list item is empty, just create an empty paragraph
+
             if (isEmpty) {
-              p.innerHTML = '<br>'; // Empty paragraph needs a <br> to be visible
-            } else {
-              p.innerHTML = listItem.innerHTML;
+              const listContainer = parentList.parentNode;
+              const prevSibling = parentList.previousSibling;
+              const nextSibling = parentList.nextSibling;
+
+              listContainer?.removeChild(parentList);
+
+              const newRange = document.createRange();
+
+              if (editorRef.current && editorRef.current.childNodes.length === 0) {
+                newRange.setStart(editorRef.current, 0);
+              } else if (prevSibling) {
+                if (prevSibling.nodeType === Node.ELEMENT_NODE) {
+                  newRange.setStartAfter(prevSibling);
+                } else { // Text node
+                  newRange.setStart(prevSibling, prevSibling.textContent?.length || 0);
+                }
+              } else if (nextSibling) {
+                if (nextSibling.nodeType === Node.ELEMENT_NODE) {
+                  newRange.setStartBefore(nextSibling);
+                } else { // Text node
+                  newRange.setStart(nextSibling, 0);
+                }
+              } else if (listContainer && listContainer.childNodes.length > 0) {
+                 // List was inside a container that is not the editor root and now has other children,
+                 // or listContainer is the editorRef itself and it's not empty.
+                 // Try to place cursor at the start of the container or editor.
+                newRange.setStart(listContainer, 0);
+              } else if (listContainer) {
+                // Container is empty, but it's not the editor (e.g. a div that held the list)
+                // Place cursor inside this container.
+                newRange.setStart(listContainer, 0);
+              } else {
+                 // Fallback: editor is not empty, but no obvious place for cursor, put at start of editor.
+                if (editorRef.current && editorRef.current.childNodes.length > 0) {
+                    newRange.setStart(editorRef.current.firstChild!, 0);
+                } else if (editorRef.current) { // Editor is empty (should have been caught by first case)
+                    newRange.setStart(editorRef.current, 0);
+                }
+                // If editorRef.current is null, newRange remains uninitialized - selection won't change.
+              }
               
-              // Clean up any spacers
-              const spacers = p.querySelectorAll('.list-item-spacer');
+              if (editorRef.current) { // Only try to set range if editor exists
+                newRange.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+                editorRef.current.focus(); // Ensure editor has focus
+              }
+
+            } else {
+              // Single, NON-empty list item. Replace list with a paragraph containing item's content.
+              const p = document.createElement('p');
+              let contentToTransfer = listItem.innerHTML;
+              const tempDivForSpacerRemoval = document.createElement('div');
+              tempDivForSpacerRemoval.innerHTML = contentToTransfer;
+              const spacers = tempDivForSpacerRemoval.querySelectorAll('.list-item-spacer');
               spacers.forEach(s => s.remove());
+              contentToTransfer = tempDivForSpacerRemoval.innerHTML;
+              if (contentToTransfer.trim() === '' || contentToTransfer.toLowerCase() === '<br>') {
+                p.innerHTML = '<br>';
+              } else {
+                p.innerHTML = contentToTransfer;
+              }
+              parentList.parentNode?.replaceChild(p, parentList);
+              const newRange = document.createRange();
+              newRange.setStart(p, 0);
+              newRange.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(newRange);
+              p.focus();
             }
             
-            // Replace the list with the paragraph
-            parentList.parentNode?.replaceChild(p, parentList);
-            
-            // Set the cursor to the beginning of the new paragraph
-            const newRange = document.createRange();
-            newRange.setStart(p, 0);
-            newRange.collapse(true);
-            selection.removeAllRanges();
-            selection.addRange(newRange);
-            
-            // Prevent default backspace behavior
             e.preventDefault();
-            
-            // Update content
             if (editorRef.current) {
               onChange(editorRef.current.innerHTML);
             }
-            
             return;
           }
           
@@ -239,33 +314,25 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
           const firstSpan = listItem.querySelector('.list-item-spacer');
           const onlyContainsBr = listItem.childNodes.length === 1 && listItem.firstChild?.nodeName === 'BR';
           
-          if ((firstSpan && (firstSpan === listItem.firstChild || 
+          const isEffectivelyEmptyDueToSpacerOrBr = (firstSpan && (firstSpan === listItem.firstChild || 
               (listItem.firstChild?.nodeType === Node.TEXT_NODE && 
                listItem.firstChild.textContent === '' && 
-               listItem.firstChild.nextSibling === firstSpan))) || onlyContainsBr) {
-            
-            // If the span is the only content or is preceded by an empty text node,
-            // or if the list item only contains a BR, we need to handle this specially
+               listItem.firstChild.nextSibling === firstSpan))) || onlyContainsBr;
+
+          if (isEffectivelyEmptyDueToSpacerOrBr) {
             if (listItem.childNodes.length <= 2 || 
                 (listItem.childNodes.length === 3 && 
                  listItem.firstChild?.nodeType === Node.TEXT_NODE && 
                  listItem.firstChild.textContent === '') ||
                 listItem.hasAttribute('data-empty-item') ||
                 onlyContainsBr) {
-              
-              console.log('Debug - Empty list item with spacer/BR, removing');
-              
-              // This is effectively an empty list item, so we should remove it
               const parentList = listItem.parentElement;
               parentList?.removeChild(listItem);
               
-              // If the list is now empty, remove it too
               if (parentList && parentList.children.length === 0) {
                 const p = document.createElement('p');
-                p.innerHTML = '<br>'; // Empty paragraph needs a <br> to be visible
+                p.innerHTML = '<br>';
                 parentList.parentNode?.replaceChild(p, parentList);
-                
-                // Position cursor in the paragraph
                 const newRange = document.createRange();
                 newRange.setStart(p, 0);
                 newRange.collapse(true);
@@ -273,14 +340,10 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
                 selection.addRange(newRange);
               }
               
-              // Prevent default backspace behavior
               e.preventDefault();
-              
-              // Update content
               if (editorRef.current) {
                 onChange(editorRef.current.innerHTML);
               }
-              
               return;
             }
           }
@@ -343,21 +406,18 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
               // Direct OL element added
               if ((node as HTMLElement).tagName === 'OL') {
                 shouldProcessLists = true;
-                console.log('EmptyList: OL element added directly');
               }
               
               // OL element inside the added node
               const nestedOl = (node as HTMLElement).querySelector('ol');
               if (nestedOl) {
                 shouldProcessLists = true;
-                console.log('EmptyList: Nested OL element found');
               }
               
               // Check for newly added list items
               if ((node as HTMLElement).tagName === 'LI') {
                 newListItems.push(node as HTMLLIElement);
                 shouldProcessLists = true;
-                console.log('EmptyList: LI element added directly');
               }
               
               // Check for list items inside the added node
@@ -367,7 +427,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
                   newListItems.push(item as HTMLLIElement);
                 });
                 shouldProcessLists = true;
-                console.log('EmptyList: Nested LI elements found:', nestedItems.length);
               }
             }
           });
@@ -376,35 +435,29 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       
       // Process lists if needed
       if (shouldProcessLists) {
-        console.log('EmptyList: Processing lists due to mutation');
-        
         // First process any directly identified new list items
         if (newListItems.length > 0) {
-          console.log('EmptyList: Processing new list items:', newListItems.length);
-          
           newListItems.forEach(item => {
             const isInOrderedList = item.closest('ol') !== null;
             
             if (isInOrderedList) {
               // Only process if it doesn't already have our special marker
               if (!item.classList.contains('list-spacing-fixed')) {
-                console.log('EmptyList: Adding spacing fix to list item:', {
-                  innerHTML: item.innerHTML,
-                  textContent: item.textContent
-                });
-                
                 // Add the special class
                 item.classList.add('list-spacing-fixed');
                 
                 // If the list item is empty or only has a BR, add a spacer
-                if (!item.textContent?.trim() || (item.childNodes.length === 1 && item.firstChild?.nodeName === 'BR')) {
+                const isEmpty = !item.textContent?.trim() || 
+                  (item.childNodes.length === 1 && item.firstChild?.nodeName === 'BR');
+
+                if (isEmpty) {
                   // Remove BR if present
                   if (item.firstChild?.nodeName === 'BR') {
                     item.removeChild(item.firstChild);
                   }
                   
                   // Clear existing content
-                  (item as HTMLElement).innerHTML = '';
+                  item.innerHTML = '';
                   
                   // Create a spacer element
                   const spacerSpan = document.createElement('span');
@@ -415,7 +468,7 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
                   item.appendChild(spacerSpan);
                   
                   // Mark as empty
-                  (item as HTMLElement).setAttribute('data-empty-item', 'true');
+                  item.setAttribute('data-empty-item', 'true');
                   
                   // Position cursor after the spacer
                   const selection = window.getSelection();
@@ -426,8 +479,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
                     selection.removeAllRanges();
                     selection.addRange(range);
                   }
-                  
-                  console.log('Debug - Added spacer to empty list item');
                 }
               }
             }
@@ -437,13 +488,9 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         // Also check for any ordered lists to make sure we didn't miss anything
         const orderedLists = editorRef.current?.querySelectorAll('ol');
         if (orderedLists?.length) {
-          console.log('EmptyList: Checking ordered lists:', orderedLists.length);
-          
           orderedLists.forEach(list => {
             const items = list.querySelectorAll('li:not(.list-spacing-fixed)');
             if (items.length > 0) {
-              console.log('EmptyList: Found unfixed list items:', items.length);
-              
               items.forEach(item => {
                 // Add the special class
                 item.classList.add('list-spacing-fixed');
@@ -464,8 +511,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
                   
                   // Mark as empty
                   (item as HTMLElement).setAttribute('data-empty-item', 'true');
-                  
-                  console.log('Debug - Added spacer to unfixed list item');
                 }
               });
             }
@@ -499,13 +544,98 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     const editor = editorRef.current;
     if (!editor) return;
     
-    const handleInput = () => {
+    const handleInput = (e: Event) => {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
       
-      // Get the current content and pass it back
-      onChange(editor.innerHTML);
+      let node = selection.anchorNode;
+      let listItem: HTMLElement | null = null;
       
-      // Initialize MathLive fields in any newly added inline math
-      initializeMathLiveFields();
+      // Find if we're in a list item
+      while (node && node !== editor) {
+        if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'LI') {
+          listItem = node as HTMLElement;
+          break;
+        }
+        node = node.parentNode;
+      }
+      
+      if (listItem) {
+        // Check if we're typing inside a spacer
+        const spacer = listItem.querySelector('.list-item-spacer');
+        if (spacer && spacer.textContent !== '\u200B') {
+          // Get the content that was typed
+          const content = spacer.textContent?.replace('\u200B', '') || '';
+          
+          // Remove the spacer
+          spacer.remove();
+          
+          // Create a new text node with the content
+          const textNode = document.createTextNode(content);
+          
+          // Add it to the list item
+          listItem.appendChild(textNode);
+          
+          // Position cursor after the content
+          const range = document.createRange();
+          range.setStart(textNode, content.length);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          
+          // Remove empty markers
+          listItem.removeAttribute('data-empty-item');
+          
+          // Update content and return early since we've handled the input
+          if (onChange) {
+            onChange((e.target as HTMLDivElement).innerHTML);
+          }
+          return;
+        }
+        
+        // Check if there's actual content (ignoring spacers and zero-width spaces)
+        const hasActualContent = Array.from(listItem.childNodes).some(node => {
+          // Skip spacer elements
+          if (node instanceof HTMLElement && node.classList.contains('list-item-spacer')) {
+            return false;
+          }
+          // Skip empty text nodes or those with only zero-width space
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent || '';
+            return text.replace(/[\u200B\s]/g, '').length > 0;
+          }
+          // Consider any other node as content
+          return true;
+        });
+        
+        if (hasActualContent) {
+          // Remove the empty marker
+          listItem.removeAttribute('data-empty-item');
+          
+          // Remove any spacers
+          const spacers = listItem.querySelectorAll('.list-item-spacer');
+          spacers.forEach(spacer => {
+            spacer.remove();
+          });
+          
+          // Clean up any leftover zero-width spaces
+          const cleanText = listItem.innerHTML.replace(/\u200B/g, '');
+          if (cleanText !== listItem.innerHTML) {
+            listItem.innerHTML = cleanText;
+            
+            // Restore cursor position at the end of the content
+            const range = document.createRange();
+            range.selectNodeContents(listItem);
+            range.collapse(false);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+        }
+      }
+      
+      if (onChange) {
+        onChange((e.target as HTMLDivElement).innerHTML);
+      }
     };
 
     const handleDOMKeyDown = (e: KeyboardEvent) => {
@@ -685,6 +815,7 @@ const styles = `
 
 .rich-text-editor ol {
   list-style-type: decimal;
+  counter-reset: list-item;
 }
 
 .rich-text-editor ul {
@@ -721,27 +852,53 @@ const styles = `
   counter-reset: list-item;
 }
 
+/* Base styles for ordered list items */
 .rich-text-editor ol li {
-  display: block;
+  display: flex;
   position: relative;
   padding-left: 2.2em; /* Adjusted padding to provide space for the numbers */
-  list-style-type: none !important; /* Hide the default numbers with higher specificity */
+  list-style-type: none !important; /* Hide the default numbers */
+  counter-increment: list-item;
 }
 
+/* Number styling for ordered lists */
 .rich-text-editor ol li:before {
-  content: counter(list-item) "."; /* Remove the \u00A0 non-breaking space */
-  counter-increment: list-item;
+  content: counter(list-item) ".";
   position: absolute;
-  left: 0.5em; /* Position the custom number */
-  width: 1.5em; /* Fixed width for the number */
-  white-space: nowrap;
+  left: 0.5em;
+  width: 1.5em;
   text-align: right;
   box-sizing: border-box;
 }
 
 /* Add more space after the list marker */
 .rich-text-editor ol li.list-spacing-fixed:before {
-  margin-right: 0.5em; /* Extra margin after the number */
+  margin-right: 0.5em;
+}
+
+/* Alignment handling for ordered lists */
+.rich-text-editor ol[style*="text-align: center"] li {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.rich-text-editor ol[style*="text-align: center"] li:before {
+  position: relative;
+  left: 0;
+  margin-right: 0.5em;
+}
+
+.rich-text-editor ol[style*="text-align: right"] li {
+  justify-content: flex-end;
+  padding-left: 0;
+  padding-right: 2.2em;
+}
+
+.rich-text-editor ol[style*="text-align: right"] li:before {
+  position: relative;
+  left: 0;
+  margin-right: 0.5em;
 }
 
 /* Note: Indentation is primarily handled by inline styles for reliability */

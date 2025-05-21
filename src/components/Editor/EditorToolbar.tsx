@@ -1073,29 +1073,18 @@ const EditorToolbar = ({
       if (listType === 'OL') {
         // Small delay to allow the browser to finish creating the list
         setTimeout(() => {
-          console.log('EmptyList: Processing newly created ordered list');
-          
           // Find the newly created list
           let newList = null;
           const currentSelection = window.getSelection();
           if (!currentSelection) return;
           
           let node = currentSelection.anchorNode;
-          console.log('EmptyList: Selection after list creation:', {
-            anchorNodeType: node?.nodeType === Node.TEXT_NODE ? 'TEXT_NODE' : 
-                           (node as HTMLElement)?.tagName || node?.nodeName || 'unknown',
-            textContent: node?.textContent || 'none'
-          });
           
           while (node && node !== editorRef.current) {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as HTMLElement;
               if (element.tagName === 'OL') {
                 newList = element;
-                console.log('EmptyList: Found new OL element:', {
-                  childNodes: element.childNodes.length,
-                  innerHTML: element.innerHTML
-                });
                 break;
               }
             }
@@ -1105,17 +1094,10 @@ const EditorToolbar = ({
           // Add a class to handle spacing for all list items
           if (newList) {
             const items = newList.querySelectorAll('li');
-            console.log('EmptyList: New list items found:', items.length);
             
             items.forEach(item => {
               // Add class for CSS ::marker styling
               (item as HTMLElement).classList.add('list-spacing-fixed');
-              
-              console.log('EmptyList: List item details:', {
-                innerHTML: (item as HTMLElement).innerHTML,
-                textContent: (item as HTMLElement).textContent,
-                childNodes: item.childNodes.length
-              });
               
               // Improve empty detection - check if the item is really empty
               const isEmpty = !(item as HTMLElement).textContent?.trim() || 
@@ -1123,20 +1105,8 @@ const EditorToolbar = ({
                 (item as HTMLElement).innerHTML === '&nbsp;' ||
                 (item as HTMLElement).innerHTML === '';
               
-              console.log('EmptyList: List item empty status:', isEmpty);
-              
               // If the list item is empty, insert a spacer for proper positioning
               if (isEmpty) {
-                console.log('EmptyList: Empty list item detected, adding spacer');
-                
-                // Remove the BR if it exists
-                if (item.childNodes.length === 1 && item.firstChild?.nodeName === 'BR') {
-                  item.removeChild(item.firstChild);
-                }
-                
-                // Clear any existing content to ensure we start fresh
-                (item as HTMLElement).innerHTML = '';
-                
                 // Create a span with a zero-width space that will follow the number
                 const spacerSpan = document.createElement('span');
                 spacerSpan.className = 'list-item-spacer';
@@ -1149,16 +1119,12 @@ const EditorToolbar = ({
                 // Set a data attribute to mark this as a truly empty item
                 (item as HTMLElement).setAttribute('data-empty-item', 'true');
                 
-                console.log('EmptyList: List item after adding spacer:', (item as HTMLElement).innerHTML);
-                
                 // Create a selection after the spacer
                 const range = document.createRange();
                 range.setStartAfter(spacerSpan);
                 range.collapse(true);
                 currentSelection.removeAllRanges();
                 currentSelection.addRange(range);
-                
-                console.log('EmptyList: Cursor positioned after spacer');
               }
             });
             
@@ -1167,8 +1133,6 @@ const EditorToolbar = ({
               const event = new Event('input', { bubbles: true });
               editorRef.current.dispatchEvent(event);
             }
-          } else {
-            console.log('EmptyList: No OL element found after creation');
           }
         }, 10); // Small delay to ensure the list is fully created
       }
