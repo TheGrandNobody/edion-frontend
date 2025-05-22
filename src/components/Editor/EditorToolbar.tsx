@@ -13,7 +13,9 @@ import {
   List,
   ListOrdered,
   Paintbrush,
-  Highlighter
+  Highlighter,
+  Indent,
+  Outdent
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import TableSelector from "./TableSelector";
@@ -26,6 +28,8 @@ interface EditorToolbarProps {
   toggleRawLatex: () => void;
   onInsertMath: () => void;
   onInsertTable: (rows: number, cols: number) => void;
+  onIndent: () => void;
+  onOutdent: () => void;
   editorRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -75,6 +79,8 @@ const EditorToolbar = ({
   toggleRawLatex,
   onInsertMath,
   onInsertTable,
+  onIndent,
+  onOutdent,
   editorRef
 }: EditorToolbarProps) => {
   // Track formatting states
@@ -1299,7 +1305,38 @@ const EditorToolbar = ({
           <TooltipContent>Align right</TooltipContent>
         </Tooltip>
       
-        {/* Separator */}
+        {/* Separator before Indent/Outdent */}
+        <div className="w-px h-6 bg-gray-200 dark:bg-zinc-700 mx-1"></div>
+        
+        {/* Indent/Outdent Buttons */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onOutdent}
+              className="flex items-center gap-1"
+            >
+              <Outdent className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Outdent</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onIndent}
+              className="flex items-center gap-1"
+            >
+              <Indent className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Indent</TooltipContent>
+        </Tooltip>
+
+        {/* Separator after Indent/Outdent */}
         <div className="w-px h-6 bg-gray-200 dark:bg-zinc-700 mx-1"></div>
         
         {/* Lists */}
