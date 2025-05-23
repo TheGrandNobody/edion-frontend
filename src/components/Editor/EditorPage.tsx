@@ -35,12 +35,19 @@ const EditorPage = () => {
 
     let node = selection.anchorNode;
     let listItem: HTMLElement | null = null;
+    let textBlock: HTMLElement | null = null;
 
-    // Find the <li> element
+    // Find the <li> element or a text block element
     while (node && node !== editorRef.current) {
-      if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'LI') {
-        listItem = node as HTMLElement;
-        break;
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement;
+        if (element.tagName === 'LI') {
+          listItem = element;
+          break;
+        } else if (['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(element.tagName)) {
+          textBlock = element;
+          break;
+        }
       }
       node = node.parentNode;
     }
@@ -102,6 +109,55 @@ const EditorPage = () => {
       }
 
       handleContentChange(editorRef.current.innerHTML);
+    } 
+    // Handle regular text blocks (paragraphs, divs, etc.)
+    else if (textBlock) {
+      const indentStep = 2.0; // Indentation step in em for text blocks
+      const maxIndent = 20; // Maximum indentation level - matching list max level
+
+      // Get current padding or default to 0
+      const currentPadding = textBlock.style.paddingLeft || '0em';
+      const currentValue = parseFloat(currentPadding) || 0; // Will be 0 if not a number
+
+      // Calculate new padding value
+      let newPadding;
+      
+      if (direction === 'indent') {
+        newPadding = Math.min(currentValue + indentStep, maxIndent * indentStep);
+      } else { // outdent
+        newPadding = Math.max(currentValue - indentStep, 0);
+      }
+
+      // Apply new padding
+      textBlock.style.paddingLeft = newPadding + 'em';
+
+      // Update editor content
+      handleContentChange(editorRef.current.innerHTML);
+    }
+    // If no list item or text block found, try to create an indented paragraph at the cursor position
+    else if (direction === 'indent') {
+      // Only apply for indent, not outdent (as there's nothing to outdent)
+      const range = selection.getRangeAt(0);
+      
+      // Check if we're in the editor but not in a block element
+      if (range.commonAncestorContainer === editorRef.current || 
+          (range.commonAncestorContainer.nodeType === Node.TEXT_NODE && 
+           range.commonAncestorContainer.parentNode === editorRef.current)) {
+        
+        // Wrap the selection in a paragraph with indentation
+        document.execCommand('formatBlock', false, 'p');
+        
+        // Get the newly created paragraph
+        const newParagraph = selection.anchorNode.nodeType === Node.ELEMENT_NODE ? 
+            selection.anchorNode as HTMLElement : 
+            (selection.anchorNode.parentElement as HTMLElement);
+        
+        // Apply indentation
+        if (newParagraph && newParagraph.tagName) {
+          newParagraph.style.paddingLeft = '2em';
+          handleContentChange(editorRef.current.innerHTML);
+        }
+      }
     }
   };
 

@@ -960,6 +960,7 @@ const styles = `
   position: relative;
   list-style-position: inside;
   padding-left: 1.5em; /* Base padding for all list items */
+  transition: padding-left 0.2s ease; /* Add smooth transition */
 }
 
 /* Add space after ordered list numbers */
@@ -979,6 +980,7 @@ const styles = `
   padding-left: 2.2em; /* Adjusted padding to provide space for the numbers */
   list-style-type: none !important; /* Hide the default numbers */
   counter-increment: list-item;
+  transition: padding-left 0.2s ease, --marker-offset 0.2s ease; /* Add smooth transition */
 }
 
 /* Number styling for ordered lists */
@@ -989,6 +991,7 @@ const styles = `
   width: 1.5em;
   text-align: right;
   box-sizing: border-box;
+  transition: left 0.2s ease; /* Add smooth transition for the marker position */
 }
 
 /* Add more space after the list marker */
@@ -1032,6 +1035,42 @@ const styles = `
 /* Standard spacing */
 .rich-text-editor li {
   margin-bottom: 0.5em;
+}
+
+/* Indentation for regular text blocks */
+.rich-text-editor p,
+.rich-text-editor div,
+.rich-text-editor h1,
+.rich-text-editor h2,
+.rich-text-editor h3,
+.rich-text-editor h4,
+.rich-text-editor h5,
+.rich-text-editor h6 {
+  transition: padding-left 0.2s ease;
+}
+
+/* Visual indicator for indented blocks */
+.rich-text-editor p[style*="padding-left"],
+.rich-text-editor div[style*="padding-left"],
+.rich-text-editor h1[style*="padding-left"],
+.rich-text-editor h2[style*="padding-left"],
+.rich-text-editor h3[style*="padding-left"],
+.rich-text-editor h4[style*="padding-left"],
+.rich-text-editor h5[style*="padding-left"],
+.rich-text-editor h6[style*="padding-left"] {
+  /* Removing border and margin */
+}
+
+/* Dark mode support for indented blocks */
+.dark .rich-text-editor p[style*="padding-left"],
+.dark .rich-text-editor div[style*="padding-left"],
+.dark .rich-text-editor h1[style*="padding-left"],
+.dark .rich-text-editor h2[style*="padding-left"],
+.dark .rich-text-editor h3[style*="padding-left"],
+.dark .rich-text-editor h4[style*="padding-left"],
+.dark .rich-text-editor h5[style*="padding-left"],
+.dark .rich-text-editor h6[style*="padding-left"] {
+  /* Removing dark mode border */
 }
 
 /* Alignment handling */
