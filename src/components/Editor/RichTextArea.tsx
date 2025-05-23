@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import 'mathlive';
 import useInlineMath from '../../hooks/useInlineMath';
 
+interface ListStyle {
+  className: string;
+  marker: string;
+}
+
 declare global {
   namespace JSX {
     interface IntrinsicElements {
@@ -42,6 +47,26 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     { className: 'list-circle', marker: 'circle' },
     { className: 'list-square', marker: 'square' }
   ];
+  
+  const handleIndent = (listItem: HTMLElement, listElement: HTMLElement) => {
+    const isOrdered = listElement.tagName === 'OL';
+    const styles = isOrdered ? orderedListStyles : unorderedListStyles;
+    const currentStyle = styles.findIndex(style => listElement.classList.contains(style.className));
+    const nextStyle = styles[(currentStyle + 1) % styles.length];
+    
+    listElement.classList.remove(...styles.map(s => s.className));
+    listElement.classList.add(nextStyle.className);
+  };
+
+  const handleOutdent = (listItem: HTMLElement, listElement: HTMLElement) => {
+    const isOrdered = listElement.tagName === 'OL';
+    const styles = isOrdered ? orderedListStyles : unorderedListStyles;
+    const currentStyle = styles.findIndex(style => listElement.classList.contains(style.className));
+    const prevStyle = styles[(currentStyle - 1 + styles.length) % styles.length];
+    
+    listElement.classList.remove(...styles.map(s => s.className));
+    listElement.classList.add(prevStyle.className);
+  };
   
   // Handle keyboard events in the editor
   const handleEditorKeyDown = (e: React.KeyboardEvent) => {
