@@ -13,7 +13,9 @@ import {
   List,
   ListOrdered,
   Paintbrush,
-  Highlighter
+  Highlighter,
+  Indent,
+  Outdent
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import TableSelector from "./TableSelector";
@@ -26,6 +28,8 @@ interface EditorToolbarProps {
   toggleRawLatex: () => void;
   onInsertMath: () => void;
   onInsertTable: (rows: number, cols: number) => void;
+  onIndent: () => void;
+  onOutdent: () => void;
   editorRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -75,6 +79,8 @@ const EditorToolbar = ({
   toggleRawLatex,
   onInsertMath,
   onInsertTable,
+  onIndent,
+  onOutdent,
   editorRef
 }: EditorToolbarProps) => {
   // Track formatting states
@@ -901,7 +907,15 @@ const EditorToolbar = ({
       
       // Check if we're trying to convert between list types
       if (currentListType === 'UL' && listType === 'OL' || currentListType === 'OL' && listType === 'UL') {
-        // Remember the content and any marker formatting classes
+        // Store cursor node identifier
+        const cursorNodeId = selection.anchorNode?.textContent?.substring(0, 20) || '';
+        
+        // Store original list item content for potential restoration
+        const listItems = currentList ? Array.from(currentList.querySelectorAll('li')) : [];
+        const originalContent = listItems.map(item => ({
+          html: item.innerHTML,
+          textContent: item.textContent || ''
+        }));
 
         // If list has alignment, we need to preserve it
         if (alignmentToTransfer && alignmentToTransfer !== 'left' && alignmentToTransfer !== 'start') {
@@ -965,6 +979,122 @@ const EditorToolbar = ({
         } else {
           // Standard removal for left-aligned lists
           document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
+          
+          // Fix cursor position for OL → UL conversion
+          if (currentListType === 'OL' && listType === 'UL') {
+            setTimeout(() => {
+              // Find the newly created UL list
+              let newList = null;
+              
+              // Try multiple methods to find the new list
+              // Method 1: Starting from selection
+              if (selection.anchorNode) {
+                let node = selection.anchorNode;
+                
+                while (node && node !== editorRef.current) {
+                  if (node.nodeType === 1 && (node as HTMLElement).tagName === 'UL') {
+                    newList = node;
+                    break;
+                  }
+                  node = node.parentNode;
+                }
+              }
+              
+              // Method 2: Direct query if method 1 fails
+              if (!newList) {
+                newList = editorRef.current?.querySelector('ul');
+              }
+              
+              if (newList) {
+                // Get all list items
+                const listItems = (newList as HTMLElement).querySelectorAll('li');
+                
+                // Check if we have original content to restore
+                if (originalContent && originalContent.length > 0) {
+                  // Try to restore original content to the new list
+                  Array.from(listItems).forEach((item, index) => {
+                    if (index < originalContent.length && originalContent[index].html) {
+                      // Only restore if current item appears empty or just has a spacer
+                      const isEmpty = !item.textContent || 
+                                     item.textContent === '\u200B' ||
+                                     item.innerHTML.includes('list-item-spacer');
+                      
+                      if (isEmpty) {
+                        item.innerHTML = originalContent[index].html;
+                      }
+                    }
+                  });
+                }
+                
+                // Calculate a target list item - either one containing selection or first item
+                let targetItem = null;
+                
+                if (selection.rangeCount > 0) {
+                  for (let i = 0; i < listItems.length; i++) {
+                    if (selection.containsNode(listItems[i], true)) {
+                      targetItem = listItems[i];
+                      break;
+                    }
+                  }
+                }
+                
+                // If no item contains selection, use first item
+                if (!targetItem && listItems.length > 0) {
+                  targetItem = listItems[0];
+                }
+                
+                if (targetItem) {
+                  // Place cursor at the end of the item text
+                  const range = document.createRange();
+                  
+                  // First try to find a text node to place cursor in
+                  let textNode = null;
+                  
+                  // Try to get all text nodes
+                  const walker = document.createTreeWalker(
+                    targetItem,
+                    NodeFilter.SHOW_TEXT,
+                    null
+                  );
+                  
+                  // Get the last text node (to place cursor at the end)
+                  let lastTextNode = null;
+                  while (walker.nextNode()) {
+                    lastTextNode = walker.currentNode as Text;
+                  }
+                  
+                  if (lastTextNode) {
+                    textNode = lastTextNode;
+                  }
+                  
+                  if (textNode) {
+                    // Place cursor at the end of text
+                    range.setStart(textNode, textNode.textContent ? textNode.textContent.length : 0);
+                  } else {
+                    // Create a text node to position the cursor in
+                    textNode = document.createTextNode('\u200B'); // Zero-width space
+                    
+                    // If there's a span.list-item-spacer, replace it with our text node
+                    const spacer = targetItem.querySelector('.list-item-spacer');
+                    if (spacer) {
+                      spacer.parentNode?.replaceChild(textNode, spacer);
+                    } else {
+                      // No spacer, append text node
+                      targetItem.appendChild(textNode);
+                    }
+                    
+                    // Position cursor after the zero-width space
+                    range.setStart(textNode, 1);
+                  }
+                  
+                  // Apply the selection
+                  range.collapse(false); // Collapse to end
+                  selection.removeAllRanges();
+                  selection.addRange(range);
+                }
+              }
+            }, 0);
+          }
         }
         
         // Update format states immediately
@@ -1082,29 +1212,18 @@ const EditorToolbar = ({
       if (listType === 'OL') {
         // Small delay to allow the browser to finish creating the list
         setTimeout(() => {
-          console.log('EmptyList: Processing newly created ordered list');
-          
           // Find the newly created list
           let newList = null;
           const currentSelection = window.getSelection();
           if (!currentSelection) return;
           
           let node = currentSelection.anchorNode;
-          console.log('EmptyList: Selection after list creation:', {
-            anchorNodeType: node?.nodeType === Node.TEXT_NODE ? 'TEXT_NODE' : 
-                           (node as HTMLElement)?.tagName || node?.nodeName || 'unknown',
-            textContent: node?.textContent || 'none'
-          });
           
           while (node && node !== editorRef.current) {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as HTMLElement;
               if (element.tagName === 'OL') {
                 newList = element;
-                console.log('EmptyList: Found new OL element:', {
-                  childNodes: element.childNodes.length,
-                  innerHTML: element.innerHTML
-                });
                 break;
               }
             }
@@ -1114,17 +1233,10 @@ const EditorToolbar = ({
           // Add a class to handle spacing for all list items
           if (newList) {
             const items = newList.querySelectorAll('li');
-            console.log('EmptyList: New list items found:', items.length);
             
             items.forEach(item => {
               // Add class for CSS ::marker styling
               (item as HTMLElement).classList.add('list-spacing-fixed');
-              
-              console.log('EmptyList: List item details:', {
-                innerHTML: (item as HTMLElement).innerHTML,
-                textContent: (item as HTMLElement).textContent,
-                childNodes: item.childNodes.length
-              });
               
               // Improve empty detection - check if the item is really empty
               const isEmpty = !(item as HTMLElement).textContent?.trim() || 
@@ -1132,20 +1244,8 @@ const EditorToolbar = ({
                 (item as HTMLElement).innerHTML === '&nbsp;' ||
                 (item as HTMLElement).innerHTML === '';
               
-              console.log('EmptyList: List item empty status:', isEmpty);
-              
               // If the list item is empty, insert a spacer for proper positioning
               if (isEmpty) {
-                console.log('EmptyList: Empty list item detected, adding spacer');
-                
-                // Remove the BR if it exists
-                if (item.childNodes.length === 1 && item.firstChild?.nodeName === 'BR') {
-                  item.removeChild(item.firstChild);
-                }
-                
-                // Clear any existing content to ensure we start fresh
-                (item as HTMLElement).innerHTML = '';
-                
                 // Create a span with a zero-width space that will follow the number
                 const spacerSpan = document.createElement('span');
                 spacerSpan.className = 'list-item-spacer';
@@ -1158,16 +1258,12 @@ const EditorToolbar = ({
                 // Set a data attribute to mark this as a truly empty item
                 (item as HTMLElement).setAttribute('data-empty-item', 'true');
                 
-                console.log('EmptyList: List item after adding spacer:', (item as HTMLElement).innerHTML);
-                
                 // Create a selection after the spacer
                 const range = document.createRange();
                 range.setStartAfter(spacerSpan);
                 range.collapse(true);
                 currentSelection.removeAllRanges();
                 currentSelection.addRange(range);
-                
-                console.log('EmptyList: Cursor positioned after spacer');
               }
             });
             
@@ -1176,8 +1272,6 @@ const EditorToolbar = ({
               const event = new Event('input', { bubbles: true });
               editorRef.current.dispatchEvent(event);
             }
-          } else {
-            console.log('EmptyList: No OL element found after creation');
           }
         }, 10); // Small delay to ensure the list is fully created
       }
@@ -1344,7 +1438,38 @@ const EditorToolbar = ({
           <TooltipContent>Align right</TooltipContent>
         </Tooltip>
       
-        {/* Separator */}
+        {/* Separator before Indent/Outdent */}
+        <div className="w-px h-6 bg-gray-200 dark:bg-zinc-700 mx-1"></div>
+        
+        {/* Indent/Outdent Buttons */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onOutdent}
+              className="flex items-center gap-1"
+            >
+              <Outdent className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Outdent</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onIndent}
+              className="flex items-center gap-1"
+            >
+              <Indent className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Indent</TooltipContent>
+        </Tooltip>
+
+        {/* Separator after Indent/Outdent */}
         <div className="w-px h-6 bg-gray-200 dark:bg-zinc-700 mx-1"></div>
         
         {/* Lists */}
