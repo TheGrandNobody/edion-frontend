@@ -49,6 +49,12 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
   ];
   
   const handleIndent = (listItem: HTMLElement, listElement: HTMLElement) => {
+    // First handle the indentation level
+    const currentIndent = parseInt(listItem.style.getPropertyValue('--indent-level') || '0', 10);
+    const newIndent = currentIndent + 40;
+    listItem.style.setProperty('--indent-level', `${newIndent}px`);
+    
+    // Then handle style cycling
     const isOrdered = listElement.tagName === 'OL';
     const styles = isOrdered ? orderedListStyles : unorderedListStyles;
     const currentStyle = styles.findIndex(style => listElement.classList.contains(style.className));
@@ -56,9 +62,27 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     
     listElement.classList.remove(...styles.map(s => s.className));
     listElement.classList.add(nextStyle.className);
+    
+    // For ordered lists, ensure proper spacing
+    if (isOrdered && !listItem.classList.contains('list-spacing-fixed')) {
+      listItem.classList.add('list-spacing-fixed');
+    }
   };
 
   const handleOutdent = (listItem: HTMLElement, listElement: HTMLElement) => {
+    // First handle the indentation level
+    const currentIndent = parseInt(listItem.style.getPropertyValue('--indent-level') || '0', 10);
+    if (currentIndent > 0) {
+      const newIndent = Math.max(0, currentIndent - 40);
+      if (newIndent === 0) {
+        listItem.style.removeProperty('--indent-level');
+        listItem.style.removeProperty('padding-left');
+      } else {
+        listItem.style.setProperty('--indent-level', `${newIndent}px`);
+      }
+    }
+    
+    // Then handle style cycling
     const isOrdered = listElement.tagName === 'OL';
     const styles = isOrdered ? orderedListStyles : unorderedListStyles;
     const currentStyle = styles.findIndex(style => listElement.classList.contains(style.className));
@@ -123,30 +147,10 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         
         if (e.shiftKey) {
           console.log('Processing outdent');
-          // Handle outdent
           handleOutdent(listItem, listElement);
-          const currentIndent = parseInt(listItem.style.getPropertyValue('--indent-level') || '0', 10);
-          if (currentIndent > 0) {
-            const newIndent = Math.max(0, currentIndent - 40);
-            if (newIndent === 0) {
-              listItem.style.removeProperty('--indent-level');
-              listItem.style.removeProperty('padding-left');
-            } else {
-              listItem.style.setProperty('--indent-level', `${newIndent}px`);
-            }
-          }
         } else {
           console.log('Processing indent');
-          // Handle indent
           handleIndent(listItem, listElement);
-          const currentIndent = parseInt(listItem.style.getPropertyValue('--indent-level') || '0', 10);
-          const newIndent = currentIndent + 40;
-          listItem.style.setProperty('--indent-level', `${newIndent}px`);
-          
-          // For ordered lists, ensure proper spacing
-          if (listElement.tagName === 'OL' && !listItem.classList.contains('list-spacing-fixed')) {
-            listItem.classList.add('list-spacing-fixed');
-          }
         }
         
         // Update content
@@ -373,6 +377,99 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
 
 // Add styles for tables and lists
 const styles = `
+/* Reset list styles for consistency */
+.rich-text-editor ul,
+.rich-text-editor ol {
+  padding-left: 0;
+  margin-left: 0;
+  list-style-position: outside;
+}
+
+/* Base styles for list items */
+.rich-text-editor ol li,
+.rich-text-editor ul li {
+  position: relative;
+  padding-left: calc(2.2em + var(--indent-level, 0px));
+  list-style-type: none !important;
+  margin-bottom: 0.5em;
+  transition: padding-left 0.2s ease;
+}
+
+/* Number styling for ordered lists */
+.rich-text-editor ol {
+  counter-reset: list-item;
+}
+
+.rich-text-editor ol li {
+  counter-increment: list-item;
+}
+
+.rich-text-editor ol li::before {
+  content: counter(list-item) ".";
+  position: absolute;
+  left: calc(0.5em + var(--indent-level, 0px));
+  width: 1.5em;
+  text-align: right;
+  box-sizing: border-box;
+  transition: left 0.2s ease;
+}
+
+/* Bullet styling for unordered lists */
+.rich-text-editor ul li::before {
+  content: "•";
+  position: absolute;
+  left: calc(0.5em + var(--indent-level, 0px));
+  width: 1.5em;
+  text-align: center;
+  box-sizing: border-box;
+  transition: left 0.2s ease;
+}
+
+/* List style variations */
+.rich-text-editor ol.list-decimal li::before {
+  content: counter(list-item) ".";
+}
+
+.rich-text-editor ol.list-alpha li::before {
+  content: counter(list-item, lower-alpha) ".";
+}
+
+.rich-text-editor ol.list-roman li::before {
+  content: counter(list-item, lower-roman) ".";
+}
+
+.rich-text-editor ul.list-disc li::before {
+  content: "•";
+}
+
+.rich-text-editor ul.list-circle li::before {
+  content: "○";
+}
+
+.rich-text-editor ul.list-square li::before {
+  content: "▪";
+}
+
+/* Spacing for ordered lists */
+.rich-text-editor ol li.list-spacing-fixed::before {
+  margin-right: 0.5em;
+}
+
+/* Ensure proper spacing with indentation */
+.rich-text-editor li[style*="--indent-level"] {
+  margin-left: 0;
+}
+
+/* Add smooth transitions */
+.rich-text-editor li {
+  transition: padding-left 0.2s ease, margin-left 0.2s ease;
+}
+
+.rich-text-editor li::before {
+  transition: left 0.2s ease;
+}
+
+/* Rest of your existing styles... */
 .rich-text-editor ul {
   list-style-type: disc;
   margin-left: 1.5em;
@@ -566,7 +663,7 @@ const styles = `
 .dark .rich-text-editor h2[style*="padding-left"],
 .dark .rich-text-editor h3[style*="padding-left"],
 .dark .rich-text-editor h4[style*="padding-left"],
-.dark .rich-text-editor h5[style*="padding-left"],
+.rich-text-editor h5[style*="padding-left"],
 .dark .rich-text-editor h6[style*="padding-left"] {
   /* Removing dark mode border */
 }
