@@ -88,7 +88,7 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         console.log('No selection found');
         return;
       }
-
+      
       // Prevent default tab behavior
       e.preventDefault();
 
@@ -98,7 +98,7 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       console.log('Initial node:', node);
       let listItem: HTMLElement | null = null;
       let listElement: HTMLElement | null = null;
-
+      
       // Find the list item and list we're in, if any
       while (node && node !== editorRef.current) {
         console.log('Checking node:', node.nodeType, node instanceof HTMLElement ? node.tagName : 'not element');
@@ -115,7 +115,7 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         }
         node = node.parentNode;
       }
-
+      
       // Also check if the node's parent is a list item (for text nodes)
       if (!listItem && node?.parentElement?.tagName === 'LI') {
         console.log('Found list item through parent');
@@ -144,17 +144,17 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         console.log('Not in a list, inserting spaces');
         // Not in a list, insert spaces
         const tabTextNode = document.createTextNode('\u00A0\u00A0\u00A0\u00A0');
-        range.deleteContents();
-        range.insertNode(tabTextNode);
-        range.setStartAfter(tabTextNode);
-        range.setEndAfter(tabTextNode);
-        selection.removeAllRanges();
-        selection.addRange(range);
-        
-        // Update content
-        if (editorRef.current) {
-          onChange(editorRef.current.innerHTML);
-        }
+      range.deleteContents();
+      range.insertNode(tabTextNode);
+      range.setStartAfter(tabTextNode);
+      range.setEndAfter(tabTextNode);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      
+      // Update content
+      if (editorRef.current) {
+        onChange(editorRef.current.innerHTML);
+      }
       }
       return;
     }
@@ -285,10 +285,10 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
             const computedStyle = window.getComputedStyle(targetElement);
             console.log('DEBUG: LI computed justify-content:', computedStyle.justifyContent);
             console.log('DEBUG: LI computed text-align:', computedStyle.textAlign);
-          }
-        }
-      }
-    });
+                }
+              }
+            }
+          });
 
     observer.observe(editor, {
       attributes: true,
@@ -301,6 +301,157 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       console.log('DEBUG: LI style observer disconnected.');
     };
   }, [editorRef]); // Rerun if editorRef instance changes, though its .current is what matters
+  
+  // Add a MutationObserver to preserve alignment when list type changes
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    
+    // Use a "recently added/removed lists" approach with a small time window
+    let recentlyAddedLists: {element: HTMLElement, time: number}[] = [];
+    let recentlyRemovedLists: {element: HTMLElement, items: {el: HTMLElement, style: string}[], time: number}[] = [];
+    const RECENT_WINDOW_MS = 500; // Look back 500ms for related list operations
+    
+    // Function to save a list's items and their styles
+    const captureListItems = (list: HTMLElement) => {
+      const items = list.querySelectorAll('li');
+      const itemsData: {el: HTMLElement, style: string}[] = [];
+      
+      items.forEach(item => {
+        const style = item.getAttribute('style') || '';
+        itemsData.push({el: item as HTMLElement, style});
+      });
+      
+      return itemsData;
+    };
+    
+    // Function to apply stored styles to a new list, based on item position
+    const applyStoredStyles = (newList: HTMLElement) => {
+      console.log('DEBUG-ALIGN: Trying to apply stored styles to new list:', newList.tagName);
+      
+      // Clean up expired entries
+      const now = Date.now();
+      recentlyRemovedLists = recentlyRemovedLists.filter(entry => now - entry.time < RECENT_WINDOW_MS);
+      
+      if (recentlyRemovedLists.length === 0) {
+        console.log('DEBUG-ALIGN: No recently removed lists found');
+        return;
+      }
+      
+      // Sort by recency, most recent first
+      recentlyRemovedLists.sort((a, b) => b.time - a.time);
+      
+      // Try to find a removed list with similar structure
+      const newItems = newList.querySelectorAll('li');
+      console.log('DEBUG-ALIGN: New list has', newItems.length, 'items');
+      
+      // Use the most recently removed list
+      const mostRecentRemoved = recentlyRemovedLists[0];
+      console.log('DEBUG-ALIGN: Most recently removed list had', mostRecentRemoved.items.length, 'items');
+      
+      // Apply styles based on position
+      newItems.forEach((newItem, index) => {
+        if (index < mostRecentRemoved.items.length) {
+          const oldItemData = mostRecentRemoved.items[index];
+          const oldStyle = oldItemData.style;
+          
+          // Extract text-align from old style if it exists
+          const alignMatch = oldStyle.match(/text-align:\s*(left|center|right|start|end)/i);
+          if (alignMatch && alignMatch[1]) {
+            const alignment = alignMatch[1];
+            console.log('DEBUG-ALIGN: Found alignment', alignment, 'for item', index);
+            
+            // Apply alignment to new item
+            const currentStyle = newItem.getAttribute('style') || '';
+            const newStyle = currentStyle.replace(/text-align:\s*(left|center|right|start|end);?/i, '') +
+                           (currentStyle.endsWith(';') || currentStyle === '' ? '' : ';') +
+                           `text-align: ${alignment};`;
+            
+            console.log('DEBUG-ALIGN: Setting new style:', newStyle);
+            newItem.setAttribute('style', newStyle);
+            
+            // Force a reflow
+            void newItem.offsetHeight;
+          } else {
+            console.log('DEBUG-ALIGN: No alignment found in old style:', oldStyle);
+          }
+        }
+      });
+    };
+    
+    // Observer for list changes
+    const listObserver = new MutationObserver((mutations) => {
+      const now = Date.now();
+      
+      // First, process all removed lists to capture their styles
+      mutations.forEach(mutation => {
+        if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
+          mutation.removedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              const element = node as HTMLElement;
+              if (element.tagName === 'UL' || element.tagName === 'OL') {
+                console.log('DEBUG-ALIGN: Found removed list of type:', element.tagName);
+                
+                // Capture all items and their styles
+                const itemsData = captureListItems(element);
+                
+                // Debug: log the first item's style if available
+                if (itemsData.length > 0) {
+                  console.log('DEBUG-ALIGN: Captured removed list item style:', itemsData[0].style);
+                }
+                
+                // Store in recently removed lists
+                recentlyRemovedLists.push({
+                  element,
+                  items: itemsData,
+                  time: now
+                });
+              }
+            }
+          });
+        }
+      });
+      
+      // Then, process all added lists and try to apply styles from recently removed lists
+      mutations.forEach(mutation => {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              const element = node as HTMLElement;
+              if (element.tagName === 'UL' || element.tagName === 'OL') {
+                console.log('DEBUG-ALIGN: Found added list of type:', element.tagName);
+                
+                // Add to recently added lists
+                recentlyAddedLists.push({
+                  element,
+                  time: now
+                });
+                
+                // Try to apply styles from a recently removed list
+                setTimeout(() => {
+                  applyStoredStyles(element);
+                }, 0);
+              }
+            }
+          });
+        }
+      });
+      
+      // Clean up old entries
+      recentlyAddedLists = recentlyAddedLists.filter(entry => now - entry.time < RECENT_WINDOW_MS);
+    });
+    
+    // Observe the entire editor for list changes
+    listObserver.observe(editor, {
+      childList: true,
+      subtree: true
+    });
+    
+    return () => {
+      listObserver.disconnect();
+      console.log('DEBUG-ALIGN: List observer disconnected');
+    };
+  }, [editorRef]);
   
   // Function to initialize MathLive fields within math delimiters
   const initializeMathLiveFields = () => {
