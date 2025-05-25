@@ -49,47 +49,30 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
   ];
   
   const handleIndent = (listItem: HTMLElement, listElement: HTMLElement) => {
-    // First handle the indentation level
+    // Only handle the indentation level
     const currentIndent = parseInt(listItem.style.getPropertyValue('--indent-level') || '0', 10);
     const newIndent = currentIndent + 40;
     listItem.style.setProperty('--indent-level', `${newIndent}px`);
     
-    // Then handle style cycling
-    const isOrdered = listElement.tagName === 'OL';
-    const styles = isOrdered ? orderedListStyles : unorderedListStyles;
-    const currentStyle = styles.findIndex(style => listElement.classList.contains(style.className));
-    const nextStyle = styles[(currentStyle + 1) % styles.length];
-    
-    listElement.classList.remove(...styles.map(s => s.className));
-    listElement.classList.add(nextStyle.className);
-    
-    // For ordered lists, ensure proper spacing
-    if (isOrdered && !listItem.classList.contains('list-spacing-fixed')) {
-      listItem.classList.add('list-spacing-fixed');
-    }
+    // Remove any inline styles that might interfere with flexbox layout
+    listItem.style.removeProperty('list-style-position');
+    listItem.style.removeProperty('padding-left');
   };
 
   const handleOutdent = (listItem: HTMLElement, listElement: HTMLElement) => {
-    // First handle the indentation level
+    // Only handle the indentation level
     const currentIndent = parseInt(listItem.style.getPropertyValue('--indent-level') || '0', 10);
     if (currentIndent > 0) {
       const newIndent = Math.max(0, currentIndent - 40);
       if (newIndent === 0) {
         listItem.style.removeProperty('--indent-level');
+        // Remove any inline styles
+        listItem.style.removeProperty('list-style-position');
         listItem.style.removeProperty('padding-left');
       } else {
         listItem.style.setProperty('--indent-level', `${newIndent}px`);
       }
     }
-    
-    // Then handle style cycling
-    const isOrdered = listElement.tagName === 'OL';
-    const styles = isOrdered ? orderedListStyles : unorderedListStyles;
-    const currentStyle = styles.findIndex(style => listElement.classList.contains(style.className));
-    const prevStyle = styles[(currentStyle - 1 + styles.length) % styles.length];
-    
-    listElement.classList.remove(...styles.map(s => s.className));
-    listElement.classList.add(prevStyle.className);
   };
   
   // Handle keyboard events in the editor
@@ -143,7 +126,7 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
 
       // If we're in a list, handle indentation
       if (listItem && listElement) {
-        console.log('Processing list indentation');
+        console.log('Processing list indentation. List item:', listItem, 'List element:', listElement);
         
         if (e.shiftKey) {
           console.log('Processing outdent');
@@ -287,6 +270,38 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     };
   }, [onChange]);
   
+  // Add a MutationObserver to log style changes on LI elements for debugging
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const observer = new MutationObserver((mutationsList) => {
+      for (const mutation of mutationsList) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+          const targetElement = mutation.target as HTMLElement;
+          if (targetElement.tagName === 'LI') {
+            console.log('DEBUG: LI style changed. Element:', targetElement);
+            console.log('DEBUG: LI new inline style:', targetElement.getAttribute('style'));
+            const computedStyle = window.getComputedStyle(targetElement);
+            console.log('DEBUG: LI computed justify-content:', computedStyle.justifyContent);
+            console.log('DEBUG: LI computed text-align:', computedStyle.textAlign);
+          }
+        }
+      }
+    });
+
+    observer.observe(editor, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['style']
+    });
+
+    return () => {
+      observer.disconnect();
+      console.log('DEBUG: LI style observer disconnected.');
+    };
+  }, [editorRef]); // Rerun if editorRef instance changes, though its .current is what matters
+  
   // Function to initialize MathLive fields within math delimiters
   const initializeMathLiveFields = () => {
     if (!editorRef.current) return;
@@ -382,62 +397,61 @@ const styles = `
 .rich-text-editor ol {
   padding-left: 0;
   margin-left: 0;
-  list-style-position: outside;
+  /* text-align property will be set inline by the editor for alignment */
 }
 
 /* Base styles for list items */
 .rich-text-editor ol li,
 .rich-text-editor ul li {
-  position: relative;
-  padding-left: calc(2.2em + var(--indent-level, 0px));
+  position: relative; /* Kept for potential future use, not strictly for ::before now */
   list-style-type: none !important;
+  list-style-position: outside !important;
   margin-bottom: 0.5em;
+  padding-left: var(--indent-level, 0px); /* Indentation applied here */
+  display: flex;
+  align-items: baseline; /* Align marker and text along their baseline */
   transition: padding-left 0.2s ease;
+  /* text-align will be inherited or set directly on li for its content alignment */
+}
+
+/* Common styles for ::before as a flex item (marker) */
+.rich-text-editor ol li::before,
+.rich-text-editor ul li::before {
+  flex-shrink: 0; /* Prevent marker from shrinking */
+  white-space: nowrap;
+  display: inline-block; /* Behaves well for width and text-align */
+  width: 2em; /* Fixed width for the marker area */
+  margin-right: 0.5em; /* Space between marker area and text content */
+  box-sizing: border-box;
+  /* No absolute positioning, no left/top/transition:left */
 }
 
 /* Number styling for ordered lists */
-.rich-text-editor ol {
-  counter-reset: list-item;
-}
-
-.rich-text-editor ol li {
-  counter-increment: list-item;
-}
-
 .rich-text-editor ol li::before {
-  content: counter(list-item) ".";
-  position: absolute;
-  left: calc(0.5em + var(--indent-level, 0px));
-  width: 1.5em;
-  text-align: right;
-  box-sizing: border-box;
-  transition: left 0.2s ease;
+  content: counter(list-item) ". "; /* Includes space for padding */
+  text-align: right; /* Aligns "9.", "10." correctly in the 2em box */
 }
 
 /* Bullet styling for unordered lists */
 .rich-text-editor ul li::before {
-  content: "•";
-  position: absolute;
-  left: calc(0.5em + var(--indent-level, 0px));
-  width: 1.5em;
-  text-align: center;
-  box-sizing: border-box;
-  transition: left 0.2s ease;
+  content: "•"; /* Default bullet */
+  text-align: right; /* Changed from center to right, to match OL's ::before text-align for alignment consistency */
 }
 
-/* List style variations */
+/* List style variations for ordered lists (content changes) */
 .rich-text-editor ol.list-decimal li::before {
-  content: counter(list-item) ".";
+  content: counter(list-item) ". ";
 }
 
 .rich-text-editor ol.list-alpha li::before {
-  content: counter(list-item, lower-alpha) ".";
+  content: counter(list-item, lower-alpha) ". ";
 }
 
 .rich-text-editor ol.list-roman li::before {
-  content: counter(list-item, lower-roman) ".";
+  content: counter(list-item, lower-roman) ". ";
 }
 
+/* List style variations for unordered lists (content changes) */
 .rich-text-editor ul.list-disc li::before {
   content: "•";
 }
@@ -450,241 +464,82 @@ const styles = `
   content: "▪";
 }
 
-/* Spacing for ordered lists */
-.rich-text-editor ol li.list-spacing-fixed::before {
-  margin-right: 0.5em;
+/* Ensure proper spacing with indentation (already handled by li padding-left) */
+/* .rich-text-editor li[style*="--indent-level"] { margin-left: 0; } */
+
+
+/* Add smooth transitions (already on li for padding-left) */
+/* .rich-text-editor li { transition: padding-left 0.2s ease; } */
+/* .rich-text-editor li::before { transition: left 0.2s ease; } REMOVED */
+
+
+/* 
+  Alignment Handling for List Items (LI):
+  LI elements are flex containers (display: flex).
+  The text-align style is typically set on the LI by the editor for alignment commands.
+  We use justify-content on the LI to align its flex items (the ::before marker and the text content)
+  according to the LI's specified text-align value.
+  The padding-left for indentation still applies, and content is aligned within the remaining space.
+*/
+.rich-text-editor li[style*="text-align: left"],
+.rich-text-editor li[style*="text-align:left"],
+.rich-text-editor li[style*="text-align: start"],
+.rich-text-editor li[style*="text-align:start"] {
+  justify-content: flex-start !important;
+}
+.rich-text-editor li[style*="text-align: center"],
+.rich-text-editor li[style*="text-align:center"] {
+  justify-content: center !important;
+}
+.rich-text-editor li[style*="text-align: right"],
+.rich-text-editor li[style*="text-align:right"],
+.rich-text-editor li[style*="text-align: end"],
+.rich-text-editor li[style*="text-align:end"] {
+  justify-content: flex-end !important;
 }
 
-/* Ensure proper spacing with indentation */
-.rich-text-editor li[style*="--indent-level"] {
-  margin-left: 0;
+/* Dark mode support for markers */
+.dark .rich-text-editor ol li::before,
+.dark .rich-text-editor ul li::before {
+  color: inherit;
 }
 
-/* Add smooth transitions */
-.rich-text-editor li {
-  transition: padding-left 0.2s ease, margin-left 0.2s ease;
-}
+/* Ensure numbers/bullets stay visible (z-index not needed for flex items) */
+/* .rich-text-editor ol li::before, */
+/* .rich-text-editor ul li::before { z-index: 1; } */
 
-.rich-text-editor li::before {
-  transition: left 0.2s ease;
-}
+/* Cleanup of old/redundant list styling rules */
+/* Remove any previous rules that relied on absolute positioning for ::before */
+/* Remove rules trying to manage padding/width in overly complex ways */
 
-/* Rest of your existing styles... */
-.rich-text-editor ul {
-  list-style-type: disc;
-  margin-left: 1.5em;
-  padding-left: 1em;
-}
-
-.rich-text-editor ol {
-  padding-left: 0;
-  counter-reset: item;
-}
-
-.rich-text-editor ol > li {
-  counter-increment: item;
-  margin-bottom: 0.5em;
-  display: flex;
-  align-items: flex-start;
-  width: 100%; /* Ensure li takes full width to allow alignment */
-}
-
-.rich-text-editor ol > li::before {
-  content: counter(item) ".";
-  display: inline-block;
-  width: 2em;
-  margin-right: 0.5em;
-  text-align: right;
-  font-weight: inherit;
-  font-style: inherit;
-  text-decoration: inherit;
-}
-
-/* Progressive indentation for nested lists - each level indents more */
-.rich-text-editor li > ul,
-.rich-text-editor li > ol {
-  margin-top: 0.5em;
-  margin-left: 1.5em; /* Base indentation for nested lists */
-}
-
-/* Additional indentation for nested lists based on type */
-.rich-text-editor li > ol.list-alpha {
-  margin-left: 2em;
-}
-
-.rich-text-editor li > ol.list-roman {
-  margin-left: 2.5em;
-}
-
-.rich-text-editor li > ul.list-circle {
-  margin-left: 2em;
-}
-
-.rich-text-editor li > ul.list-square {
-  margin-left: 2.5em;
-}
-
-/* Deeper nesting styles - increase indentation for each level */
-.rich-text-editor li li > ol.list-decimal {
-  margin-left: 1.8em;
-}
-
-.rich-text-editor ol {
-  list-style-type: decimal;
-}
-
-.rich-text-editor ul {
-  list-style-type: disc;
-}
-
-/* Marker styling for lists */
-.rich-text-editor li.marker-bold {
-  font-weight: bold;
-}
-
-.rich-text-editor li.marker-italic {
-  font-style: italic;
-}
-
-.rich-text-editor li.marker-underline {
-  text-decoration: underline;
-}
-
-/* All list items use consistent spacing - for unordered lists */
-.rich-text-editor ul li {
-  position: relative;
-  list-style-position: inside;
-  padding-left: 1.5em; /* Base padding for all list items */
-  transition: padding-left 0.2s ease; /* Add smooth transition */
-}
-
-/* Add space after ordered list numbers */
-.rich-text-editor ol li::marker {
-  content: counter(list-item) ". "; /* Add space after the period */
-}
-
-/* For browsers that don't support ::marker properly, use pseudo-elements */
+/* Keep counter resets */
 .rich-text-editor ol {
   counter-reset: list-item;
 }
 
-/* Base styles for ordered list items */
 .rich-text-editor ol li {
-  display: flex;
-  position: relative;
-  padding-left: 2.2em; /* Adjusted padding to provide space for the numbers */
-  list-style-type: none !important; /* Hide the default numbers */
   counter-increment: list-item;
-  transition: padding-left 0.2s ease, --marker-offset 0.2s ease; /* Add smooth transition */
 }
+/* Ensure these are not overriding the flex display or padding for li */
+/* Example of a rule to be careful about if it exists elsewhere:
+.rich-text-editor ol > li {
+  display: flex; /* This is fine, matches new approach */
+  /* margin-bottom: 0.5em; */ /* Also fine */
+  /* width: 100%; */ /* This could conflict if we want LIs to shrink for centering. But with flex on LI, its items align internally. */
+/*}
+*/
 
-/* Number styling for ordered lists */
-.rich-text-editor ol li:before {
-  content: counter(list-item) ".";
-  position: absolute;
-  left: var(--marker-offset, 0.5em); /* Use CSS Variable */
-  width: 1.5em;
-  text-align: right;
-  box-sizing: border-box;
-  transition: left 0.2s ease; /* Add smooth transition for the marker position */
-}
-
-/* Add more space after the list marker */
-.rich-text-editor ol li.list-spacing-fixed:before {
-  margin-right: 0.5em;
-}
-
-/* Alignment handling for ordered lists */
-.rich-text-editor ol[style*="text-align: center"] li {
-  justify-content: center;
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.rich-text-editor ol[style*="text-align: center"] li:before {
-  position: relative;
-  left: 0;
-  margin-right: 0.5em;
-}
-
-.rich-text-editor ol[style*="text-align: right"] li {
-  justify-content: flex-end;
-  padding-left: 0;
-  padding-right: 2.2em;
-}
-
-.rich-text-editor ol[style*="text-align: right"] li:before {
-  position: relative;
-  left: 0;
-  margin-right: 0.5em;
-}
-
-/* Note: Indentation is primarily handled by inline styles for reliability */
-/* These are just fallbacks */
-.rich-text-editor li.indent-1 { padding-left: 3em; }
-.rich-text-editor li.indent-2 { padding-left: 4.5em; }
-.rich-text-editor li.indent-3 { padding-left: 6em; }
-.rich-text-editor li.indent-4 { padding-left: 7.5em; }
-.rich-text-editor li.indent-5 { padding-left: 9em; }
-
-/* Standard spacing */
-.rich-text-editor li {
-  margin-bottom: 0.5em;
-}
-
-/* Indentation for regular text blocks */
-.rich-text-editor p,
-.rich-text-editor div,
-.rich-text-editor h1,
-.rich-text-editor h2,
-.rich-text-editor h3,
-.rich-text-editor h4,
-.rich-text-editor h5,
-.rich-text-editor h6 {
-  transition: padding-left 0.2s ease;
-}
-
-/* Visual indicator for indented blocks */
-.rich-text-editor p[style*="padding-left"],
-.rich-text-editor div[style*="padding-left"],
-.rich-text-editor h1[style*="padding-left"],
-.rich-text-editor h2[style*="padding-left"],
-.rich-text-editor h3[style*="padding-left"],
-.rich-text-editor h4[style*="padding-left"],
-.rich-text-editor h5[style*="padding-left"],
-.rich-text-editor h6[style*="padding-left"] {
-  /* Removing border and margin */
-}
-
-/* Dark mode support for indented blocks */
-.dark .rich-text-editor p[style*="padding-left"],
-.dark .rich-text-editor div[style*="padding-left"],
-.dark .rich-text-editor h1[style*="padding-left"],
-.dark .rich-text-editor h2[style*="padding-left"],
-.dark .rich-text-editor h3[style*="padding-left"],
-.dark .rich-text-editor h4[style*="padding-left"],
-.rich-text-editor h5[style*="padding-left"],
-.dark .rich-text-editor h6[style*="padding-left"] {
-  /* Removing dark mode border */
-}
-
-/* Alignment handling */
-.rich-text-editor ul[style*="text-align: center"],
-.rich-text-editor ol[style*="text-align: center"] {
-  text-align: center;
-}
-
-.rich-text-editor ul[style*="text-align: right"],
-.rich-text-editor ol[style*="text-align: right"] {
-  text-align: right;
-}
-
-/* For centered and right-aligned lists, keep bullets/numbers with text */
-.rich-text-editor ul[style*="text-align: center"] li,
-.rich-text-editor ul[style*="text-align: right"] li,
-.rich-text-editor [style*="text-align: center"] ul li,
-.rich-text-editor [style*="text-align: right"] ul li {
-  list-style-position: inside;
+/* Progressive indentation for nested lists - this needs to be re-evaluated with flex model.
+   Currently, --indent-level handles all indentation via li's padding-left.
+   If nested lists (ul/ol inside an li) need *additional* margin, that's separate.
+   For now, relying on --indent-level applied to each li.
+*/
+.rich-text-editor li > ul,
+.rich-text-editor li > ol {
+  margin-top: 0.5em; /* Space before a nested list starts */
+  /* margin-left: 1.5em; /* This would be *additional* to parent li's own --indent-level.
+                           If --indent-level is correctly applied to nested li's, this might not be needed
+                           or could be smaller. Let's keep it for now. */
 }
 
 /* Tables */

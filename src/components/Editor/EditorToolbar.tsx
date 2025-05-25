@@ -911,7 +911,7 @@ const EditorToolbar = ({
         const cursorNodeId = selection.anchorNode?.textContent?.substring(0, 20) || '';
         
         // Store original list item content for potential restoration
-        const listItems = currentList ? Array.from(currentList.querySelectorAll('li')) : [];
+        const listItems = currentList ? Array.from(currentList.querySelectorAll('li')).map(item => item as HTMLLIElement) : [];
         const originalContent = listItems.map(item => ({
           html: item.innerHTML,
           textContent: item.textContent || ''
