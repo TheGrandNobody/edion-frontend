@@ -83,49 +83,106 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     // Handle tab key
     if (e.key === 'Tab') {
       console.log('Tab pressed');
-      const selection = window.getSelection();
+      let selection = window.getSelection(); // Use let as it might be updated
       if (!selection || !selection.rangeCount) {
         console.log('No selection found');
         return;
       }
       
-      // Prevent default tab behavior
       e.preventDefault();
 
-      // Check if we're in a list item
-      const range = selection.getRangeAt(0);
-      let node = range.startContainer;
-      console.log('Initial node:', node);
+      let range = selection.getRangeAt(0); // Use let as it might be updated
+      
+      // Check if the current selection needs to be wrapped in a paragraph
+      // This is for cases like raw text nodes directly in the editor or an empty editor state.
+      const container = range.startContainer;
+      const parentIsEditor = container.parentNode === editorRef.current;
+      const editorIsEmptyOrBr = editorRef.current && (!editorRef.current.firstChild || editorRef.current.firstChild.nodeName === 'BR');
+      const isRawTextNodeInEditor = container.nodeType === Node.TEXT_NODE && parentIsEditor;
+      const isCursorAtEditorRoot = container === editorRef.current;
+
+      if (isRawTextNodeInEditor || (isCursorAtEditorRoot && editorIsEmptyOrBr) || (parentIsEditor && container.nodeName === 'BR')) {
+        console.log('Executing formatBlock to ensure content is in a paragraph.');
+        document.execCommand('formatBlock', false, 'P');
+        // Re-acquire selection and range as formatBlock can change them
+        selection = window.getSelection();
+        if (!selection || !selection.rangeCount) {
+            console.error('Selection lost after formatBlock');
+            return;
+        }
+        range = selection.getRangeAt(0);
+      }
+
+      let node = range.startContainer; // Node for traversal might have changed
       let listItem: HTMLElement | null = null;
       let listElement: HTMLElement | null = null;
-      
-      // Find the list item and list we're in, if any
-      while (node && node !== editorRef.current) {
-        console.log('Checking node:', node.nodeType, node instanceof HTMLElement ? node.tagName : 'not element');
-        if (node.nodeType === Node.ELEMENT_NODE) {
-          const element = node as HTMLElement;
+      let currentBlockElement: HTMLElement | null = null;
+      let isNewlyCreatedP = false; // Flag if we just made a P (though formatBlock handles this)
+
+      // 1. Find existing block element or list item
+      let tempNode = range.startContainer;
+      if (tempNode === editorRef.current) { // Handle if cursor is on editor div itself
+          tempNode = tempNode.childNodes[range.startOffset] || tempNode.firstChild;
+      }
+
+      while (tempNode && tempNode !== editorRef.current) {
+        if (tempNode.nodeType === Node.ELEMENT_NODE) {
+          const element = tempNode as HTMLElement;
           if (element.tagName === 'LI') {
-            console.log('Found list item');
             listItem = element;
-          } else if (element.tagName === 'UL' || element.tagName === 'OL') {
-            console.log('Found list element:', element.tagName);
-            listElement = element;
+            listElement = element.closest('ul, ol') as HTMLElement | null;
+            currentBlockElement = listItem;
+            break;
+          } else if (['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(element.tagName)) {
+            currentBlockElement = element;
+            const parentLi = element.closest('li');
+            if (parentLi && listElement?.contains(parentLi)) {
+                listItem = parentLi;
+                currentBlockElement = parentLi; 
+            }
             break;
           }
         }
-        node = node.parentNode;
+        if (!tempNode.parentNode) break;
+        tempNode = tempNode.parentNode;
       }
       
-      // Also check if the node's parent is a list item (for text nodes)
-      if (!listItem && node?.parentElement?.tagName === 'LI') {
-        console.log('Found list item through parent');
-        listItem = node.parentElement;
-        // Find the parent list
+      // This case should ideally be caught by formatBlock now, but as a fallback:
+      if (!currentBlockElement && node?.parentElement?.tagName === 'LI') {
+        listItem = node.parentElement as HTMLElement;
         listElement = listItem.parentElement as HTMLElement;
+        currentBlockElement = listItem;
+      } else if (!currentBlockElement && node?.nodeType === Node.TEXT_NODE && node.parentElement && ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(node.parentElement.tagName)) {
+        currentBlockElement = node.parentElement as HTMLElement;
+      }
+      
+      // If after formatBlock and traversal, currentBlockElement is the editor itself, something is wrong or editor is truly empty.
+      if (currentBlockElement === editorRef.current) {
+          currentBlockElement = null; // Don't indent the editor div itself
       }
 
-      // If we're in a list, handle indentation
-      if (listItem && listElement) {
+      // 3. Determine if the cursor is at the beginning of the block
+      let isAtStartOfBlock = false;
+      if (currentBlockElement) { // No longer check !== editorRef.current here, handled above
+        const testRange = document.createRange();
+        testRange.selectNodeContents(currentBlockElement);
+        testRange.setEnd(range.startContainer, range.startOffset);
+        if (testRange.toString().trim() === '') {
+          isAtStartOfBlock = true;
+        }
+        if (listItem && (listItem.innerHTML === '' || listItem.innerHTML === '<br>' || listItem.innerHTML.includes('list-item-spacer'))) {
+          isAtStartOfBlock = true;
+        }
+      } else if (editorRef.current && range.commonAncestorContainer === editorRef.current && range.startOffset === 0) {
+         // This might be if editor is truly empty and formatBlock didn't run or create a P (e.g. no text typed yet)
+         // We want to avoid inserting spaces if the intent is to indent a new line.
+         // However, formatBlock should have created a P if text was typed.
+         // If editor is empty and Tab is hit, it should create a P and indent it.
+         isAtStartOfBlock = true; // Allow proceeding to indent logic which might create P if needed or use currentBlockElement.
+      }
+
+      // 4. Indentation Logic
+      if (listItem && listElement && isAtStartOfBlock) {
         console.log('Processing list indentation. List item:', listItem, 'List element:', listElement);
         
         if (e.shiftKey) {
@@ -140,21 +197,41 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         if (editorRef.current) {
           onChange(editorRef.current.innerHTML);
         }
-      } else {
-        console.log('Not in a list, inserting spaces');
-        // Not in a list, insert spaces
-        const tabTextNode = document.createTextNode('\u00A0\u00A0\u00A0\u00A0');
-      range.deleteContents();
-      range.insertNode(tabTextNode);
-      range.setStartAfter(tabTextNode);
-      range.setEndAfter(tabTextNode);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      
-      // Update content
-      if (editorRef.current) {
-        onChange(editorRef.current.innerHTML);
+      } else if (isAtStartOfBlock && !listItem && currentBlockElement) { // Indent paragraph or other block if at the start
+        console.log('Indenting paragraph/block');
+        const currentPadding = parseFloat(currentBlockElement.style.paddingLeft || '0');
+        const indentAmount = 40; // Corresponds to 40px, consistent with list indentation logic
+
+        if (e.shiftKey) { // Outdent
+          const newPadding = Math.max(0, currentPadding - indentAmount);
+          currentBlockElement.style.paddingLeft = newPadding === 0 ? '' : `${newPadding}px`;
+        } else { // Indent
+          // You might want to add a max indent level here
+          currentBlockElement.style.paddingLeft = `${currentPadding + indentAmount}px`;
+        }
+        
+        // Update content
+        if (editorRef.current) {
+          onChange(editorRef.current.innerHTML);
+        }
       }
+      else {
+        console.log('Not at start of block or not in a list, inserting spaces');
+        // Not at the start of a block, or in a list but not at the start of LI: insert spaces
+        const tabTextNode = document.createTextNode('    '); // Four non-breaking spaces
+        range.deleteContents();
+        range.insertNode(tabTextNode);
+        
+        // Move cursor after the inserted spaces
+        range.setStartAfter(tabTextNode);
+        range.setEndAfter(tabTextNode);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // Update content
+        if (editorRef.current) {
+          onChange(editorRef.current.innerHTML);
+        }
       }
       return;
     }
@@ -738,6 +815,18 @@ const styles = `
 /* Math fields */
 .rich-text-editor math-field {
   transition: all 0.2s ease-in-out;
+}
+
+/* Add CSS transitions for padding-left on block elements */
+.rich-text-editor p,
+.rich-text-editor div,
+.rich-text-editor h1,
+.rich-text-editor h2,
+.rich-text-editor h3,
+.rich-text-editor h4,
+.rich-text-editor h5,
+.rich-text-editor h6 {
+  transition: padding-left 0.2s ease;
 }
 
 .rich-text-editor math-field:empty {

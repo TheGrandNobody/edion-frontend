@@ -1208,125 +1208,94 @@ const EditorToolbar = ({
       // Not in a list, use standard command
       document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
       
-      // For ordered lists, ensure there's always a space after the number
-      if (listType === 'OL') {
-        // Small delay to allow the browser to finish creating the list
-        setTimeout(() => {
-          // Find the newly created list
-          let newList = null;
-          const currentSelection = window.getSelection();
-          if (!currentSelection) return;
-          
-          let node = currentSelection.anchorNode;
-          
-          while (node && node !== editorRef.current) {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              const element = node as HTMLElement;
-              if (element.tagName === 'OL') {
-                newList = element;
-                break;
-              }
+      editorRef.current?.focus(); // Ensure editor has focus
+      const newSelection = window.getSelection();
+
+      if (newSelection && newSelection.rangeCount > 0) {
+        let listNodeAnchor = newSelection.anchorNode;
+        let newListElement: HTMLElement | null = null;
+
+        // Traverse up to find the newly created list element (UL or OL)
+        // Start from anchorNode and go up to the editorRef
+        let tempNode = listNodeAnchor;
+        while (tempNode && tempNode !== editorRef.current) {
+            if (tempNode.nodeType === Node.ELEMENT_NODE && (tempNode as HTMLElement).tagName === listType) {
+                newListElement = tempNode as HTMLElement;
+                break; 
             }
-            node = node.parentNode;
-          }
-          
-          // Add a class to handle spacing for all list items
-          if (newList) {
-            const items = newList.querySelectorAll('li');
-            
-            items.forEach(item => {
-              // Add class for CSS ::marker styling
-              (item as HTMLElement).classList.add('list-spacing-fixed');
-              
-              // Improve empty detection - check if the item is really empty
-              const isEmpty = !(item as HTMLElement).textContent?.trim() || 
-                (item.childNodes.length === 1 && item.firstChild?.nodeName === 'BR') ||
-                (item as HTMLElement).innerHTML === '&nbsp;' ||
-                (item as HTMLElement).innerHTML === '';
-              
-              // If the list item is empty, insert a spacer for proper positioning
-              if (isEmpty) {
-                // Create a span with a zero-width space that will follow the number
-                const spacerSpan = document.createElement('span');
-                spacerSpan.className = 'list-item-spacer';
-                // Use zero-width space which is less likely to be modified by browser
-                spacerSpan.textContent = '\u200B'; 
-                
-                // Insert the spacer at the beginning of the list item
-                item.appendChild(spacerSpan);
-                
-                // Set a data attribute to mark this as a truly empty item
-                (item as HTMLElement).setAttribute('data-empty-item', 'true');
-                
-                // Create a selection after the spacer
-                const range = document.createRange();
-                range.setStartAfter(spacerSpan);
-                range.collapse(true);
-                currentSelection.removeAllRanges();
-                currentSelection.addRange(range);
-              }
-            });
-            
-            // Trigger content update to save the changes
-            if (editorRef.current) {
-              const event = new Event('input', { bubbles: true });
-              editorRef.current.dispatchEvent(event);
-            }
-          }
-        }, 10); // Small delay to ensure the list is fully created
-      }
-      
-      // Store the current alignment to apply to the new list
-      if (currentAlignment !== 'left') {
-        // Find the newly created list immediately
-        let newList = null;
-        node = selection.anchorNode;
-        
-        while (node && node !== editorRef.current) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node as HTMLElement;
-            if (element.tagName === 'UL' || element.tagName === 'OL') {
-              newList = element;
-              break;
-            }
-          }
-          node = node.parentNode;
+            tempNode = tempNode.parentNode;
         }
-        
-        // Apply alignment to the new list if found
-        if (newList) {
-          (newList as HTMLElement).style.textAlign = currentAlignment;
-          
-          // For ordered lists with center/right alignment, set proper justification
-          if ((newList as HTMLElement).tagName === 'OL') {
-            const listItems = newList.querySelectorAll('li');
-            listItems.forEach(item => {
-              if (currentAlignment === 'center') {
-                (item as HTMLElement).style.justifyContent = 'center';
-              } else if (currentAlignment === 'right') {
-                (item as HTMLElement).style.justifyContent = 'flex-end';
-              }
-            });
-          }
-          
-          // For unordered lists, set list-style-position for center/right alignment
-          if ((newList as HTMLElement).tagName === 'UL' && currentAlignment !== 'left') {
-            const listItems = newList.querySelectorAll('li');
-            listItems.forEach(item => {
-              (item as HTMLElement).style.listStylePosition = 'inside';
-            });
-          }
-          
-          // Update the last known alignment
-          lastKnownAlignmentRef.current = currentAlignment as TextAlignment;
-          setTextAlignment(currentAlignment as TextAlignment);
+
+        if (newListElement) {
+            const firstItem = newListElement.querySelector('li:first-child') as HTMLLIElement | null;
+
+            if (firstItem) {
+                // Ensure the first item is ready for typing
+                // Clear its content and add a zero-width space if it's empty or just a <br>
+                if (!firstItem.textContent?.trim() || firstItem.innerHTML.toLowerCase() === '<br>' || firstItem.innerHTML === '') {
+                    firstItem.innerHTML = '&#8203;'; // Zero-width space
+                    const range = document.createRange();
+                    // Ensure firstChild exists (it should be the text node containing ZWS)
+                    if (firstItem.firstChild) {
+                        range.setStart(firstItem.firstChild, 1); // Cursor after ZWS
+                        range.collapse(true);
+                        newSelection.removeAllRanges();
+                        newSelection.addRange(range);
+                    }
+                } else {
+                    // If content exists (e.g., browser pasted something), try to place cursor at its end.
+                    const range = document.createRange();
+                    range.selectNodeContents(firstItem);
+                    range.collapse(false); // false to collapse to end
+                    newSelection.removeAllRanges();
+                    newSelection.addRange(range);
+                }
+
+                // Apply specific classes for styling (examples)
+                if (listType === 'OL') {
+                    firstItem.classList.add('list-spacing-fixed'); // If used for OL spacing
+                    if (!newListElement.classList.contains('list-decimal')) {
+                       newListElement.classList.add('list-decimal');
+                       // newListElement.style.listStyleType = 'decimal'; // Or let CSS handle
+                    }
+                } else if (listType === 'UL') {
+                     if (!newListElement.classList.contains('list-disc')) {
+                       newListElement.classList.add('list-disc');
+                       // newListElement.style.listStyleType = 'disc'; // Or let CSS handle
+                    }
+                }
+            }
+            
+            // Apply alignment to the new list if found and alignment is not 'left'
+            if (currentAlignment !== 'left') {
+                newListElement.style.textAlign = currentAlignment;
+                
+                if (newListElement.tagName === 'OL') {
+                    const listItems = newListElement.querySelectorAll('li');
+                    listItems.forEach(item => {
+                        (item as HTMLElement).style.removeProperty('justify-content'); // Clear existing
+                        if (currentAlignment === 'center') {
+                            (item as HTMLElement).style.justifyContent = 'center';
+                        } else if (currentAlignment === 'right') {
+                            (item as HTMLElement).style.justifyContent = 'flex-end';
+                        }
+                    });
+                }
+                
+                if (newListElement.tagName === 'UL' && currentAlignment !== 'left') {
+                    const listItems = newListElement.querySelectorAll('li');
+                    listItems.forEach(item => {
+                        (item as HTMLElement).style.listStylePosition = 'inside';
+                    });
+                }
+                lastKnownAlignmentRef.current = currentAlignment as TextAlignment;
+                setTextAlignment(currentAlignment as TextAlignment);
+            }
         }
       }
       
-      // Update format states immediately
+      // Update format states and dispatch input event ONCE after all modifications
       updateFormatStates();
-      
-      // Trigger content update
       if (editorRef.current) {
         const event = new Event('input', { bubbles: true });
         editorRef.current.dispatchEvent(event);
