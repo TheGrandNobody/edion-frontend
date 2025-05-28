@@ -1206,6 +1206,23 @@ const EditorToolbar = ({
       }
     } else {
       // Not in a list, use standard command
+      // Save the current selection and cursor position before creating the list
+      const originalSelection = window.getSelection();
+      let cursorOffset = 0;
+      let textNode = null;
+      
+      if (originalSelection && originalSelection.rangeCount > 0) {
+        const range = originalSelection.getRangeAt(0);
+        // Store the offset within the text node
+        cursorOffset = range.startOffset;
+        
+        // Store the text node if we're in one
+        if (range.startContainer.nodeType === Node.TEXT_NODE) {
+          textNode = range.startContainer;
+        }
+      }
+      
+      // Create the list
       document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
       
       editorRef.current?.focus(); // Ensure editor has focus
@@ -1230,38 +1247,45 @@ const EditorToolbar = ({
             const firstItem = newListElement.querySelector('li:first-child') as HTMLLIElement | null;
 
             if (firstItem) {
-                // Ensure the first item is ready for typing
-                // Clear its content and add a zero-width space if it's empty or just a <br>
-                if (!firstItem.textContent?.trim() || firstItem.innerHTML.toLowerCase() === '<br>' || firstItem.innerHTML === '') {
-                    firstItem.innerHTML = '&#8203;'; // Zero-width space
-                    const range = document.createRange();
-                    // Ensure firstChild exists (it should be the text node containing ZWS)
-                    if (firstItem.firstChild) {
-                        range.setStart(firstItem.firstChild, 1); // Cursor after ZWS
-                        range.collapse(true);
-                        newSelection.removeAllRanges();
-                        newSelection.addRange(range);
-                    }
-                } else {
-                    // If content exists (e.g., browser pasted something), try to place cursor at its end.
-                    const range = document.createRange();
-                    range.selectNodeContents(firstItem);
-                    range.collapse(false); // false to collapse to end
-                    newSelection.removeAllRanges();
-                    newSelection.addRange(range);
-                }
-
                 // Apply specific classes for styling (examples)
                 if (listType === 'OL') {
                     firstItem.classList.add('list-spacing-fixed'); // If used for OL spacing
                     if (!newListElement.classList.contains('list-decimal')) {
                        newListElement.classList.add('list-decimal');
-                       // newListElement.style.listStyleType = 'decimal'; // Or let CSS handle
                     }
                 } else if (listType === 'UL') {
                      if (!newListElement.classList.contains('list-disc')) {
                        newListElement.classList.add('list-disc');
-                       // newListElement.style.listStyleType = 'disc'; // Or let CSS handle
+                    }
+                }
+                
+                // Position cursor based on original position
+                if (firstItem.firstChild && firstItem.firstChild.nodeType === Node.TEXT_NODE) {
+                    const range = document.createRange();
+                    // If we're dealing with the same text node (now in a list item), 
+                    // try to maintain the same offset
+                    if (textNode && textNode.textContent === firstItem.firstChild.textContent) {
+                        // Place cursor at the original offset, or at beginning if that fails
+                        const offset = Math.min(cursorOffset, firstItem.firstChild.textContent.length);
+                        range.setStart(firstItem.firstChild, offset);
+                    } else {
+                        // For new/different text nodes, place cursor at beginning
+                        range.setStart(firstItem.firstChild, 0);
+                    }
+                    range.collapse(true);
+                    newSelection.removeAllRanges();
+                    newSelection.addRange(range);
+                }
+                // Handle empty or BR-only list items
+                else if (!firstItem.textContent?.trim() || firstItem.innerHTML.toLowerCase() === '<br>' || firstItem.innerHTML === '') {
+                    firstItem.innerHTML = '&#8203;'; // Zero-width space
+                    const range = document.createRange();
+                    // Ensure firstChild exists (it should be the text node containing ZWS)
+                    if (firstItem.firstChild) {
+                        range.setStart(firstItem.firstChild, 0); // Cursor at beginning of zero-width space
+                        range.collapse(true);
+                        newSelection.removeAllRanges();
+                        newSelection.addRange(range);
                     }
                 }
             }
