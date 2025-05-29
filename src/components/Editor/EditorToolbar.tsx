@@ -1210,6 +1210,7 @@ const EditorToolbar = ({
       const originalSelection = window.getSelection();
       let cursorOffset = 0;
       let textNode = null;
+      let originalText = '';
       
       if (originalSelection && originalSelection.rangeCount > 0) {
         const range = originalSelection.getRangeAt(0);
@@ -1219,6 +1220,7 @@ const EditorToolbar = ({
         // Store the text node if we're in one
         if (range.startContainer.nodeType === Node.TEXT_NODE) {
           textNode = range.startContainer;
+          originalText = textNode.textContent || '';
         }
       }
       
@@ -1262,15 +1264,19 @@ const EditorToolbar = ({
                 // Position cursor based on original position
                 if (firstItem.firstChild && firstItem.firstChild.nodeType === Node.TEXT_NODE) {
                     const range = document.createRange();
-                    // If we're dealing with the same text node (now in a list item), 
-                    // try to maintain the same offset
-                    if (textNode && textNode.textContent === firstItem.firstChild.textContent) {
-                        // Place cursor at the original offset, or at beginning if that fails
-                        const offset = Math.min(cursorOffset, firstItem.firstChild.textContent.length);
+                    const newText = firstItem.firstChild.textContent || '';
+                    
+                    // Check if this is the same content as before (might be in a different node structure)
+                    if (textNode && (originalText === newText || newText.includes(originalText))) {
+                        // Keep cursor at the same relative position
+                        const offset = Math.min(cursorOffset, firstItem.firstChild.textContent!.length);
                         range.setStart(firstItem.firstChild, offset);
-                    } else {
-                        // For new/different text nodes, place cursor at beginning
-                        range.setStart(firstItem.firstChild, 0);
+                    } 
+                    // Fallback for new content or no match
+                    else {
+                        // For new/different text nodes, attempt to place cursor at the end rather than beginning
+                        const textLength = firstItem.firstChild.textContent?.length || 0;
+                        range.setStart(firstItem.firstChild, textLength);
                     }
                     range.collapse(true);
                     newSelection.removeAllRanges();
@@ -1282,7 +1288,7 @@ const EditorToolbar = ({
                     const range = document.createRange();
                     // Ensure firstChild exists (it should be the text node containing ZWS)
                     if (firstItem.firstChild) {
-                        range.setStart(firstItem.firstChild, 0); // Cursor at beginning of zero-width space
+                        range.setStart(firstItem.firstChild, 1); // Cursor AFTER the zero-width space
                         range.collapse(true);
                         newSelection.removeAllRanges();
                         newSelection.addRange(range);
