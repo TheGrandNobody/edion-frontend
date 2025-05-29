@@ -34,8 +34,11 @@ const convertHtmlToLatex = (htmlContent: string): string => {
   let latexOutput = '';
   
   // Process the DOM nodes to extract text and math
-  processNode(tempDiv, (text, isMath, formattingTags, listContext) => {
-    if (isMath) {
+  processNode(tempDiv, (text, isMath, formattingTags, listContext, isLatexCommand = false) => {
+    if (isLatexCommand) {
+      // This is a LaTeX command, add it directly without escaping
+      latexOutput += text;
+    } else if (isMath) {
       // This is a math expression, already in LaTeX format
       latexOutput += text;
     } else {
@@ -75,7 +78,7 @@ const convertHtmlToLatex = (htmlContent: string): string => {
  */
 const processNode = (
   node: Node,
-  callback: (text: string, isMath: boolean, formattingTags: string[], listContext: string | null) => void,
+  callback: (text: string, isMath: boolean, formattingTags: string[], listContext: string | null, isLatexCommand?: boolean) => void,
   formattingTags: string[] = [],
   listContext: string | null = null
 ) => {
@@ -103,33 +106,33 @@ const processNode = (
       if (rows > 0 && cols > 0) {
         // Start table environment
         const colDef = Array(cols).fill('c').join(' | ');
-        callback('\n\\begin{table}[h]\n\\centering\n\\begin{tabular}{|' + colDef + '|}\n\\hline\n', false, [], listContext);
+        callback('\n\\begin{table}[h]\n\\centering\n\\begin{tabular}{|' + colDef + '|}\n\\hline\n', false, [], listContext, true);
         
         // Process the table rows and cells
         processTableContent(element, callback, formattingTags);
         
         // End table environment
-        callback('\\end{tabular}\n\\caption{Table Caption}\n\\label{tab:mytable}\n\\end{table}\n', false, [], listContext);
+        callback('\\end{tabular}\n\\caption{Table Caption}\n\\label{tab:mytable}\n\\end{table}\n', false, [], listContext, true);
         return; // Skip further processing - we've handled children
       }
     }
     
     // Handle lists
     if (element.tagName === 'UL') {
-      callback('\n\\begin{itemize}[leftmargin=*]\n', false, [], listContext);
+      callback('\n\\begin{itemize}[leftmargin=*]\n', false, [], listContext, true);
       for (let i = 0; i < element.childNodes.length; i++) {
         processNode(element.childNodes[i], callback, formattingTags, 'itemize');
       }
-      callback('\n\\end{itemize}\n', false, [], listContext);
+      callback('\n\\end{itemize}\n', false, [], listContext, true);
       return;
     }
     
     if (element.tagName === 'OL') {
-      callback('\n\\begin{enumerate}[leftmargin=*]\n', false, [], listContext);
+      callback('\n\\begin{enumerate}[leftmargin=*]\n', false, [], listContext, true);
       for (let i = 0; i < element.childNodes.length; i++) {
         processNode(element.childNodes[i], callback, formattingTags, 'enumerate');
       }
-      callback('\n\\end{enumerate}\n', false, [], listContext);
+      callback('\n\\end{enumerate}\n', false, [], listContext, true);
       return;
     }
     
@@ -157,14 +160,14 @@ const processNode = (
             markerFormat = `\\underline{${markerFormat}}`;
           }
           
-          callback(`\\item[${markerFormat}.] `, false, [], listContext);
+          callback(`\\item[${markerFormat}.] `, false, [], listContext, true);
         } else {
           // Standard numbered list item
-          callback('\\item ', false, [], listContext);
+          callback('\\item ', false, [], listContext, true);
         }
       } else {
         // For unordered lists: Normal \item processing
-      callback('\\item ', false, [], listContext);
+      callback('\\item ', false, [], listContext, true);
       }
       
       // Process all child nodes
@@ -209,12 +212,12 @@ const processNode = (
       colorPrefix += `\\hl{`;
       colorSuffix = `}${colorSuffix}`;
       // Add a color definition for highlighting
-      callback(`\\definecolor{highlightcolor}{HTML}{${hexColor.replace('#', '')}}\n\\sethlcolor{highlightcolor}\n`, false, [], listContext);
+      callback(`\\definecolor{highlightcolor}{HTML}{${hexColor.replace('#', '')}}\n\\sethlcolor{highlightcolor}\n`, false, [], listContext, true);
     }
     
     // Add color prefix if needed
     if (colorPrefix) {
-      callback(colorPrefix, false, [], listContext);
+      callback(colorPrefix, false, [], listContext, true);
     }
     
     // Process all child nodes
@@ -224,7 +227,7 @@ const processNode = (
     
     // Add color suffix if needed
     if (colorSuffix) {
-      callback(colorSuffix, false, [], listContext);
+      callback(colorSuffix, false, [], listContext, true);
     }
     
     // Add a newline after paragraphs and divs
@@ -241,7 +244,7 @@ const processNode = (
  */
 const processTableContent = (
   tableElement: HTMLElement,
-  callback: (text: string, isMath: boolean, formattingTags: string[], listContext: string | null) => void,
+  callback: (text: string, isMath: boolean, formattingTags: string[], listContext: string | null, isLatexCommand?: boolean) => void,
   formattingTags: string[] = []
 ) => {
   // Process table headers (TH elements)
@@ -251,8 +254,10 @@ const processTableContent = (
       const cell = headerCells[i];
       // Process cell content
       let cellLatex = '';
-      processNode(cell, (text, isMath, tags) => {
-        if (isMath) {
+      processNode(cell, (text, isMath, tags, listContext, isLatexCommand = false) => {
+        if (isLatexCommand) {
+          cellLatex += text;
+        } else if (isMath) {
           cellLatex += text;
         } else {
           let formattedText = escapeLatexSpecialChars(text);
@@ -279,9 +284,9 @@ const processTableContent = (
       
       // Add cell separator or end of row
       if (i < headerCells.length - 1) {
-        callback(' & ', false, [], null);
+        callback(' & ', false, [], null, true);
       } else {
-        callback(' \\\\ \\hline\n', false, [], null);
+        callback(' \\\\ \\hline\n', false, [], null, true);
       }
     }
   }
@@ -294,8 +299,10 @@ const processTableContent = (
       const cell = cells[j];
       // Process cell content
       let cellLatex = '';
-      processNode(cell, (text, isMath, tags) => {
-        if (isMath) {
+      processNode(cell, (text, isMath, tags, listContext, isLatexCommand = false) => {
+        if (isLatexCommand) {
+          cellLatex += text;
+        } else if (isMath) {
           cellLatex += text;
         } else {
           let formattedText = escapeLatexSpecialChars(text);
@@ -322,9 +329,9 @@ const processTableContent = (
       
       // Add cell separator or end of row
       if (j < cells.length - 1) {
-        callback(' & ', false, [], null);
+        callback(' & ', false, [], null, true);
       } else {
-        callback(' \\\\ \\hline\n', false, [], null);
+        callback(' \\\\ \\hline\n', false, [], null, true);
       }
     }
   }
