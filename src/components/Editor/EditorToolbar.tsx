@@ -31,6 +31,7 @@ interface EditorToolbarProps {
   onIndent: () => void;
   onOutdent: () => void;
   editorRef: React.RefObject<HTMLDivElement>;
+  onNewListCreated?: () => void;
 }
 
 type TextAlignment = 'left' | 'center' | 'right';
@@ -81,7 +82,8 @@ const EditorToolbar = ({
   onInsertTable,
   onIndent,
   onOutdent,
-  editorRef
+  editorRef,
+  onNewListCreated
 }: EditorToolbarProps) => {
   // Track formatting states
   const [isBulletList, setIsBulletList] = useState(false);
@@ -1214,10 +1216,7 @@ const EditorToolbar = ({
       
       if (originalSelection && originalSelection.rangeCount > 0) {
         const range = originalSelection.getRangeAt(0);
-        // Store the offset within the text node
         cursorOffset = range.startOffset;
-        
-        // Store the text node if we're in one
         if (range.startContainer.nodeType === Node.TEXT_NODE) {
           textNode = range.startContainer;
           originalText = textNode.textContent || '';
@@ -1227,109 +1226,126 @@ const EditorToolbar = ({
       // Create the list
       document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
       
-      editorRef.current?.focus(); // Ensure editor has focus
+      // Focus the editor
+      editorRef.current?.focus();
+      
+      // Get the new selection after list creation
       const newSelection = window.getSelection();
-
+      
       if (newSelection && newSelection.rangeCount > 0) {
+        // Find the newly created list element
         let listNodeAnchor = newSelection.anchorNode;
         let newListElement: HTMLElement | null = null;
-
-        // Traverse up to find the newly created list element (UL or OL)
-        // Start from anchorNode and go up to the editorRef
+        
+        // Look for the list element
         let tempNode = listNodeAnchor;
         while (tempNode && tempNode !== editorRef.current) {
-            if (tempNode.nodeType === Node.ELEMENT_NODE && (tempNode as HTMLElement).tagName === listType) {
-                newListElement = tempNode as HTMLElement;
-                break; 
-            }
-            tempNode = tempNode.parentNode;
+          if (tempNode.nodeType === Node.ELEMENT_NODE && 
+              (tempNode as HTMLElement).tagName === listType) {
+            newListElement = tempNode as HTMLElement;
+            break; 
+          }
+          tempNode = tempNode.parentNode;
         }
-
+        
         if (newListElement) {
-            const firstItem = newListElement.querySelector('li:first-child') as HTMLLIElement | null;
-
-            if (firstItem) {
-                // Apply specific classes for styling (examples)
-                if (listType === 'OL') {
-                    firstItem.classList.add('list-spacing-fixed'); // If used for OL spacing
-                    if (!newListElement.classList.contains('list-decimal')) {
-                       newListElement.classList.add('list-decimal');
-                    }
-                } else if (listType === 'UL') {
-                     if (!newListElement.classList.contains('list-disc')) {
-                       newListElement.classList.add('list-disc');
-                    }
-                }
-                
-                // Position cursor based on original position
-                if (firstItem.firstChild && firstItem.firstChild.nodeType === Node.TEXT_NODE) {
-                    const range = document.createRange();
-                    const newText = firstItem.firstChild.textContent || '';
-                    
-                    // Check if this is the same content as before (might be in a different node structure)
-                    if (textNode && (originalText === newText || newText.includes(originalText))) {
-                        // Keep cursor at the same relative position
-                        const offset = Math.min(cursorOffset, firstItem.firstChild.textContent!.length);
-                        range.setStart(firstItem.firstChild, offset);
-                    } 
-                    // Fallback for new content or no match
-                    else {
-                        // For new/different text nodes, attempt to place cursor at the end rather than beginning
-                        const textLength = firstItem.firstChild.textContent?.length || 0;
-                        range.setStart(firstItem.firstChild, textLength);
-                    }
-                    range.collapse(true);
-                    newSelection.removeAllRanges();
-                    newSelection.addRange(range);
-                }
-                // Handle empty or BR-only list items
-                else if (!firstItem.textContent?.trim() || firstItem.innerHTML.toLowerCase() === '<br>' || firstItem.innerHTML === '') {
-                    firstItem.innerHTML = '&#8203;'; // Zero-width space
-                    const range = document.createRange();
-                    // Ensure firstChild exists (it should be the text node containing ZWS)
-                    if (firstItem.firstChild) {
-                        range.setStart(firstItem.firstChild, 1); // Cursor AFTER the zero-width space
-                        range.collapse(true);
-                        newSelection.removeAllRanges();
-                        newSelection.addRange(range);
-                    }
-                }
+          // Find the first list item
+          const firstItem = newListElement.querySelector('li:first-child') as HTMLLIElement | null;
+          
+          if (firstItem) {
+            // Add appropriate classes to the list
+            if (listType === 'OL') {
+              firstItem.classList.add('list-spacing-fixed');
+              if (!newListElement.classList.contains('list-decimal')) {
+                newListElement.classList.add('list-decimal');
+              }
+            } else if (listType === 'UL') {
+              if (!newListElement.classList.contains('list-disc')) {
+                newListElement.classList.add('list-disc');
+              }
             }
             
-            // Apply alignment to the new list if found and alignment is not 'left'
+            // Fix cursor positioning in list item with a slight delay to ensure DOM is updated
+            setTimeout(() => {
+              // Find or create a text node inside the list item for cursor placement
+              const walker = document.createTreeWalker(
+                firstItem, 
+                NodeFilter.SHOW_TEXT,
+                null
+              );
+              
+              let textNode = walker.nextNode();
+              
+              // If no text node exists, create one
+              if (!textNode) {
+                // Create a non-breaking space for cursor visibility
+                textNode = document.createTextNode('\u00A0'); // Non-breaking space
+                
+                // Clear any existing content (like <br> tags)
+                if (firstItem.innerHTML === '<br>') {
+                  firstItem.innerHTML = '';
+                }
+                
+                // Append the text node
+                firstItem.appendChild(textNode);
+              }
+              
+              // Set the cursor position
+              if (textNode) {
+                const range = document.createRange();
+                // Place cursor at the beginning of the text
+                range.setStart(textNode, 0);
+                range.collapse(true);
+                
+                // Apply the selection
+                newSelection.removeAllRanges();
+                newSelection.addRange(range);
+                
+                // Ensure the list item is visible
+                firstItem.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+              }
+            }, 10);
+            
+            // Apply alignment if needed
             if (currentAlignment !== 'left') {
-                newListElement.style.textAlign = currentAlignment;
-                
-                if (newListElement.tagName === 'OL') {
-                    const listItems = newListElement.querySelectorAll('li');
-                    listItems.forEach(item => {
-                        (item as HTMLElement).style.removeProperty('justify-content'); // Clear existing
-                        if (currentAlignment === 'center') {
-                            (item as HTMLElement).style.justifyContent = 'center';
-                        } else if (currentAlignment === 'right') {
-                            (item as HTMLElement).style.justifyContent = 'flex-end';
-                        }
-                    });
-                }
-                
-                if (newListElement.tagName === 'UL' && currentAlignment !== 'left') {
-                    const listItems = newListElement.querySelectorAll('li');
-                    listItems.forEach(item => {
-                        (item as HTMLElement).style.listStylePosition = 'inside';
-                    });
-                }
-                lastKnownAlignmentRef.current = currentAlignment as TextAlignment;
-                setTextAlignment(currentAlignment as TextAlignment);
+              newListElement.style.textAlign = currentAlignment;
+              
+              if (newListElement.tagName === 'OL') {
+                const listItems = newListElement.querySelectorAll('li');
+                listItems.forEach(item => {
+                  (item as HTMLElement).style.removeProperty('justify-content');
+                  if (currentAlignment === 'center') {
+                    (item as HTMLElement).style.justifyContent = 'center';
+                  } else if (currentAlignment === 'right') {
+                    (item as HTMLElement).style.justifyContent = 'flex-end';
+                  }
+                });
+              }
+              
+              if (newListElement.tagName === 'UL' && currentAlignment !== 'left') {
+                const listItems = newListElement.querySelectorAll('li');
+                listItems.forEach(item => {
+                  (item as HTMLElement).style.listStylePosition = 'inside';
+                });
+              }
+              lastKnownAlignmentRef.current = currentAlignment as TextAlignment;
+              setTextAlignment(currentAlignment as TextAlignment);
             }
+            
+            // Trigger callback for ordered lists
+            if (listType === 'OL') { 
+              onNewListCreated?.();
+            }
+          }
         }
       }
-      
-      // Update format states and dispatch input event ONCE after all modifications
-      updateFormatStates();
-      if (editorRef.current) {
-        const event = new Event('input', { bubbles: true });
-        editorRef.current.dispatchEvent(event);
-      }
+    }
+    
+    // Update format states and trigger content change event
+    updateFormatStates();
+    if (editorRef.current) {
+      const event = new Event('input', { bubbles: true });
+      editorRef.current.dispatchEvent(event);
     }
   };
   

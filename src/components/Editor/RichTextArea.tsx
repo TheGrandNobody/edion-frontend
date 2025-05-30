@@ -82,10 +82,8 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     
     // Handle tab key
     if (e.key === 'Tab') {
-      console.log('Tab pressed');
       let selection = window.getSelection(); // Use let as it might be updated
       if (!selection || !selection.rangeCount) {
-        console.log('No selection found');
         return;
       }
       
@@ -102,12 +100,10 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       const isCursorAtEditorRoot = container === editorRef.current;
 
       if (isRawTextNodeInEditor || (isCursorAtEditorRoot && editorIsEmptyOrBr) || (parentIsEditor && container.nodeName === 'BR')) {
-        console.log('Executing formatBlock to ensure content is in a paragraph.');
         document.execCommand('formatBlock', false, 'P');
         // Re-acquire selection and range as formatBlock can change them
         selection = window.getSelection();
         if (!selection || !selection.rangeCount) {
-            console.error('Selection lost after formatBlock');
             return;
         }
         range = selection.getRangeAt(0);
@@ -183,13 +179,9 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
 
       // 4. Indentation Logic
       if (listItem && listElement && isAtStartOfBlock) {
-        console.log('Processing list indentation. List item:', listItem, 'List element:', listElement);
-        
         if (e.shiftKey) {
-          console.log('Processing outdent');
           handleOutdent(listItem, listElement);
         } else {
-          console.log('Processing indent');
           handleIndent(listItem, listElement);
         }
         
@@ -198,7 +190,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
           onChange(editorRef.current.innerHTML);
         }
       } else if (isAtStartOfBlock && !listItem && currentBlockElement) { // Indent paragraph or other block if at the start
-        console.log('Indenting paragraph/block');
         const currentPadding = parseFloat(currentBlockElement.style.paddingLeft || '0');
         const indentAmount = 40; // Corresponds to 40px, consistent with list indentation logic
 
@@ -216,7 +207,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         }
       }
       else {
-        console.log('Not at start of block or not in a list, inserting spaces');
         // Not at the start of a block, or in a list but not at the start of LI: insert spaces
         const tabTextNode = document.createTextNode('    '); // Four non-breaking spaces
         range.deleteContents();
@@ -261,7 +251,7 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         
         // Check if the list item already has a space or regular content
         const hasSpace = listItem.innerHTML.includes('&nbsp;');
-        const hasVisibleContent = !!listItem.textContent?.replace(/[\u200B\s]/g, '').trim();
+        const hasVisibleContent = !!listItem.textContent?.replace(/[\u200B\u00A0\s]/g, '').trim();
         
         // Only consider a list item "effectively empty" if it has a spacer, is empty, or has just a BR
         const isEffectivelyEmpty = 
@@ -269,6 +259,39 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
           listItem.innerHTML === '<br>' || 
           listItem.innerHTML === '' ||
           (listItem.hasAttribute('data-empty-item') && !hasSpace && !hasVisibleContent);
+        
+        // If the list item is empty and the cursor is not visible, make it visible
+        if (isEffectivelyEmpty && !hasSpace) {
+          // Clear any existing content
+          if (listItem.innerHTML === '<br>') {
+            listItem.innerHTML = '';
+          }
+          
+          // Add non-breaking space and position cursor
+          const nbspNode = document.createTextNode('\u00A0');
+          listItem.appendChild(nbspNode);
+          
+          // Position cursor after the space
+          const newRange = document.createRange();
+          newRange.setStart(nbspNode, 1);
+          newRange.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+          
+          // Mark as fixed to avoid repeating
+          listItem.classList.add('space-directly-fixed');
+          
+          // Prevent default to handle it ourselves
+          e.preventDefault();
+          
+          // Update content
+          if (editorRef.current) {
+            const event = new Event('input', { bubbles: true });
+            editorRef.current.dispatchEvent(event);
+          }
+          
+          return;
+        }
         
         // If we've already applied a space fix, don't interfere with normal typing
         const alreadyFixed = listItem.classList.contains('space-directly-fixed') && hasSpace;
@@ -286,8 +309,9 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       if (!selection || !selection.rangeCount) return;
       
       const range = selection.getRangeAt(0);
-      const mathField = range.startContainer.parentElement?.closest('math-field');
       
+      // First check if we're in a math field
+      const mathField = range.startContainer.parentElement?.closest('math-field');
       if (mathField) {
         // If we're at the edge of a math field
         if (range.startOffset === 0 || range.startOffset === (range.startContainer.textContent || '').length) {
@@ -311,6 +335,206 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
           // Update content
           if (editorRef.current) {
             onChange(editorRef.current.innerHTML);
+          }
+        }
+        return;
+      }
+      
+      // Check if we're in a list item and at the beginning of it
+      let node = range.startContainer;
+      let listItem = null;
+      let list = null;
+      
+      // Find the list item containing the cursor
+      while (node && node !== editorRef.current) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const element = node as HTMLElement;
+          if (element.tagName === 'LI') {
+            listItem = element;
+          } else if (element.tagName === 'UL' || element.tagName === 'OL') {
+            list = element;
+            break;
+          }
+        }
+        node = node.parentNode;
+      }
+      
+      // If we found a list item and we're at the beginning of it
+      if (listItem && list) {
+        // Check if we're at the beginning of the list item's content
+        let isAtStart = false;
+        
+        // For text nodes, check if we're at the beginning
+        if (range.startContainer.nodeType === Node.TEXT_NODE) {
+          isAtStart = range.startOffset === 0;
+          
+          // If we're at the start of a text node, make sure it's the first text node
+          if (isAtStart) {
+            const walker = document.createTreeWalker(
+              listItem,
+              NodeFilter.SHOW_TEXT,
+              null
+            );
+            
+            const firstTextNode = walker.nextNode();
+            isAtStart = firstTextNode === range.startContainer;
+          }
+        } 
+        // For element nodes, check if we're at the first position
+        else if (range.startContainer === listItem) {
+          isAtStart = range.startOffset === 0;
+        }
+        
+        // Check if the list item is empty or contains only a non-breaking space
+        const isEmpty = !listItem.textContent || 
+                        listItem.textContent === '\u00A0' || 
+                        listItem.textContent === '\u200B' ||
+                        listItem.innerHTML === '<br>';
+        
+        // If we're at the start of a list item
+        if (isAtStart) {
+          // Add special handling for Shift+Backspace to directly remove list formatting
+          if (e.shiftKey && list) {
+            // Remove the list formatting but keep the content
+            
+            // Create a document fragment to hold list items content
+            const fragment = document.createDocumentFragment();
+            
+            // Collect all list items
+            const items = Array.from(list.querySelectorAll('li')).map(item => item as HTMLLIElement);
+            
+            // Create paragraphs for each list item's content
+            items.forEach(item => {
+              const p = document.createElement('p');
+              p.innerHTML = item.innerHTML;
+              fragment.appendChild(p);
+            });
+            
+            // Replace list with the fragment
+            list.parentNode?.replaceChild(fragment, list);
+            
+            // Set cursor to the first paragraph
+            const firstP = fragment.firstChild as HTMLElement;
+            if (firstP) {
+              const newRange = document.createRange();
+              if (firstP.firstChild && firstP.firstChild.nodeType === Node.TEXT_NODE) {
+                newRange.setStart(firstP.firstChild, 0);
+              } else {
+                newRange.setStart(firstP, 0);
+              }
+              newRange.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(newRange);
+            }
+            
+            // Prevent default backspace behavior
+            e.preventDefault();
+            
+            // Update content
+            if (editorRef.current) {
+              onChange(editorRef.current.innerHTML);
+            }
+            return;
+          }
+
+          // If this is the first item in the list and it's empty, remove the entire list formatting
+          const isFirstItem = listItem === list.querySelector('li:first-child');
+          
+          if (isFirstItem && isEmpty) {
+            // If there's only one item in the list, convert to paragraph
+            if (list.querySelectorAll('li').length === 1) {
+              // Replace the list with a paragraph
+              const p = document.createElement('p');
+              p.innerHTML = '<br>'; // Empty paragraph needs BR to be visible
+              list.parentNode?.replaceChild(p, list);
+              
+              // Set cursor to the paragraph
+              const newRange = document.createRange();
+              newRange.setStart(p, 0);
+              newRange.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(newRange);
+              
+              // Prevent default backspace behavior
+              e.preventDefault();
+              
+              // Update content
+              if (editorRef.current) {
+                onChange(editorRef.current.innerHTML);
+              }
+              return;
+            }
+            // If there are more items, just remove this one
+            else {
+              listItem.remove();
+              
+              // Prevent default backspace behavior
+              e.preventDefault();
+              
+              // Update content
+              if (editorRef.current) {
+                onChange(editorRef.current.innerHTML);
+              }
+              return;
+            }
+          }
+          // If this is not the first item, merge with the previous item
+          else if (!isFirstItem) {
+            const prevItem = listItem.previousElementSibling as HTMLElement;
+            
+            if (prevItem && prevItem.tagName === 'LI') {
+              // If current item is empty, just remove it and place cursor at end of previous item
+              if (isEmpty) {
+                // Set cursor to end of previous item
+                const walker = document.createTreeWalker(
+                  prevItem,
+                  NodeFilter.SHOW_TEXT,
+                  null
+                );
+                
+                let lastTextNode = null;
+                let currentNode;
+                
+                while (currentNode = walker.nextNode()) {
+                  lastTextNode = currentNode;
+                }
+                
+                if (lastTextNode) {
+                  const newRange = document.createRange();
+                  newRange.setStart(lastTextNode, lastTextNode.textContent?.length || 0);
+                  newRange.collapse(true);
+                  selection.removeAllRanges();
+                  selection.addRange(newRange);
+                } else {
+                  // If no text node, place at end of element
+                  const newRange = document.createRange();
+                  newRange.selectNodeContents(prevItem);
+                  newRange.collapse(false);
+                  selection.removeAllRanges();
+                  selection.addRange(newRange);
+                }
+                
+                // Remove the current list item
+                listItem.remove();
+              }
+              // If not empty, merge content with previous item
+              else {
+                // Append current item's content to previous item
+                prevItem.innerHTML += listItem.innerHTML;
+                
+                // Remove current item
+                listItem.remove();
+              }
+              
+              // Prevent default backspace behavior
+              e.preventDefault();
+              
+              // Update content
+              if (editorRef.current) {
+                onChange(editorRef.current.innerHTML);
+              }
+              return;
+            }
           }
         }
       }
@@ -357,11 +581,7 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
           const targetElement = mutation.target as HTMLElement;
           if (targetElement.tagName === 'LI') {
-            console.log('DEBUG: LI style changed. Element:', targetElement);
-            console.log('DEBUG: LI new inline style:', targetElement.getAttribute('style'));
             const computedStyle = window.getComputedStyle(targetElement);
-            console.log('DEBUG: LI computed justify-content:', computedStyle.justifyContent);
-            console.log('DEBUG: LI computed text-align:', computedStyle.textAlign);
                 }
               }
             }
@@ -375,7 +595,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
 
     return () => {
       observer.disconnect();
-      console.log('DEBUG: LI style observer disconnected.');
     };
   }, [editorRef]); // Rerun if editorRef instance changes, though its .current is what matters
   
@@ -404,14 +623,12 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     
     // Function to apply stored styles to a new list, based on item position
     const applyStoredStyles = (newList: HTMLElement) => {
-      console.log('DEBUG-ALIGN: Trying to apply stored styles to new list:', newList.tagName);
       
       // Clean up expired entries
       const now = Date.now();
       recentlyRemovedLists = recentlyRemovedLists.filter(entry => now - entry.time < RECENT_WINDOW_MS);
       
       if (recentlyRemovedLists.length === 0) {
-        console.log('DEBUG-ALIGN: No recently removed lists found');
         return;
       }
       
@@ -420,11 +637,9 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       
       // Try to find a removed list with similar structure
       const newItems = newList.querySelectorAll('li');
-      console.log('DEBUG-ALIGN: New list has', newItems.length, 'items');
       
       // Use the most recently removed list
       const mostRecentRemoved = recentlyRemovedLists[0];
-      console.log('DEBUG-ALIGN: Most recently removed list had', mostRecentRemoved.items.length, 'items');
       
       // Apply styles based on position
       newItems.forEach((newItem, index) => {
@@ -436,7 +651,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
           const alignMatch = oldStyle.match(/text-align:\s*(left|center|right|start|end)/i);
           if (alignMatch && alignMatch[1]) {
             const alignment = alignMatch[1];
-            console.log('DEBUG-ALIGN: Found alignment', alignment, 'for item', index);
             
             // Apply alignment to new item
             const currentStyle = newItem.getAttribute('style') || '';
@@ -444,13 +658,10 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
                            (currentStyle.endsWith(';') || currentStyle === '' ? '' : ';') +
                            `text-align: ${alignment};`;
             
-            console.log('DEBUG-ALIGN: Setting new style:', newStyle);
             newItem.setAttribute('style', newStyle);
             
             // Force a reflow
             void newItem.offsetHeight;
-          } else {
-            console.log('DEBUG-ALIGN: No alignment found in old style:', oldStyle);
           }
         }
       });
@@ -467,14 +678,12 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as HTMLElement;
               if (element.tagName === 'UL' || element.tagName === 'OL') {
-                console.log('DEBUG-ALIGN: Found removed list of type:', element.tagName);
                 
                 // Capture all items and their styles
                 const itemsData = captureListItems(element);
                 
                 // Debug: log the first item's style if available
                 if (itemsData.length > 0) {
-                  console.log('DEBUG-ALIGN: Captured removed list item style:', itemsData[0].style);
                 }
                 
                 // Store in recently removed lists
@@ -496,7 +705,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as HTMLElement;
               if (element.tagName === 'UL' || element.tagName === 'OL') {
-                console.log('DEBUG-ALIGN: Found added list of type:', element.tagName);
                 
                 // Add to recently added lists
                 recentlyAddedLists.push({
@@ -526,7 +734,6 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     
     return () => {
       listObserver.disconnect();
-      console.log('DEBUG-ALIGN: List observer disconnected');
     };
   }, [editorRef]);
   
@@ -625,48 +832,44 @@ const styles = `
 .rich-text-editor ol {
   padding-left: 0;
   margin-left: 0;
-  /* text-align property will be set inline by the editor for alignment */
 }
 
 /* Base styles for list items */
 .rich-text-editor ol li,
 .rich-text-editor ul li {
-  position: relative; /* Kept for potential future use, not strictly for ::before now */
+  position: relative;
   list-style-type: none !important;
   list-style-position: outside !important;
   margin-bottom: 0.5em;
-  padding-left: var(--indent-level, 0px); /* Indentation applied here */
+  padding-left: var(--indent-level, 0px);
   display: flex;
-  align-items: baseline; /* Align marker and text along their baseline */
+  align-items: baseline;
   transition: padding-left 0.2s ease;
-  /* text-align will be inherited or set directly on li for its content alignment */
 }
 
-/* Common styles for ::before as a flex item (marker) */
+/* Common styles for ::before as a marker */
 .rich-text-editor ol li::before,
 .rich-text-editor ul li::before {
-  flex-shrink: 0; /* Prevent marker from shrinking */
+  flex-shrink: 0;
   white-space: nowrap;
-  display: inline-block; /* Behaves well for width and text-align */
-  width: 2em; /* Fixed width for the marker area */
-  margin-right: 0.5em; /* Space between marker area and text content */
+  display: inline-block;
+  width: 2em;
+  margin-right: 0.5em;
   box-sizing: border-box;
-  /* No absolute positioning, no left/top/transition:left */
+  text-align: right;
 }
 
 /* Number styling for ordered lists */
 .rich-text-editor ol li::before {
-  content: counter(list-item) ". "; /* Includes space for padding */
-  text-align: right; /* Aligns "9.", "10." correctly in the 2em box */
+  content: counter(list-item) ". ";
 }
 
 /* Bullet styling for unordered lists */
 .rich-text-editor ul li::before {
-  content: "•"; /* Default bullet */
-  text-align: right; /* Changed from center to right, to match OL's ::before text-align for alignment consistency */
+  content: "•";
 }
 
-/* List style variations for ordered lists (content changes) */
+/* List style variations for ordered lists */
 .rich-text-editor ol.list-decimal li::before {
   content: counter(list-item) ". ";
 }
@@ -679,7 +882,7 @@ const styles = `
   content: counter(list-item, lower-roman) ". ";
 }
 
-/* List style variations for unordered lists (content changes) */
+/* List style variations for unordered lists */
 .rich-text-editor ul.list-disc li::before {
   content: "•";
 }
@@ -692,23 +895,7 @@ const styles = `
   content: "▪";
 }
 
-/* Ensure proper spacing with indentation (already handled by li padding-left) */
-/* .rich-text-editor li[style*="--indent-level"] { margin-left: 0; } */
-
-
-/* Add smooth transitions (already on li for padding-left) */
-/* .rich-text-editor li { transition: padding-left 0.2s ease; } */
-/* .rich-text-editor li::before { transition: left 0.2s ease; } REMOVED */
-
-
-/* 
-  Alignment Handling for List Items (LI):
-  LI elements are flex containers (display: flex).
-  The text-align style is typically set on the LI by the editor for alignment commands.
-  We use justify-content on the LI to align its flex items (the ::before marker and the text content)
-  according to the LI's specified text-align value.
-  The padding-left for indentation still applies, and content is aligned within the remaining space.
-*/
+/* Alignment handling - use flex for alignment */
 .rich-text-editor li[style*="text-align: left"],
 .rich-text-editor li[style*="text-align:left"],
 .rich-text-editor li[style*="text-align: start"],
@@ -732,14 +919,6 @@ const styles = `
   color: inherit;
 }
 
-/* Ensure numbers/bullets stay visible (z-index not needed for flex items) */
-/* .rich-text-editor ol li::before, */
-/* .rich-text-editor ul li::before { z-index: 1; } */
-
-/* Cleanup of old/redundant list styling rules */
-/* Remove any previous rules that relied on absolute positioning for ::before */
-/* Remove rules trying to manage padding/width in overly complex ways */
-
 /* Keep counter resets */
 .rich-text-editor ol {
   counter-reset: list-item;
@@ -748,14 +927,6 @@ const styles = `
 .rich-text-editor ol li {
   counter-increment: list-item;
 }
-/* Ensure these are not overriding the flex display or padding for li */
-/* Example of a rule to be careful about if it exists elsewhere:
-.rich-text-editor ol > li {
-  display: flex; /* This is fine, matches new approach */
-  /* margin-bottom: 0.5em; */ /* Also fine */
-  /* width: 100%; */ /* This could conflict if we want LIs to shrink for centering. But with flex on LI, its items align internally. */
-/*}
-*/
 
 /* Progressive indentation for nested lists - this needs to be re-evaluated with flex model.
    Currently, --indent-level handles all indentation via li's padding-left.
@@ -866,6 +1037,33 @@ const styles = `
   display: inline-block;
   min-width: 0.1em; /* Reduced from 0.4em to minimize visible space */
   white-space: pre;
+}
+
+/* Ensure cursor visibility */
+.rich-text-editor {
+  caret-color: currentColor;
+}
+
+.rich-text-editor li {
+  min-height: 1.2em; /* Ensure list items have minimum height for cursor visibility */
+  caret-color: currentColor;
+}
+
+/* Zero-width spaces need explicit cursor styling */
+.rich-text-editor *:empty::after {
+  content: '';
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  vertical-align: text-bottom;
+  background-color: transparent;
+}
+
+/* Ensure cursor visibility when editing empty content */
+.rich-text-editor *:focus:empty {
+  outline: none;
+  min-width: 1px;
+  display: inline-block;
 }
 `;
 

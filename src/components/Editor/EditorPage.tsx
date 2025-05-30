@@ -23,6 +23,62 @@ const EditorPage = () => {
     setShowRawLatex(!showRawLatex);
   };
 
+  // Callback for when a new list is created to fix cursor
+  const handleNewListCreated = () => {
+    setTimeout(() => {
+      if (!editorRef.current) return;
+
+      const lists = editorRef.current.querySelectorAll('ol');
+      if (lists.length === 0) {
+        return;
+      }
+      
+      const lastList = lists[lists.length - 1];
+      const firstItem = lastList.querySelector('li:first-child');
+
+      if (firstItem) {
+        // Get the first text node in the list item
+        const walker = document.createTreeWalker(
+          firstItem,
+          NodeFilter.SHOW_TEXT,
+          null
+        );
+        
+        let textNode = walker.nextNode();
+        
+        // If no text node exists, create one
+        if (!textNode) {
+          // Clear any existing content (like <br> tags)
+          if (firstItem.innerHTML === '<br>') {
+            firstItem.innerHTML = '';
+          }
+          
+          // Create a non-breaking space for cursor visibility
+          textNode = document.createTextNode('\u00A0'); // Non-breaking space
+          firstItem.appendChild(textNode);
+        }
+        
+        // Set cursor to beginning of text node
+        if (textNode) {
+          const selection = window.getSelection();
+          if (selection) {
+            editorRef.current.focus();
+            
+            const range = document.createRange();
+            range.setStart(textNode, 0);
+            range.collapse(true);
+            
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            // Ensure the list item is visible
+            firstItem.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          }
+        }
+      }
+    }, 20); // Slightly longer delay to ensure DOM is fully updated
+  };
+
   // Indent/Outdent Logic
   const applyListIndent = (direction: 'indent' | 'outdent') => {
     if (!editorRef.current) {
@@ -227,6 +283,7 @@ const EditorPage = () => {
           onIndent={handleIndent}
           onOutdent={handleOutdent}
           editorRef={editorRef}
+          onNewListCreated={handleNewListCreated}
         />
         
         {!showRawLatex ? (
