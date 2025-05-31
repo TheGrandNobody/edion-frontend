@@ -168,24 +168,24 @@ const EditorPage = () => {
     } 
     // Handle regular text blocks (paragraphs, divs, etc.)
     else if (textBlock) {
-      const indentStep = 2.0; // Indentation step in em for text blocks
-      const maxIndent = 20; // Maximum indentation level - matching list max level
+      const indentStep = 40; // Indentation step in px for text blocks
+      const maxIndentPx = 20 * 40; // Maximum indentation level in px (e.g., 20 levels * 40px/level)
 
       // Get current padding or default to 0
-      const currentPadding = textBlock.style.paddingLeft || '0em';
-      const currentValue = parseFloat(currentPadding) || 0; // Will be 0 if not a number
+      const currentPaddingString = textBlock.style.paddingLeft || '0px';
+      const currentValue = parseFloat(currentPaddingString) || 0; // Will be 0 if not a number
 
       // Calculate new padding value
       let newPadding;
       
       if (direction === 'indent') {
-        newPadding = Math.min(currentValue + indentStep, maxIndent * indentStep);
+        newPadding = Math.min(currentValue + indentStep, maxIndentPx);
       } else { // outdent
         newPadding = Math.max(currentValue - indentStep, 0);
       }
 
       // Apply new padding
-      textBlock.style.paddingLeft = newPadding + 'em';
+      textBlock.style.paddingLeft = newPadding === 0 ? '' : newPadding + 'px';
 
       // Update editor content
       handleContentChange(editorRef.current.innerHTML);
