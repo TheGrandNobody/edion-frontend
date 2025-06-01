@@ -987,51 +987,97 @@ const EditorToolbar = ({
             }
           }
         } else {
+          // Temporarily disable transitions on the entire editor during list conversion
+          const originalEditorTransition = editorRef.current?.style.transition;
+          if (editorRef.current) {
+            editorRef.current.style.transition = 'none';
+          }
+          
           // Standard removal for left-aligned lists, but preserve indentation
           document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
           
-          // Now restore the indentation data that was captured
-          setTimeout(() => {
-            // Find the newly created list
-            const selection = window.getSelection();
-            let newList = null;
-            
-            if (selection && selection.anchorNode) {
-              let node = selection.anchorNode;
-              while (node && node !== editorRef.current) {
-                if (node.nodeType === Node.ELEMENT_NODE && 
-                    ((node as HTMLElement).tagName === 'UL' || (node as HTMLElement).tagName === 'OL')) {
-                  newList = node as HTMLElement;
-                  break;
-                }
-                node = node.parentNode;
+          // Immediately find and fix the new list (no setTimeout)
+          const selection = window.getSelection();
+          let newList = null;
+          
+          if (selection && selection.anchorNode) {
+            let node = selection.anchorNode;
+            while (node && node !== editorRef.current) {
+              if (node.nodeType === Node.ELEMENT_NODE && 
+                  ((node as HTMLElement).tagName === 'UL' || (node as HTMLElement).tagName === 'OL')) {
+                newList = node as HTMLElement;
+                break;
               }
+              node = node.parentNode;
             }
+          }
+          
+          if (newList) {
+            // Also disable transitions on the list itself
+            const originalListTransition = newList.style.transition;
+            newList.style.transition = 'none';
             
-            if (newList) {
-              const newItems = Array.from(newList.querySelectorAll('li'));
-              
-              newItems.forEach((item, index) => {
-                if (index < originalContent.length) {
-                  const originalData = originalContent[index];
+            const newItems = Array.from(newList.querySelectorAll('li'));
+            
+            // Disable transitions on all list items
+            const originalTransitions: string[] = [];
+            newItems.forEach((item, index) => {
+              const listItem = item as HTMLElement;
+              originalTransitions[index] = listItem.style.transition;
+              listItem.style.transition = 'none';
+            });
+            
+            // Restore indentation immediately
+            newItems.forEach((item, index) => {
+              if (index < originalContent.length) {
+                const originalData = originalContent[index];
+                const listItem = item as HTMLElement;
+                
+                // Restore indentation
+                if (originalData.indentLevel) {
+                  listItem.style.setProperty('--indent-level', originalData.indentLevel);
+                } else if (originalData.paddingLeft) {
+                  listItem.style.paddingLeft = originalData.paddingLeft;
+                }
+              }
+            });
+            
+            // Force multiple reflows to ensure styles are applied
+            newList.offsetHeight;
+            newList.offsetWidth;
+            
+            // Re-enable transitions after the browser has definitely rendered
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                // Restore editor transition
+                if (editorRef.current) {
+                  editorRef.current.style.transition = originalEditorTransition || '';
+                }
+                
+                // Restore list transition
+                newList.style.transition = originalListTransition || '';
+                
+                // Restore item transitions
+                newItems.forEach((item, index) => {
                   const listItem = item as HTMLElement;
-                  
-                  // Restore indentation
-                  if (originalData.indentLevel) {
-                    listItem.style.setProperty('--indent-level', originalData.indentLevel);
-                  } else if (originalData.paddingLeft) {
-                    listItem.style.paddingLeft = originalData.paddingLeft;
-                  }
-                }
+                  listItem.style.transition = originalTransitions[index] || '';
+                });
               });
-              
-              // Update content
-              if (editorRef.current) {
-                const event = new Event('input', { bubbles: true });
-                editorRef.current.dispatchEvent(event);
-              }
+            });
+            
+            // Update content
+            if (editorRef.current) {
+              const event = new Event('input', { bubbles: true });
+              editorRef.current.dispatchEvent(event);
             }
-          }, 0);
+          } else {
+            // If we couldn't find the list, still restore editor transition
+            setTimeout(() => {
+              if (editorRef.current) {
+                editorRef.current.style.transition = originalEditorTransition || '';
+              }
+            }, 100);
+          }
           
           // Fix cursor position for OL → UL conversion
           if (currentListType === 'OL' && listType === 'UL') {
@@ -1212,6 +1258,15 @@ const EditorToolbar = ({
         
         // 5. If we found the new list, restore content and marker formatting
         if (newList) {
+          // Disable transitions on the editor and list immediately
+          const originalEditorTransition = editorRef.current?.style.transition;
+          const originalListTransition = newList.style.transition;
+          
+          if (editorRef.current) {
+            editorRef.current.style.transition = 'none';
+          }
+          newList.style.transition = 'none';
+          
           // Add the appropriate list style class
           if (listType === 'UL') {
             newList.classList.add('list-disc');
@@ -1247,6 +1302,14 @@ const EditorToolbar = ({
           }
           
           const newItems = Array.from(newList.querySelectorAll('li'));
+          
+          // Disable transitions on all list items
+          const originalTransitions: string[] = [];
+          newItems.forEach((item, index) => {
+            const listItem = item as HTMLElement;
+            originalTransitions[index] = listItem.style.transition;
+            listItem.style.transition = 'none';
+          });
           
           newItems.forEach((item, index) => {
             if (index < contents.length) {
@@ -1293,6 +1356,29 @@ const EditorToolbar = ({
                 }
               }
             }
+          });
+          
+          // Force multiple reflows to ensure styles are applied
+          newList.offsetHeight;
+          newList.offsetWidth;
+          
+          // Re-enable transitions after the browser has definitely rendered
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              // Restore editor transition
+              if (editorRef.current) {
+                editorRef.current.style.transition = originalEditorTransition || '';
+              }
+              
+              // Restore list transition
+              newList.style.transition = originalListTransition || '';
+              
+              // Restore item transitions
+              newItems.forEach((item, index) => {
+                const listItem = item as HTMLElement;
+                listItem.style.transition = originalTransitions[index] || '';
+              });
+            });
           });
         }
       }

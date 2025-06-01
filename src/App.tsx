@@ -8,6 +8,8 @@ import Chat from "./pages/Chat";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import EditorPage from "./components/Editor/EditorPage";
+import SlateDemo from "./pages/SlateDemo";
+// import SlateDemoTest from "./pages/SlateDemoTest";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,7 @@ const App = () => (
           <Route path="/chat" element={<Chat />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/editor" element={<EditorPage />} />
+          <Route path="/slate-demo" element={<SlateDemo />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
