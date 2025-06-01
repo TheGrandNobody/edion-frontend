@@ -914,10 +914,18 @@ const EditorToolbar = ({
         
         // Store original list item content for potential restoration
         const listItems = currentList ? Array.from(currentList.querySelectorAll('li')).map(item => item as HTMLLIElement) : [];
-        const originalContent = listItems.map(item => ({
-          html: item.innerHTML,
-          textContent: item.textContent || ''
-        }));
+        const originalContent = listItems.map((item, index) => {
+          const itemData = {
+            html: item.innerHTML,
+            textContent: item.textContent || '',
+            paddingLeft: item.style.paddingLeft,
+            markerOffset: item.style.getPropertyValue('--marker-offset'),
+            indentLevel: item.style.getPropertyValue('--indent-level'),
+            fullStyle: item.getAttribute('style')
+          };
+          
+          return itemData;
+        });
 
         // If list has alignment, we need to preserve it
         if (alignmentToTransfer && alignmentToTransfer !== 'left' && alignmentToTransfer !== 'start') {
@@ -979,8 +987,51 @@ const EditorToolbar = ({
             }
           }
         } else {
-          // Standard removal for left-aligned lists
+          // Standard removal for left-aligned lists, but preserve indentation
           document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
+          
+          // Now restore the indentation data that was captured
+          setTimeout(() => {
+            // Find the newly created list
+            const selection = window.getSelection();
+            let newList = null;
+            
+            if (selection && selection.anchorNode) {
+              let node = selection.anchorNode;
+              while (node && node !== editorRef.current) {
+                if (node.nodeType === Node.ELEMENT_NODE && 
+                    ((node as HTMLElement).tagName === 'UL' || (node as HTMLElement).tagName === 'OL')) {
+                  newList = node as HTMLElement;
+                  break;
+                }
+                node = node.parentNode;
+              }
+            }
+            
+            if (newList) {
+              const newItems = Array.from(newList.querySelectorAll('li'));
+              
+              newItems.forEach((item, index) => {
+                if (index < originalContent.length) {
+                  const originalData = originalContent[index];
+                  const listItem = item as HTMLElement;
+                  
+                  // Restore indentation
+                  if (originalData.indentLevel) {
+                    listItem.style.setProperty('--indent-level', originalData.indentLevel);
+                  } else if (originalData.paddingLeft) {
+                    listItem.style.paddingLeft = originalData.paddingLeft;
+                  }
+                }
+              });
+              
+              // Update content
+              if (editorRef.current) {
+                const event = new Event('input', { bubbles: true });
+                editorRef.current.dispatchEvent(event);
+              }
+            }
+          }, 0);
           
           // Fix cursor position for OL → UL conversion
           if (currentListType === 'OL' && listType === 'UL') {
@@ -1112,13 +1163,22 @@ const EditorToolbar = ({
       else {
         // 1. Remember the content and any marker formatting classes
         const items = Array.from(currentList.querySelectorAll('li'));
-        const contents = items.map(item => ({
-          html: (item as HTMLElement).innerHTML,
-          markerBold: (item as HTMLElement).classList.contains('marker-bold'),
-          markerItalic: (item as HTMLElement).classList.contains('marker-italic'),
-          markerUnderline: (item as HTMLElement).classList.contains('marker-underline'),
-          justifyContent: (item as HTMLElement).style.justifyContent
-        }));
+        const contents = items.map((item, index) => {
+          const listItem = item as HTMLElement;
+          const itemData = {
+            html: listItem.innerHTML,
+            markerBold: listItem.classList.contains('marker-bold'),
+            markerItalic: listItem.classList.contains('marker-italic'),
+            markerUnderline: listItem.classList.contains('marker-underline'),
+            justifyContent: listItem.style.justifyContent,
+            paddingLeft: listItem.style.paddingLeft,
+            markerOffset: listItem.style.getPropertyValue('--marker-offset'),
+            indentLevel: listItem.style.getPropertyValue('--indent-level'),
+            fullStyle: listItem.getAttribute('style')
+          };
+          
+          return itemData;
+        });
         
         // Remember alignment of the current list
         const currentAlign = currentList.style.textAlign;
@@ -1187,19 +1247,49 @@ const EditorToolbar = ({
           }
           
           const newItems = Array.from(newList.querySelectorAll('li'));
+          
           newItems.forEach((item, index) => {
             if (index < contents.length) {
-              (item as HTMLElement).innerHTML = contents[index].html;
+              const listItem = item as HTMLElement;
+              const originalData = contents[index];
+              
+              listItem.innerHTML = originalData.html;
               
               // Restore marker formatting if this is an ordered list
               if (listType === 'OL') {
-                if (contents[index].markerBold) (item as HTMLElement).classList.add('marker-bold');
-                if (contents[index].markerItalic) (item as HTMLElement).classList.add('marker-italic');
-                if (contents[index].markerUnderline) (item as HTMLElement).classList.add('marker-underline');
+                if (originalData.markerBold) listItem.classList.add('marker-bold');
+                if (originalData.markerItalic) listItem.classList.add('marker-italic');
+                if (originalData.markerUnderline) listItem.classList.add('marker-underline');
                 
                 // Restore justifyContent if it was set
-                if (contents[index].justifyContent) {
-                  (item as HTMLElement).style.justifyContent = contents[index].justifyContent;
+                if (originalData.justifyContent) {
+                  listItem.style.justifyContent = originalData.justifyContent;
+                }
+              }
+              
+              // Restore indentation - check for --indent-level first (new system)
+              if (originalData.indentLevel) {
+                listItem.style.setProperty('--indent-level', originalData.indentLevel);
+              } else if (originalData.paddingLeft) {
+                // Fallback to old paddingLeft system
+                listItem.style.paddingLeft = originalData.paddingLeft;
+                
+                // For ordered lists, handle marker offset
+                if (listType === 'OL') {
+                  if (originalData.markerOffset) {
+                    listItem.style.setProperty('--marker-offset', originalData.markerOffset);
+                  } else {
+                    // Calculate from padding if converting UL → OL
+                    const paddingValue = parseFloat(originalData.paddingLeft);
+                    if (paddingValue > 0) {
+                      const baseMarkerOffset = 0.5;
+                      const indentStep = 1.5;
+                      const basePadding = 2.2;
+                      const indentLevel = Math.max(0, Math.round((paddingValue - basePadding) / indentStep));
+                      const newMarkerOffset = baseMarkerOffset + (indentLevel * indentStep);
+                      listItem.style.setProperty('--marker-offset', `${newMarkerOffset}em`);
+                    }
+                  }
                 }
               }
             }

@@ -536,6 +536,42 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
               return;
             }
           }
+          // Handle regular backspace at start of any list item (not just first/empty)
+          else {
+            // For any list item at the start, remove the list formatting from this item
+            // Convert this list item to a paragraph
+            const p = document.createElement('p');
+            p.innerHTML = listItem.innerHTML || '<br>';
+            
+            // If this was the only item in the list, replace the entire list
+            if (list.querySelectorAll('li').length === 1) {
+              list.parentNode?.replaceChild(p, list);
+            } else {
+              // Insert the paragraph before the list and remove this item
+              list.parentNode?.insertBefore(p, list);
+              listItem.remove();
+            }
+            
+            // Set cursor to the paragraph
+            const newRange = document.createRange();
+            if (p.firstChild && p.firstChild.nodeType === Node.TEXT_NODE) {
+              newRange.setStart(p.firstChild, 0);
+            } else {
+              newRange.setStart(p, 0);
+            }
+            newRange.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+            
+            // Prevent default backspace behavior
+            e.preventDefault();
+            
+            // Update content
+            if (editorRef.current) {
+              onChange(editorRef.current.innerHTML);
+            }
+            return;
+          }
         }
       }
     }
