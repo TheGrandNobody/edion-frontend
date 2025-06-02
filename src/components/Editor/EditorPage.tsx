@@ -115,54 +115,23 @@ const EditorPage = () => {
       }
 
       const isOrderedList = listElement.tagName === 'OL';
-      const basePadding = isOrderedList ? 2.2 : 1.5; // Base padding in em
-      const indentStep = 1.5; // Indentation step in em
-
-      let currentLevel = 0;
-      const indentMatch = Array.from(listItem.classList)
-        .find(cls => cls.startsWith('indent-'));
       
-      if (indentMatch) {
-        currentLevel = parseInt(indentMatch.split('-')[1], 10) || 0;
-      } else {
-        // Attempt to infer level from existing padding if no class present
-        const existingPaddingString = listItem.style.paddingLeft || "";
-        const existingPaddingValue = parseFloat(existingPaddingString.replace(/em/gi, "")); // Use regex for case-insensitive replace
-
-        if (!isNaN(existingPaddingValue) && existingPaddingValue > 0) {
-            currentLevel = Math.max(0, Math.round((existingPaddingValue - basePadding) / indentStep));
-        }
-      }
-
-      // Remove existing indent classes before recalculating
-      listItem.classList.forEach(cls => {
-        if (cls.startsWith('indent-')) {
-          listItem?.classList.remove(cls);
-        }
-      });
-
-      const previousLevel = currentLevel;
-      if (direction === 'indent') {
-        currentLevel = Math.min(20, currentLevel + 1); // Max indent level 20
-      } else { // outdent
-        currentLevel = Math.max(0, currentLevel - 1); // Min indent level 0
-      }
-
-      const newPaddingLeftValue = basePadding + (currentLevel * indentStep);
-      const newPaddingLeftString = `${newPaddingLeftValue}em`;
+      // Get current indent level from CSS variable
+      const currentLevel = parseInt(listItem.style.getPropertyValue('--indent-level') || '0', 10);
       
-      listItem.style.paddingLeft = newPaddingLeftString;
+      // Calculate new indent level
+      const newLevel = direction === 'indent' 
+        ? Math.min(20, currentLevel + 1) // Max indent level 20
+        : Math.max(0, currentLevel - 1); // Min indent level 0
 
-      // Also adjust the marker offset for ordered lists if indenting
-      if (isOrderedList) {
-        const baseMarkerOffset = 0.5; // The default left value for the marker in em
-        const newMarkerOffsetValue = baseMarkerOffset + (currentLevel * indentStep);
-        const newMarkerOffsetString = `${newMarkerOffsetValue}em`;
-        listItem.style.setProperty('--marker-offset', newMarkerOffsetString);
+      // Set the new indent level
+      if (newLevel === 0) {
+        listItem.style.removeProperty('--indent-level');
       } else {
-        // Ensure the variable is cleared for ULs if it was somehow set
-        listItem.style.removeProperty('--marker-offset'); 
+        listItem.style.setProperty('--indent-level', newLevel.toString());
       }
+
+      // No need to set marker offset anymore as it's handled by CSS
 
       handleContentChange(editorRef.current.innerHTML);
     } 

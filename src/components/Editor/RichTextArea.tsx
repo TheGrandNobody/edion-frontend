@@ -877,7 +877,7 @@ const styles = `
   list-style-type: none !important;
   list-style-position: outside !important;
   margin-bottom: 0.5em;
-  padding-left: var(--indent-level, 0px);
+  padding-left: calc(2.2em + (var(--indent-level, 0) * 1.5em));
   display: flex;
   align-items: baseline;
   transition: padding-left 0.2s ease;
@@ -893,6 +893,8 @@ const styles = `
   margin-right: 0.5em;
   box-sizing: border-box;
   text-align: right;
+  position: absolute;
+  left: calc(0.5em + (var(--indent-level, 0) * 1.5em));
 }
 
 /* Number styling for ordered lists */
