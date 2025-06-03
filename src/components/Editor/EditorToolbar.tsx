@@ -804,6 +804,14 @@ const EditorToolbar = ({
         const listItems = listElement.querySelectorAll('li');
         listItems.forEach(item => {
           (item as HTMLElement).style.listStylePosition = 'inside';
+          
+          // Also apply justify-content for UL items just like OL items
+          (item as HTMLElement).style.removeProperty('justify-content');
+          if (alignType === 'justifyCenter') {
+            (item as HTMLElement).style.justifyContent = 'center';
+          } else if (alignType === 'justifyRight') {
+            (item as HTMLElement).style.justifyContent = 'flex-end';
+          }
         });
       }
       
@@ -902,6 +910,92 @@ const EditorToolbar = ({
       }
     }
     
+    // If already in a list of the same type, toggle it off (preserve indentation)
+    if (currentList && currentList.tagName === listType) {
+      // Store the list items' content and indentation
+      const listItems = Array.from(currentList.querySelectorAll('li')).map(item => item as HTMLLIElement);
+      const itemsData = listItems.map(item => {
+        return {
+          html: item.innerHTML,
+          indentLevel: item.style.getPropertyValue('--indent-level'),
+          paddingLeft: item.style.paddingLeft
+        };
+      });
+      
+      // Get alignment of the current list
+      const currentAlign = currentList.style.textAlign || '';
+      
+      // Remove the list formatting
+      const range = document.createRange();
+      range.selectNode(currentList);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
+      
+      // Find the paragraphs that were created
+      const paragraphs = Array.from(editorRef.current.querySelectorAll('p'));
+      const newlyCreatedParagraphs = paragraphs.filter(p => {
+        // Simple heuristic: if it's a direct child of the editor or near the selection
+        const isDirectChild = p.parentNode === editorRef.current;
+        const containsSelection = selection.containsNode(p, true);
+        return isDirectChild || containsSelection;
+      });
+      
+      // Apply indentation and alignment to new paragraphs
+      if (newlyCreatedParagraphs.length === itemsData.length) {
+        // We have a direct mapping
+        newlyCreatedParagraphs.forEach((p, index) => {
+          const data = itemsData[index];
+          
+          // Apply indentation
+          if (data.indentLevel && data.indentLevel !== '0px' && data.indentLevel !== '0') {
+            p.style.paddingLeft = data.indentLevel; // Convert to padding-left
+          } else if (data.paddingLeft) {
+            p.style.paddingLeft = data.paddingLeft;
+          }
+          
+          // Apply alignment
+          if (currentAlign && currentAlign !== 'left' && currentAlign !== 'start') {
+            p.style.textAlign = currentAlign;
+          }
+        });
+      } else {
+        // Fallback if we can't map 1:1 - just apply to all created paragraphs
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const paragraph = range.startContainer.nodeType === Node.TEXT_NODE 
+            ? range.startContainer.parentElement
+            : range.startContainer as HTMLElement;
+          
+          if (paragraph && paragraph.tagName === 'P') {
+            // Apply indentation from first list item (best effort)
+            if (itemsData.length > 0) {
+              const firstItemData = itemsData[0];
+              if (firstItemData.indentLevel && firstItemData.indentLevel !== '0px' && firstItemData.indentLevel !== '0') {
+                paragraph.style.paddingLeft = firstItemData.indentLevel;
+              } else if (firstItemData.paddingLeft) {
+                paragraph.style.paddingLeft = firstItemData.paddingLeft;
+              }
+            }
+            
+            // Apply alignment
+            if (currentAlign && currentAlign !== 'left' && currentAlign !== 'start') {
+              paragraph.style.textAlign = currentAlign;
+            }
+          }
+        }
+      }
+      
+      // Update content
+      if (editorRef.current) {
+        const event = new Event('input', { bubbles: true });
+        editorRef.current.dispatchEvent(event);
+      }
+      
+      return;
+    }
+    
     // If already in a list, but not of the desired type, convert between UL and OL
     if (currentList && currentList.tagName !== listType) {
       const currentListType = currentList.tagName;
@@ -909,8 +1003,41 @@ const EditorToolbar = ({
 
       // Check if we're trying to convert between list types
       if (currentListType === 'UL' && listType === 'OL' || currentListType === 'OL' && listType === 'UL') {
-        // Store cursor node identifier
-        const cursorNodeId = selection.anchorNode?.textContent?.substring(0, 20) || '';
+        // Store cursor position before conversion
+        const selectionRange = selection.getRangeAt(0);
+        const cursorNode = selectionRange.startContainer;
+        const cursorOffset = selectionRange.startOffset;
+        
+        // Find which list item contains the cursor
+        let cursorListItem: HTMLElement | null = null;
+        let cursorListItemIndex = -1;
+        
+        // Find the list item containing the cursor and its index
+        if (cursorNode) {
+          let node = cursorNode;
+          while (node && node !== currentList) {
+            if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'LI') {
+              cursorListItem = node as HTMLElement;
+              break;
+            }
+            node = node.parentNode;
+          }
+          
+          if (cursorListItem) {
+            const allItems = Array.from(currentList.querySelectorAll('li'));
+            cursorListItemIndex = allItems.indexOf(cursorListItem);
+          }
+        }
+        
+        // Also store whether cursor is at beginning, middle, or end of text node
+        let cursorPosition: 'beginning' | 'middle' | 'end' = 'middle';
+        if (cursorNode.nodeType === Node.TEXT_NODE) {
+          if (cursorOffset === 0) {
+            cursorPosition = 'beginning';
+          } else if (cursorOffset === cursorNode.textContent?.length) {
+            cursorPosition = 'end';
+          }
+        }
         
         // Store original list item content for potential restoration
         const listItems = currentList ? Array.from(currentList.querySelectorAll('li')).map(item => item as HTMLLIElement) : [];
@@ -1088,121 +1215,124 @@ const EditorToolbar = ({
             }, 100);
           }
           
-          // Fix cursor position for OL → UL conversion
-          if (currentListType === 'OL' && listType === 'UL') {
-            setTimeout(() => {
-              // Find the newly created UL list
-              let newList = null;
+          // Fix cursor position for all list type conversions
+          setTimeout(() => {
+            // Find the newly created list
+            let newList = null;
+            
+            // Try multiple methods to find the new list
+            // Method 1: Starting from selection
+            if (selection.anchorNode) {
+              let node = selection.anchorNode;
               
-              // Try multiple methods to find the new list
-              // Method 1: Starting from selection
-              if (selection.anchorNode) {
-                let node = selection.anchorNode;
-                
-                while (node && node !== editorRef.current) {
-                  if (node.nodeType === 1 && (node as HTMLElement).tagName === 'UL') {
-                    newList = node;
+              while (node && node !== editorRef.current) {
+                if (node.nodeType === 1 && (node as HTMLElement).tagName === listType) {
+                  newList = node;
+                  break;
+                }
+                node = node.parentNode;
+              }
+            }
+            
+            // Method 2: Direct query if method 1 fails
+            if (!newList) {
+              newList = editorRef.current?.querySelector(listType === 'UL' ? 'ul' : 'ol');
+            }
+            
+            if (newList) {
+              // Get all list items
+              const listItems = (newList as HTMLElement).querySelectorAll('li');
+              
+              // Check if we have original content to restore
+              if (originalContent && originalContent.length > 0) {
+                // Try to restore original content to the new list
+                Array.from(listItems).forEach((item, index) => {
+                  if (index < originalContent.length && originalContent[index].html) {
+                    // Only restore if current item appears empty or just has a spacer
+                    const isEmpty = !item.textContent || 
+                                   item.textContent === '\u200B' ||
+                                   item.innerHTML.includes('list-item-spacer');
+                    
+                    if (isEmpty) {
+                      item.innerHTML = originalContent[index].html;
+                    }
+                  }
+                });
+              }
+              
+              // Restore cursor to the same list item at approximately the same position
+              let targetItem = null;
+              
+              if (cursorListItemIndex >= 0 && cursorListItemIndex < listItems.length) {
+                // If we know which list item had the cursor, use that
+                targetItem = listItems[cursorListItemIndex];
+              } else if (selection.rangeCount > 0) {
+                // Otherwise try to find a list item that contains the selection
+                for (let i = 0; i < listItems.length; i++) {
+                  if (selection.containsNode(listItems[i], true)) {
+                    targetItem = listItems[i];
                     break;
                   }
-                  node = node.parentNode;
                 }
               }
               
-              // Method 2: Direct query if method 1 fails
-              if (!newList) {
-                newList = editorRef.current?.querySelector('ul');
+              // If no item contains selection, use first item
+              if (!targetItem && listItems.length > 0) {
+                targetItem = listItems[0];
               }
               
-              if (newList) {
-                // Get all list items
-                const listItems = (newList as HTMLElement).querySelectorAll('li');
+              if (targetItem) {
+                // Place cursor in the right position
+                const range = document.createRange();
                 
-                // Check if we have original content to restore
-                if (originalContent && originalContent.length > 0) {
-                  // Try to restore original content to the new list
-                  Array.from(listItems).forEach((item, index) => {
-                    if (index < originalContent.length && originalContent[index].html) {
-                      // Only restore if current item appears empty or just has a spacer
-                      const isEmpty = !item.textContent || 
-                                     item.textContent === '\u200B' ||
-                                     item.innerHTML.includes('list-item-spacer');
-                      
-                      if (isEmpty) {
-                        item.innerHTML = originalContent[index].html;
-                      }
-                    }
-                  });
+                // Try to get all text nodes
+                const walker = document.createTreeWalker(
+                  targetItem,
+                  NodeFilter.SHOW_TEXT,
+                  null
+                );
+                
+                // Find first and last text node
+                let firstTextNode = null;
+                let lastTextNode = null;
+                let textNode = null;
+                
+                while (textNode = walker.nextNode() as Text) {
+                  if (!firstTextNode) {
+                    firstTextNode = textNode;
+                  }
+                  lastTextNode = textNode;
                 }
                 
-                // Calculate a target list item - either one containing selection or first item
-                let targetItem = null;
-                
-                if (selection.rangeCount > 0) {
-                  for (let i = 0; i < listItems.length; i++) {
-                    if (selection.containsNode(listItems[i], true)) {
-                      targetItem = listItems[i];
-                      break;
-                    }
-                  }
-                }
-                
-                // If no item contains selection, use first item
-                if (!targetItem && listItems.length > 0) {
-                  targetItem = listItems[0];
-                }
-                
-                if (targetItem) {
-                  // Place cursor at the end of the item text
-                  const range = document.createRange();
-                  
-                  // First try to find a text node to place cursor in
-                  let textNode = null;
-                  
-                  // Try to get all text nodes
-                  const walker = document.createTreeWalker(
-                    targetItem,
-                    NodeFilter.SHOW_TEXT,
-                    null
-                  );
-                  
-                  // Get the last text node (to place cursor at the end)
-                  let lastTextNode = null;
-                  while (walker.nextNode()) {
-                    lastTextNode = walker.currentNode as Text;
-                  }
-                  
-                  if (lastTextNode) {
-                    textNode = lastTextNode;
-                  }
-                  
-                  if (textNode) {
-                    // Place cursor at the end of text
-                    range.setStart(textNode, textNode.textContent ? textNode.textContent.length : 0);
+                // Choose which text node to use based on stored cursor position
+                if (firstTextNode) {
+                  if (cursorPosition === 'beginning') {
+                    // Place cursor at beginning of first text node
+                    range.setStart(firstTextNode, 0);
+                  } else if (cursorPosition === 'end' && lastTextNode) {
+                    // Place cursor at end of last text node
+                    range.setStart(lastTextNode, lastTextNode.textContent?.length || 0);
                   } else {
-                    // Create a text node to position the cursor in
-                    textNode = document.createTextNode('\u200B'); // Zero-width space
-                    
-                    // If there's a span.list-item-spacer, replace it with our text node
-                    const spacer = targetItem.querySelector('.list-item-spacer');
-                    if (spacer) {
-                      spacer.parentNode?.replaceChild(textNode, spacer);
-                    } else {
-                      // No spacer, append text node
-                      targetItem.appendChild(textNode);
-                    }
-                    
-                    // Position cursor after the zero-width space
-                    range.setStart(textNode, 1);
+                    // Place cursor at beginning of first text node by default
+                    range.setStart(firstTextNode, 0);
                   }
-                  
-                  // Apply the selection
-                  range.collapse(false); // Collapse to end
-                  selection.removeAllRanges();
-                  selection.addRange(range);
+                } else {
+                  // If no text node exists, create one
+                  textNode = document.createTextNode('\u200B'); // Zero-width space
+                  targetItem.appendChild(textNode);
+                  range.setStart(textNode, 0);
                 }
+                
+                // Apply the selection
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                // Ensure the item is visible
+                targetItem.scrollIntoView({ block: 'nearest', inline: 'nearest' });
               }
-            }, 0);
-          }
+            }
+          }, 0);
         }
         
         // Update format states immediately
@@ -1293,6 +1423,14 @@ const EditorToolbar = ({
               const listItems = newList.querySelectorAll('li');
               listItems.forEach(item => {
                 (item as HTMLElement).style.listStylePosition = 'inside';
+                
+                // Also add justify-content for proper alignment
+                (item as HTMLElement).style.removeProperty('justify-content');
+                if (currentAlign === 'center') {
+                  (item as HTMLElement).style.justifyContent = 'center';
+                } else if (currentAlign === 'right') {
+                  (item as HTMLElement).style.justifyContent = 'flex-end';
+                }
               });
             }
             
@@ -1571,6 +1709,14 @@ const EditorToolbar = ({
               const listItems = newListElement.querySelectorAll('li');
               listItems.forEach(item => {
                 (item as HTMLElement).style.listStylePosition = 'inside';
+                
+                // Also apply justify-content for UL items just like OL items
+                (item as HTMLElement).style.removeProperty('justify-content');
+                if (currentAlignment === 'center') {
+                  (item as HTMLElement).style.justifyContent = 'center';
+                } else if (currentAlignment === 'right') {
+                  (item as HTMLElement).style.justifyContent = 'flex-end';
+                }
               });
             }
             lastKnownAlignmentRef.current = currentAlignment as TextAlignment;

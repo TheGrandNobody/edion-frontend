@@ -383,6 +383,54 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         return;
       }
       
+      // Handle backspace at the beginning of indented paragraphs
+      const isAtBeginning = range.startOffset === 0;
+      if (isAtBeginning && e.key === 'Backspace') {
+        // Find if we're in a paragraph or other block element
+        let node = range.startContainer;
+        let paragraph = null;
+        
+        // If we're directly in a text node, get its parent
+        if (node.nodeType === Node.TEXT_NODE) {
+          node = node.parentNode;
+        }
+        
+        // Check if we're in a paragraph or other block element
+        while (node && node !== editorRef.current) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as HTMLElement;
+            if (['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(element.tagName)) {
+              paragraph = element;
+              break;
+            }
+          }
+          node = node.parentNode;
+        }
+        
+        // If we found a paragraph and it has padding-left, reduce it
+        if (paragraph && paragraph.style && paragraph.style.paddingLeft) {
+          const currentPadding = parseInt(paragraph.style.paddingLeft, 10) || 0;
+          if (currentPadding > 0) {
+            // Reduce padding by TAB_INDENT_STEP_PX
+            const newPadding = Math.max(0, currentPadding - TAB_INDENT_STEP_PX);
+            if (newPadding === 0) {
+              paragraph.style.removeProperty('padding-left');
+            } else {
+              paragraph.style.paddingLeft = `${newPadding}px`;
+            }
+            
+            // Prevent default backspace behavior
+            e.preventDefault();
+            
+            // Update content
+            if (editorRef.current) {
+              onChange(editorRef.current.innerHTML);
+            }
+            return;
+          }
+        }
+      }
+      
       // Check if we're in a list item and at the beginning of it
       let node = range.startContainer;
       let listItem = null;
@@ -446,10 +494,36 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
             // Collect all list items
             const items = Array.from(list.querySelectorAll('li')).map(item => item as HTMLLIElement);
             
+            // Store original indentation and formatting
+            const itemsData = items.map(item => {
+              return {
+                html: item.innerHTML,
+                indentLevel: item.style.getPropertyValue('--indent-level'),
+                paddingLeft: item.style.paddingLeft
+              };
+            });
+            
+            // Remember alignment of the list
+            const listAlignment = (list as HTMLElement).style.textAlign || '';
+            
             // Create paragraphs for each list item's content
-            items.forEach(item => {
+            items.forEach((item, index) => {
               const p = document.createElement('p');
               p.innerHTML = item.innerHTML;
+              
+              // Apply indentation to the paragraph
+              const data = itemsData[index];
+              if (data.indentLevel && data.indentLevel !== '0px' && data.indentLevel !== '0') {
+                p.style.paddingLeft = data.indentLevel; // Convert to padding-left
+              } else if (data.paddingLeft) {
+                p.style.paddingLeft = data.paddingLeft;
+              }
+              
+              // Apply alignment if the list had it
+              if (listAlignment && listAlignment !== 'left' && listAlignment !== 'start') {
+                p.style.textAlign = listAlignment;
+              }
+              
               fragment.appendChild(p);
             });
             
@@ -486,9 +560,29 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
           if (isFirstItem && isEmpty) {
             // If there's only one item in the list, convert to paragraph
             if (list.querySelectorAll('li').length === 1) {
+              // Get indentation from the list item
+              const indentLevel = listItem.style.getPropertyValue('--indent-level');
+              const paddingLeft = listItem.style.paddingLeft;
+              
+              // Get alignment from the list
+              const listAlignment = (list as HTMLElement).style.textAlign || '';
+              
               // Replace the list with a paragraph
               const p = document.createElement('p');
               p.innerHTML = '<br>'; // Empty paragraph needs BR to be visible
+              
+              // Apply indentation to the paragraph
+              if (indentLevel && indentLevel !== '0px' && indentLevel !== '0') {
+                p.style.paddingLeft = indentLevel; // Convert to padding-left
+              } else if (paddingLeft) {
+                p.style.paddingLeft = paddingLeft;
+              }
+              
+              // Apply alignment if the list had it
+              if (listAlignment && listAlignment !== 'left' && listAlignment !== 'start') {
+                p.style.textAlign = listAlignment;
+              }
+              
               list.parentNode?.replaceChild(p, list);
               
               // Set cursor to the paragraph
@@ -585,6 +679,25 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
             // Convert this list item to a paragraph
             const p = document.createElement('p');
             p.innerHTML = listItem.innerHTML || '<br>';
+            
+            // Get indentation from the list item
+            const indentLevel = listItem.style.getPropertyValue('--indent-level');
+            const paddingLeft = listItem.style.paddingLeft;
+            
+            // Get alignment from the list
+            const listAlignment = (list as HTMLElement).style.textAlign || '';
+            
+            // Apply indentation to the paragraph
+            if (indentLevel && indentLevel !== '0px' && indentLevel !== '0') {
+              p.style.paddingLeft = indentLevel; // Convert to padding-left
+            } else if (paddingLeft) {
+              p.style.paddingLeft = paddingLeft;
+            }
+            
+            // Apply alignment if the list had it
+            if (listAlignment && listAlignment !== 'left' && listAlignment !== 'start') {
+              p.style.textAlign = listAlignment;
+            }
             
             // If this was the only item in the list, replace the entire list
             if (list.querySelectorAll('li').length === 1) {
@@ -738,6 +851,30 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
                            `text-align: ${alignment};`;
             
             newItem.setAttribute('style', newStyle);
+            
+            // For UL items with center/right alignment, also add justify-content
+            if ((alignment === 'center' || alignment === 'right') && 
+                newList.tagName === 'UL') {
+              // Add list-style-position: inside
+              (newItem as HTMLElement).style.listStylePosition = 'inside';
+              
+              // Add justify-content
+              if (alignment === 'center') {
+                (newItem as HTMLElement).style.justifyContent = 'center';
+              } else if (alignment === 'right') {
+                (newItem as HTMLElement).style.justifyContent = 'flex-end';
+              }
+            }
+            
+            // For OL items with center/right alignment, also add justify-content
+            if ((alignment === 'center' || alignment === 'right') && 
+                newList.tagName === 'OL') {
+              if (alignment === 'center') {
+                (newItem as HTMLElement).style.justifyContent = 'center';
+              } else if (alignment === 'right') {
+                (newItem as HTMLElement).style.justifyContent = 'flex-end';
+              }
+            }
             
             // Force a reflow
             void newItem.offsetHeight;
