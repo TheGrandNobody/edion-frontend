@@ -856,8 +856,6 @@ const EditorToolbar = ({
   const handleListFormatting = (listType: 'UL' | 'OL') => {
     if (!editorRef.current) return;
 
-    console.log(`[EditorToolbar] handleListFormatting called with listType: ${listType}`);
-
     const selection = window.getSelection();
     if (!selection || !selection.rangeCount) return;
     
@@ -909,8 +907,6 @@ const EditorToolbar = ({
       const currentListType = currentList.tagName;
       const alignmentToTransfer = currentList.style.textAlign;
 
-      console.log(`[EditorToolbar] Converting list from ${currentListType} to ${listType}. Alignment to transfer: ${alignmentToTransfer}`);
-      
       // Check if we're trying to convert between list types
       if (currentListType === 'UL' && listType === 'OL' || currentListType === 'OL' && listType === 'UL') {
         // Store cursor node identifier
@@ -927,7 +923,6 @@ const EditorToolbar = ({
             indentLevel: item.style.getPropertyValue('--indent-level'),
             fullStyle: item.getAttribute('style')
           };
-          console.log(`[EditorToolbar] Original item ${index} content for conversion:`, JSON.stringify(itemData));
           return itemData;
         });
 
@@ -1037,56 +1032,24 @@ const EditorToolbar = ({
                 const originalData = originalContent[index];
                 const listItem = item as HTMLElement;
 
-                // Restore indentation
-                let indentLevelSet = false;
-                if (originalData.indentLevel && originalData.indentLevel !== '') {
-                    const parsedIndentLevel = parseInt(originalData.indentLevel, 10);
-                    if (!isNaN(parsedIndentLevel) && parsedIndentLevel >= 0) {
-                        listItem.style.setProperty('--indent-level', parsedIndentLevel.toString());
-                        console.log(`[EditorToolbar] OL->UL: Used original --indent-level: ${parsedIndentLevel}`);
-                        indentLevelSet = true;
-                    } else {
-                        console.warn(`[EditorToolbar] OL->UL: Invalid original --indent-level: "${originalData.indentLevel}", will try to derive.`);
-                    }
-                }
-
-                if (!indentLevelSet && originalData.paddingLeft) {
-                    // Set paddingLeft for visual consistency, though CSS might override it based on --indent-level.
+                let indentHandled = false;
+                if (originalData.indentLevel) { // Prioritize --indent-level if it exists (e.g., "240px" from Tab key)
+                    listItem.style.setProperty('--indent-level', originalData.indentLevel);
+                    listItem.style.removeProperty('padding-left'); // Ensure direct padding-left is cleared
+                    indentHandled = true;
+                } else if (originalData.paddingLeft) { // No --indent-level, but has padding-left (e.g., from toolbar)
                     listItem.style.paddingLeft = originalData.paddingLeft;
-
-                    const paddingValueString = originalData.paddingLeft;
-                    if (paddingValueString.endsWith('em')) {
-                        const paddingValue = parseFloat(paddingValueString);
-                        const basePadding = 2.2; // em
-                        const indentStep = 1.5;  // em
-                        
-                        if (!isNaN(paddingValue)) {
-                            let derivedIndentLevel: number;
-                            if (paddingValue >= basePadding) {
-                                derivedIndentLevel = Math.max(0, Math.round((paddingValue - basePadding) / indentStep));
-                            } else if (paddingValue > 0) { // Padding exists but is less than base for level 0 indent.
-                                derivedIndentLevel = 0;
-                            } else { // paddingValue is 0 or negative
-                                derivedIndentLevel = 0;
-                            }
-                            listItem.style.setProperty('--indent-level', derivedIndentLevel.toString());
-                            console.log(`[EditorToolbar] OL->UL: Derived and set --indent-level: ${derivedIndentLevel} from paddingLeft: ${paddingValueString}`);
-                            indentLevelSet = true;
-                        } else {
-                             console.warn(`[EditorToolbar] OL->UL: Could not parse paddingLeft: ${paddingValueString} to derive --indent-level.`);
-                        }
-                    } else {
-                         console.warn(`[EditorToolbar] OL->UL: paddingLeft ("${paddingValueString}") is not in 'em'. Cannot derive --indent-level.`);
-                    }
+                    listItem.style.removeProperty('--indent-level'); // Ensure --indent-level is cleared
+                    indentHandled = true;
                 }
 
-                if (!indentLevelSet) {
-                    // Fallback: No valid original indentLevel, no paddingLeft, or failed to derive. Set to 0.
-                    listItem.style.setProperty('--indent-level', '0');
-                    console.log(`[EditorToolbar] OL->UL: Defaulted --indent-level to 0 as it could not be determined.`);
+                if (!indentHandled) {
+                    // Fallback: No specific indentation information found. Default to no indent.
+                    listItem.style.setProperty('--indent-level', '0px'); // Default for the CSS var system
+                    listItem.style.removeProperty('padding-left');
                 }
                 
-                console.log(`[EditorToolbar] Restored item ${index} (conversion part 1) - HTML: ${listItem.innerHTML}, indentLevel: ${listItem.style.getPropertyValue('--indent-level')}, paddingLeft: ${listItem.style.paddingLeft}`);
+                console.log(`[DEBUG] OL <-> UL Conversion - Restored item ${index} - Final --indent-level: ${listItem.style.getPropertyValue('--indent-level')}, paddingLeft: ${listItem.style.paddingLeft}`);
               }
             });
             
@@ -1270,7 +1233,6 @@ const EditorToolbar = ({
             indentLevel: listItem.style.getPropertyValue('--indent-level'),
             fullStyle: listItem.getAttribute('style')
           };
-          console.log(`[EditorToolbar] Original item ${index} content for type change:`, JSON.stringify(itemData));
           return itemData;
         });
         
@@ -1365,7 +1327,6 @@ const EditorToolbar = ({
               const originalData = contents[index];
               
               listItem.innerHTML = originalData.html;
-              
               let finalIndentLevel = 0; // Integer value of indent level
               let indentLevelSuccessfullySet = false;
 
@@ -1375,10 +1336,9 @@ const EditorToolbar = ({
                   if (!isNaN(parsedOriginalIndent) && parsedOriginalIndent >= 0) {
                       finalIndentLevel = parsedOriginalIndent;
                       listItem.style.setProperty('--indent-level', finalIndentLevel.toString());
-                      console.log(`[EditorToolbar] General Conv: Used original --indent-level: ${finalIndentLevel}`);
                       indentLevelSuccessfullySet = true;
                   } else {
-                      console.warn(`[EditorToolbar] General Conv: Invalid original --indent-level: "${originalData.indentLevel}", will try to derive.`);
+                      // console.warn(`[DEBUG] General Conversion - Item ${index}: Invalid original --indent-level: "${originalData.indentLevel}", will try to derive.`);
                   }
               }
 
@@ -1402,24 +1362,23 @@ const EditorToolbar = ({
                               finalIndentLevel = 0;
                           }
                           listItem.style.setProperty('--indent-level', finalIndentLevel.toString());
-                          console.log(`[EditorToolbar] General Conv: Derived --indent-level: ${finalIndentLevel} from paddingLeft: ${paddingValueString}`);
+                          // console.log(`[DEBUG] General Conversion - Item ${index}: Derived --indent-level: ${finalIndentLevel} from paddingLeft: ${paddingValueString}`);
                           indentLevelSuccessfullySet = true;
                       } else {
-                           console.warn(`[EditorToolbar] General Conv: Could not parse paddingLeft: ${paddingValueString} to derive --indent-level.`);
+                           // console.warn(`[DEBUG] General Conversion - Item ${index}: Could not parse paddingLeft: ${paddingValueString} to derive --indent-level.`);
                       }
                   } else {
-                       console.warn(`[EditorToolbar] General Conv: paddingLeft ("${paddingValueString}") is not in 'em'. Cannot derive --indent-level.`);
+                       // console.warn(`[DEBUG] General Conversion - Item ${index}: paddingLeft ("${paddingValueString}") is not in 'em'. Cannot derive --indent-level.`);
                   }
               }
 
               // 3. Fallback if --indent-level is still not successfully set
               if (!indentLevelSuccessfullySet) {
                   listItem.style.setProperty('--indent-level', '0'); // finalIndentLevel remains 0 (its initial value)
-                  console.log(`[EditorToolbar] General Conv: Defaulted --indent-level to 0.`);
+                  // console.log(`[DEBUG] General Conversion - Item ${index}: Defaulted --indent-level to 0.`);
               }
               
               // Restore marker formatting if this is an ordered list (listType === 'OL')
-              // This now uses the reliably set `finalIndentLevel`.
               if (listType === 'OL') {
                 // Restore specific marker styles (bold, italic, underline) if they existed.
                 if (originalData.markerBold) listItem.classList.add('marker-bold');
@@ -1436,9 +1395,9 @@ const EditorToolbar = ({
                 const indentStep = 1.5; // em
                 const newMarkerOffset = baseMarkerOffset + (finalIndentLevel * indentStep);
                 listItem.style.setProperty('--marker-offset', `${newMarkerOffset}em`);
-                console.log(`[EditorToolbar] General Conv (OL): Set --marker-offset to ${newMarkerOffset}em based on final --indent-level: ${finalIndentLevel}`);
+                // console.log(`[DEBUG] General Conversion (OL) - Item ${index}: Set --marker-offset to ${newMarkerOffset}em based on final --indent-level: ${finalIndentLevel}`);
               }
-              console.log(`[EditorToolbar] Restored item ${index} (conversion part 2) - Style - indentLevel: ${listItem.style.getPropertyValue('--indent-level')}, paddingLeft: ${listItem.style.paddingLeft}, fullStyle: ${listItem.getAttribute('style')}`);
+              // console.log(`[DEBUG] General Conversion - Restored item ${index} - Final indentLevel: ${listItem.style.getPropertyValue('--indent-level')}, paddingLeft: ${listItem.style.paddingLeft}, fullStyle: ${listItem.getAttribute('style')}`);
             }
           });
           
@@ -1470,7 +1429,6 @@ const EditorToolbar = ({
       // Not in a list, use standard command
       // Save the current selection and cursor position before creating the list
       const originalSelection = window.getSelection();
-      console.log('[EditorToolbar] Creating new list. Original selection:', originalSelection);
       let cursorOffset = 0;
       let textNode = null;
       let originalText = '';
@@ -1520,12 +1478,10 @@ const EditorToolbar = ({
               if (!newListElement.classList.contains('list-decimal')) {
                 newListElement.classList.add('list-decimal');
               }
-              console.log('[EditorToolbar] New OL created, firstItem classList:', firstItem.classList);
             } else if (listType === 'UL') {
               if (!newListElement.classList.contains('list-disc')) {
                 newListElement.classList.add('list-disc');
               }
-              console.log('[EditorToolbar] New UL created, firstItem classList:', firstItem.classList);
             }
             
             // Fix cursor positioning in list item with a slight delay to ensure DOM is updated
@@ -1572,7 +1528,7 @@ const EditorToolbar = ({
             // Apply alignment if needed
             if (currentAlignment !== 'left') {
               newListElement.style.textAlign = currentAlignment;
-              console.log(`[EditorToolbar] Applied alignment ${currentAlignment} to new list.`);
+              // console.log(`[EditorToolbar] Applied alignment ${currentAlignment} to new list.`);
               
               if (newListElement.tagName === 'OL') {
                 const listItems = newListElement.querySelectorAll('li');
@@ -1608,7 +1564,6 @@ const EditorToolbar = ({
     // Update format states and trigger content change event
     updateFormatStates();
     if (editorRef.current) {
-      console.log('[EditorToolbar] Dispatching input event after list formatting.');
       const event = new Event('input', { bubbles: true });
       editorRef.current.dispatchEvent(event);
     }

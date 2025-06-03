@@ -48,29 +48,67 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
     { className: 'list-square', marker: 'square' }
   ];
   
+  const PX_PER_EM_LEVEL = 24; // Approx 1.5em * 16px/em (used by toolbar for one indent step)
+  const TAB_INDENT_STEP_PX = 40;
+
+  const getEffectivePxIndent = (listItem: HTMLElement): number => {
+    const indentLevelStyle = listItem.style.getPropertyValue('--indent-level');
+    if (indentLevelStyle && indentLevelStyle.endsWith('px')) {
+      const pxVal = parseInt(indentLevelStyle, 10);
+      if (!isNaN(pxVal)) return pxVal;
+    }
+
+    const paddingLeftStyle = listItem.style.paddingLeft;
+    if (paddingLeftStyle && paddingLeftStyle.endsWith('em')) {
+      const emVal = parseFloat(paddingLeftStyle);
+      if (!isNaN(emVal)) {
+        // Determine base padding for the list type to subtract it
+        const listElement = listItem.closest('ul, ol') as HTMLElement | null;
+        let baseEmPadding = 1.5; // Default for UL
+        if (listElement && listElement.tagName === 'OL') {
+          baseEmPadding = 2.2; // For OL
+        }
+        const netEmIndent = Math.max(0, emVal - baseEmPadding);
+        // Convert em levels (1.5em per level) to px. Each 1.5em is one PX_PER_EM_LEVEL step.
+        const numEmLevels = netEmIndent / 1.5; 
+        return Math.round(numEmLevels * PX_PER_EM_LEVEL); 
+      }
+    }
+    return 0;
+  };
+  
   const handleIndent = (listItem: HTMLElement, listElement: HTMLElement) => {
-    // Only handle the indentation level
-    const currentIndent = parseInt(listItem.style.getPropertyValue('--indent-level') || '0', 10);
-    const newIndent = currentIndent + 40;
-    listItem.style.setProperty('--indent-level', `${newIndent}px`);
+    let currentPxIndent = getEffectivePxIndent(listItem);
+    const newIndent = currentPxIndent + TAB_INDENT_STEP_PX;
     
-    // Remove any inline styles that might interfere with flexbox layout
-    listItem.style.removeProperty('list-style-position');
+    listItem.style.setProperty('--indent-level', `${newIndent}px`);
     listItem.style.removeProperty('padding-left');
+    listItem.style.removeProperty('list-style-position');
+    listItem.classList.forEach(cls => {
+      if (cls.startsWith('indent-')) listItem.classList.remove(cls);
+    });
   };
 
   const handleOutdent = (listItem: HTMLElement, listElement: HTMLElement) => {
-    // Only handle the indentation level
-    const currentIndent = parseInt(listItem.style.getPropertyValue('--indent-level') || '0', 10);
-    if (currentIndent > 0) {
-      const newIndent = Math.max(0, currentIndent - 40);
+    let currentPxIndent = getEffectivePxIndent(listItem);
+
+    if (currentPxIndent > 0) {
+      const newIndent = Math.max(0, currentPxIndent - TAB_INDENT_STEP_PX);
       if (newIndent === 0) {
         listItem.style.removeProperty('--indent-level');
-        // Remove any inline styles
-        listItem.style.removeProperty('list-style-position');
         listItem.style.removeProperty('padding-left');
+        listItem.style.removeProperty('list-style-position');
+        listItem.classList.forEach(cls => {
+          if (cls.startsWith('indent-')) listItem.classList.remove(cls);
+        });
       } else {
         listItem.style.setProperty('--indent-level', `${newIndent}px`);
+        // Ensure other styles are also cleaned if we are setting --indent-level
+        listItem.style.removeProperty('padding-left');
+        listItem.style.removeProperty('list-style-position');
+        listItem.classList.forEach(cls => {
+          if (cls.startsWith('indent-')) listItem.classList.remove(cls);
+        });
       }
     }
   };
@@ -877,7 +915,7 @@ const styles = `
   list-style-type: none !important;
   list-style-position: outside !important;
   margin-bottom: 0.5em;
-  padding-left: calc(2.2em + (var(--indent-level, 0) * 1.5em));
+  padding-left: var(--indent-level, 0px);
   display: flex;
   align-items: baseline;
   transition: padding-left 0.2s ease;
@@ -893,8 +931,6 @@ const styles = `
   margin-right: 0.5em;
   box-sizing: border-box;
   text-align: right;
-  position: absolute;
-  left: calc(0.5em + (var(--indent-level, 0) * 1.5em));
 }
 
 /* Number styling for ordered lists */

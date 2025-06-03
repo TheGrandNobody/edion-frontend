@@ -12,6 +12,40 @@ const EditorPage = () => {
   const { insertMathDelimiters } = useInlineMath();
   const editorRef = useRef<HTMLDivElement>(null);
 
+  const INDENT_STEP_PX = 40;
+  const PX_PER_EM_LEVEL_APPROX = 24; // Approx 1.5em * 16px/em, used for converting old em indents
+
+  // Helper to get current effective indentation in PX for a list item
+  const getEffectivePxIndentFromListItem = (listItem: HTMLElement): number => {
+    const indentLevelStyle = listItem.style.getPropertyValue('--indent-level');
+    if (indentLevelStyle && indentLevelStyle.endsWith('px')) {
+      const pxVal = parseInt(indentLevelStyle, 10);
+      if (!isNaN(pxVal)) return pxVal;
+    }
+
+    const paddingLeftStyle = listItem.style.paddingLeft;
+    if (paddingLeftStyle && paddingLeftStyle.endsWith('em')) {
+      const emVal = parseFloat(paddingLeftStyle);
+      if (!isNaN(emVal)) {
+        const listElement = listItem.closest('ul, ol') as HTMLElement | null;
+        let baseEmPadding = 1.5; // Default for UL
+        if (listElement && listElement.tagName === 'OL') {
+          baseEmPadding = 2.2; // For OL
+        }
+        const netEmIndent = Math.max(0, emVal - baseEmPadding);
+        const numEmLevels = netEmIndent / 1.5; // Toolbar used 1.5em steps
+        return Math.round(numEmLevels * PX_PER_EM_LEVEL_APPROX);
+      }
+    }
+    // Check for indent-X class as a last resort (older system)
+    const indentMatch = Array.from(listItem.classList).find(cls => cls.startsWith('indent-'));
+    if (indentMatch) {
+        const level = parseInt(indentMatch.split('-')[1], 10) || 0;
+        return level * PX_PER_EM_LEVEL_APPROX; // Convert em levels to approx px
+    }
+    return 0;
+  };
+
   // Update latex document whenever content changes
   const handleContentChange = (newContent: string) => {
     setContent(newContent);
@@ -114,49 +148,41 @@ const EditorPage = () => {
         return; // Not in a list
       }
 
-      const isOrderedList = listElement.tagName === 'OL';
-      
-      // Get current indent level from CSS variable
-      const currentLevel = parseInt(listItem.style.getPropertyValue('--indent-level') || '0', 10);
-      
-      // Calculate new indent level
-      const newLevel = direction === 'indent' 
-        ? Math.min(20, currentLevel + 1) // Max indent level 20
-        : Math.max(0, currentLevel - 1); // Min indent level 0
+      let currentPxIndent = getEffectivePxIndentFromListItem(listItem);
+      let newPxIndent;
 
-      // Set the new indent level
-      if (newLevel === 0) {
-        listItem.style.removeProperty('--indent-level');
-      } else {
-        listItem.style.setProperty('--indent-level', newLevel.toString());
+      if (direction === 'indent') {
+        newPxIndent = Math.min(currentPxIndent + INDENT_STEP_PX, 20 * INDENT_STEP_PX); // Max 20 levels
+      } else { // outdent
+        newPxIndent = Math.max(0, currentPxIndent - INDENT_STEP_PX);
       }
-
-      // No need to set marker offset anymore as it's handled by CSS
+      
+      listItem.style.setProperty('--indent-level', `${newPxIndent}px`);
+      
+      // Clean up other potentially conflicting indent styles
+      listItem.style.removeProperty('padding-left');
+      listItem.style.removeProperty('--marker-offset');
+      listItem.classList.forEach(cls => {
+        if (cls.startsWith('indent-')) {
+          listItem?.classList.remove(cls);
+        }
+      });
 
       handleContentChange(editorRef.current.innerHTML);
     } 
     // Handle regular text blocks (paragraphs, divs, etc.)
     else if (textBlock) {
-      const indentStep = 40; // Indentation step in px for text blocks
-      const maxIndentPx = 20 * 40; // Maximum indentation level in px (e.g., 20 levels * 40px/level)
-
-      // Get current padding or default to 0
       const currentPaddingString = textBlock.style.paddingLeft || '0px';
-      const currentValue = parseFloat(currentPaddingString) || 0; // Will be 0 if not a number
-
-      // Calculate new padding value
-      let newPadding;
+      const currentPxValue = parseFloat(currentPaddingString) || 0;
+      let newPxPadding;
       
       if (direction === 'indent') {
-        newPadding = Math.min(currentValue + indentStep, maxIndentPx);
+        newPxPadding = Math.min(currentPxValue + INDENT_STEP_PX, 20 * INDENT_STEP_PX);
       } else { // outdent
-        newPadding = Math.max(currentValue - indentStep, 0);
+        newPxPadding = Math.max(0, currentPxValue - INDENT_STEP_PX);
       }
 
-      // Apply new padding
-      textBlock.style.paddingLeft = newPadding === 0 ? '' : newPadding + 'px';
-
-      // Update editor content
+      textBlock.style.paddingLeft = newPxPadding === 0 ? '' : `${newPxPadding}px`;
       handleContentChange(editorRef.current.innerHTML);
     }
     // If no list item or text block found, try to create an indented paragraph at the cursor position
@@ -179,7 +205,9 @@ const EditorPage = () => {
         
         // Apply indentation
         if (newParagraph && newParagraph.tagName) {
-          newParagraph.style.paddingLeft = '2em';
+          // For newly created paragraphs, also use --indent-level for consistency if possible,
+          // but direct padding-left is simpler here as it's not a list item.
+          newParagraph.style.paddingLeft = `${INDENT_STEP_PX}px`;
           handleContentChange(editorRef.current.innerHTML);
         }
       }
