@@ -18,9 +18,12 @@ const EditorPage = () => {
   // Helper to get current effective indentation in PX for a list item
   const getEffectivePxIndentFromListItem = (listItem: HTMLElement): number => {
     const indentLevelStyle = listItem.style.getPropertyValue('--indent-level');
+
     if (indentLevelStyle && indentLevelStyle.endsWith('px')) {
       const pxVal = parseInt(indentLevelStyle, 10);
-      if (!isNaN(pxVal)) return pxVal;
+      if (!isNaN(pxVal)) {
+        return pxVal;
+      }
     }
 
     const paddingLeftStyle = listItem.style.paddingLeft;
@@ -34,14 +37,16 @@ const EditorPage = () => {
         }
         const netEmIndent = Math.max(0, emVal - baseEmPadding);
         const numEmLevels = netEmIndent / 1.5; // Toolbar used 1.5em steps
-        return Math.round(numEmLevels * PX_PER_EM_LEVEL_APPROX);
+        const calculatedPx = Math.round(numEmLevels * PX_PER_EM_LEVEL_APPROX);
+        return calculatedPx;
       }
     }
     // Check for indent-X class as a last resort (older system)
     const indentMatch = Array.from(listItem.classList).find(cls => cls.startsWith('indent-'));
     if (indentMatch) {
         const level = parseInt(indentMatch.split('-')[1], 10) || 0;
-        return level * PX_PER_EM_LEVEL_APPROX; // Convert em levels to approx px
+        const calculatedPx = level * PX_PER_EM_LEVEL_APPROX; // Convert em levels to approx px
+        return calculatedPx;
     }
     return 0;
   };

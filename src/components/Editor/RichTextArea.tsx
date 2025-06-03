@@ -53,12 +53,16 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
 
   const getEffectivePxIndent = (listItem: HTMLElement): number => {
     const indentLevelStyle = listItem.style.getPropertyValue('--indent-level');
+
     if (indentLevelStyle && indentLevelStyle.endsWith('px')) {
       const pxVal = parseInt(indentLevelStyle, 10);
-      if (!isNaN(pxVal)) return pxVal;
+      if (!isNaN(pxVal)) {
+        return pxVal;
+      }
     }
 
     const paddingLeftStyle = listItem.style.paddingLeft;
+
     if (paddingLeftStyle && paddingLeftStyle.endsWith('em')) {
       const emVal = parseFloat(paddingLeftStyle);
       if (!isNaN(emVal)) {
@@ -71,7 +75,8 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
         const netEmIndent = Math.max(0, emVal - baseEmPadding);
         // Convert em levels (1.5em per level) to px. Each 1.5em is one PX_PER_EM_LEVEL step.
         const numEmLevels = netEmIndent / 1.5; 
-        return Math.round(numEmLevels * PX_PER_EM_LEVEL); 
+        const calculatedPx = Math.round(numEmLevels * PX_PER_EM_LEVEL); 
+        return calculatedPx; 
       }
     }
     return 0;
@@ -246,7 +251,7 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       }
       else {
         // Not at the start of a block, or in a list but not at the start of LI: insert spaces
-        const tabTextNode = document.createTextNode('    '); // Four non-breaking spaces
+        const tabTextNode = document.createTextNode('\u00a0\u00a0\u00a0\u00a0'); // Four non-breaking spaces
         range.deleteContents();
         range.insertNode(tabTextNode);
         
@@ -656,10 +661,10 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
           const targetElement = mutation.target as HTMLElement;
           if (targetElement.tagName === 'LI') {
             const computedStyle = window.getComputedStyle(targetElement);
-                }
-              }
-            }
-          });
+          }
+        }
+      }
+    });
 
     observer.observe(editor, {
       attributes: true,
