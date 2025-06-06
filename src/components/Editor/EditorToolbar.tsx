@@ -245,15 +245,42 @@ const EditorToolbar = ({
       }
     }
     
-    // Check if a list item is fully selected - only for formatting commands
+    // Enhanced list item formatting logic
     let listItem: HTMLElement | null = null;
+    let shouldFormatMarker = false;
     const selection = window.getSelection();
+    
     if (selection && ['bold', 'italic', 'underline'].includes(command)) {
-      listItem = isListItemFullySelected(selection);
+      // First, find if we're in a list item
+      let node = selection.anchorNode;
+      while (node && node !== editorRef.current) {
+        if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'LI') {
+          listItem = node as HTMLElement;
+          break;
+        }
+        node = node.parentNode;
+      }
+      
+      if (listItem) {
+        const range = selection.getRangeAt(0);
+        
+        // Check if entire list item is selected
+        const isFullySelected = isListItemFullySelected(selection) !== null;
+        
+        // Check if cursor is at the beginning with no selection
+        const isAtBeginningWithoutSelection = range.collapsed && 
+          ((range.startContainer === listItem && range.startOffset === 0) ||
+           (range.startContainer === listItem.firstChild && range.startOffset === 0));
+        
+        // Format the marker if:
+        // 1. The entire list item is selected, OR
+        // 2. The cursor is at the beginning without any selection
+        shouldFormatMarker = isFullySelected || isAtBeginningWithoutSelection;
+      }
     }
     
     // Handle list marker formatting for both ordered and unordered lists
-    if (listItem) {
+    if (listItem && shouldFormatMarker) {
       // Determine marker class based on the command
       const markerClass = `marker-${command}`;
       
@@ -269,9 +296,41 @@ const EditorToolbar = ({
         // We can't directly style ::marker with JS, but we can add a class to the list item
         // The CSS in RichTextArea.tsx should be updated to style UL markers as well
       }
+      
+      // For cursor at beginning without selection, don't execute the content command
+      // Only format the marker
+      const range = selection.getRangeAt(0);
+      const isAtBeginningWithoutSelection = range.collapsed && 
+        ((range.startContainer === listItem && range.startOffset === 0) ||
+         (range.startContainer === listItem.firstChild && range.startOffset === 0));
+      
+      if (isAtBeginningWithoutSelection) {
+        // Update states
+        switch (command) {
+          case 'bold':
+            setIsBold(listItem.classList.contains('marker-bold'));
+            break;
+          case 'italic':
+            setIsItalic(listItem.classList.contains('marker-italic'));
+            break;
+          case 'underline':
+            setIsUnderline(listItem.classList.contains('marker-underline'));
+            break;
+        }
+
+        // Update format states
+        updateFormatStates();
+        
+        // Trigger input event to ensure changes are saved
+        if (editorRef.current) {
+          const event = new Event('input', { bubbles: true });
+          editorRef.current.dispatchEvent(event);
+        }
+        return; // Don't execute the content command
+      }
     }
 
-    // Execute command for the content
+    // Execute command for the content (this will handle both marker and content when entire item is selected)
     document.execCommand(command, false, value);
 
     // Update states
@@ -586,7 +645,7 @@ const EditorToolbar = ({
         // If we found a list item, check for marker formatting classes
         if (listItemElement) {
           // If the entire list item is selected, consider the marker formatting
-          const isFullySelected = isListItemFullySelected(selection);
+          const isFullySelected = isListItemFullySelected(selection) !== null;
           
           if (isFullySelected) {
             // Update toolbar states based on marker classes
@@ -912,6 +971,41 @@ const EditorToolbar = ({
     
     // If already in a list of the same type, toggle it off (preserve indentation)
     if (currentList && currentList.tagName === listType) {
+      // Store cursor position before conversion
+      const selectionRange = selection.getRangeAt(0);
+      const cursorNode = selectionRange.startContainer;
+      const cursorOffset = selectionRange.startOffset;
+      
+      // Find which list item contains the cursor and its index
+      let cursorListItem: HTMLElement | null = null;
+      let cursorListItemIndex = -1;
+      
+      if (cursorNode) {
+        let node = cursorNode;
+        while (node && node !== currentList) {
+          if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'LI') {
+            cursorListItem = node as HTMLElement;
+            break;
+          }
+          node = node.parentNode;
+        }
+        
+        if (cursorListItem) {
+          const allItems = Array.from(currentList.querySelectorAll('li'));
+          cursorListItemIndex = allItems.indexOf(cursorListItem);
+        }
+      }
+      
+      // Store whether cursor is at beginning, middle, or end of text node
+      let cursorPosition: 'beginning' | 'middle' | 'end' = 'middle';
+      if (cursorNode.nodeType === Node.TEXT_NODE) {
+        if (cursorOffset === 0) {
+          cursorPosition = 'beginning';
+        } else if (cursorOffset === cursorNode.textContent?.length) {
+          cursorPosition = 'end';
+        }
+      }
+      
       // Store the list items' content and indentation
       const listItems = Array.from(currentList.querySelectorAll('li')).map(item => item as HTMLLIElement);
       const itemsData = listItems.map(item => {
@@ -925,11 +1019,8 @@ const EditorToolbar = ({
       // Get alignment of the current list
       const currentAlign = currentList.style.textAlign || '';
       
-      // Remove the list formatting
-      const range = document.createRange();
-      range.selectNode(currentList);
-      selection.removeAllRanges();
-      selection.addRange(range);
+      // Remove the list formatting WITHOUT selecting the entire list
+      // Instead, just use the execCommand which will work with current selection
       document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
       
       // Find the paragraphs that were created
@@ -986,6 +1077,60 @@ const EditorToolbar = ({
           }
         }
       }
+      
+      // Restore cursor position to the equivalent position in the new paragraphs
+      setTimeout(() => {
+        // Find the paragraph that corresponds to the original list item
+        let targetParagraph = null;
+        
+        if (cursorListItemIndex >= 0 && cursorListItemIndex < newlyCreatedParagraphs.length) {
+          targetParagraph = newlyCreatedParagraphs[cursorListItemIndex];
+        } else if (newlyCreatedParagraphs.length > 0) {
+          // Fallback to first paragraph
+          targetParagraph = newlyCreatedParagraphs[0];
+        }
+        
+        if (targetParagraph) {
+          // Find text nodes in the paragraph
+          const walker = document.createTreeWalker(
+            targetParagraph,
+            NodeFilter.SHOW_TEXT,
+            null
+          );
+          
+          let firstTextNode = null;
+          let lastTextNode = null;
+          let textNode = null;
+          
+          while (textNode = walker.nextNode() as Text) {
+            if (!firstTextNode) {
+              firstTextNode = textNode;
+            }
+            lastTextNode = textNode;
+          }
+          
+          // Place cursor based on stored position
+          if (firstTextNode) {
+            const range = document.createRange();
+            
+            if (cursorPosition === 'beginning') {
+              range.setStart(firstTextNode, 0);
+            } else if (cursorPosition === 'end' && lastTextNode) {
+              range.setStart(lastTextNode, lastTextNode.textContent?.length || 0);
+            } else {
+              // Default to beginning
+              range.setStart(firstTextNode, 0);
+            }
+            
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            // Ensure the paragraph is visible
+            targetParagraph.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          }
+        }
+      }, 10);
       
       // Update content
       if (editorRef.current) {

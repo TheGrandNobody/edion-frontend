@@ -122,6 +122,353 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
   const handleEditorKeyDown = (e: React.KeyboardEvent) => {
     // First call the inline math handler
     handleInlineMathKeyDown(e);
+
+    // Handle keyboard shortcuts
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key.toLowerCase()) {
+        case 'b':
+          e.preventDefault();
+          document.execCommand('bold');
+          if (editorRef.current) {
+            const event = new Event('input', { bubbles: true });
+            editorRef.current.dispatchEvent(event);
+          }
+          return;
+        case 'i':
+          e.preventDefault();
+          document.execCommand('italic');
+          if (editorRef.current) {
+            const event = new Event('input', { bubbles: true });
+            editorRef.current.dispatchEvent(event);
+          }
+          return;
+        case 'u':
+          e.preventDefault();
+          document.execCommand('underline');
+          if (editorRef.current) {
+            const event = new Event('input', { bubbles: true });
+            editorRef.current.dispatchEvent(event);
+          }
+          return;
+        case 'l':
+          e.preventDefault();
+          if (e.shiftKey) {
+            // Ctrl+Shift+L for numbered list
+            document.execCommand('insertOrderedList');
+          } else {
+            // Ctrl+L for bullet list
+            document.execCommand('insertUnorderedList');
+          }
+          if (editorRef.current) {
+            const event = new Event('input', { bubbles: true });
+            editorRef.current.dispatchEvent(event);
+          }
+          return;
+        case '.':
+          if (e.shiftKey) {
+            // Ctrl+Shift+> for indent
+            e.preventDefault();
+            // Trigger indent functionality
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              let node = range.startContainer;
+              let listItem = null;
+              
+              // Find list item or block element to indent
+              while (node && node !== editorRef.current) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                  const element = node as HTMLElement;
+                  if (element.tagName === 'LI') {
+                    listItem = element;
+                    break;
+                  }
+                }
+                node = node.parentNode;
+              }
+              
+              if (listItem) {
+                // Apply list indent (simplified version)
+                const currentIndent = parseInt(listItem.style.getPropertyValue('--indent-level') || '0', 10);
+                const newIndent = Math.min(currentIndent + 40, 800); // Max 20 levels
+                listItem.style.setProperty('--indent-level', `${newIndent}px`);
+              } else {
+                // Apply paragraph indent
+                let paragraph = range.startContainer;
+                if (paragraph.nodeType === Node.TEXT_NODE) {
+                  paragraph = paragraph.parentNode;
+                }
+                while (paragraph && paragraph !== editorRef.current) {
+                  if (paragraph.nodeType === Node.ELEMENT_NODE) {
+                    const element = paragraph as HTMLElement;
+                    if (['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(element.tagName)) {
+                      const currentPadding = parseInt(element.style.paddingLeft || '0', 10);
+                      element.style.paddingLeft = `${currentPadding + 40}px`;
+                      break;
+                    }
+                  }
+                  paragraph = paragraph.parentNode;
+                }
+              }
+              
+              if (editorRef.current) {
+                onChange(editorRef.current.innerHTML);
+              }
+            }
+            return;
+          }
+          break;
+        case ',':
+          if (e.shiftKey) {
+            // Ctrl+Shift+< for outdent
+            e.preventDefault();
+            // Trigger outdent functionality
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              let node = range.startContainer;
+              let listItem = null;
+              
+              // Find list item or block element to outdent
+              while (node && node !== editorRef.current) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                  const element = node as HTMLElement;
+                  if (element.tagName === 'LI') {
+                    listItem = element;
+                    break;
+                  }
+                }
+                node = node.parentNode;
+              }
+              
+              if (listItem) {
+                // Apply list outdent (simplified version)
+                const currentIndent = parseInt(listItem.style.getPropertyValue('--indent-level') || '0', 10);
+                const newIndent = Math.max(currentIndent - 40, 0);
+                if (newIndent === 0) {
+                  listItem.style.removeProperty('--indent-level');
+                } else {
+                  listItem.style.setProperty('--indent-level', `${newIndent}px`);
+                }
+              } else {
+                // Apply paragraph outdent
+                let paragraph = range.startContainer;
+                if (paragraph.nodeType === Node.TEXT_NODE) {
+                  paragraph = paragraph.parentNode;
+                }
+                while (paragraph && paragraph !== editorRef.current) {
+                  if (paragraph.nodeType === Node.ELEMENT_NODE) {
+                    const element = paragraph as HTMLElement;
+                    if (['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(element.tagName)) {
+                      const currentPadding = parseInt(element.style.paddingLeft || '0', 10);
+                      const newPadding = Math.max(currentPadding - 40, 0);
+                      if (newPadding === 0) {
+                        element.style.removeProperty('padding-left');
+                      } else {
+                        element.style.paddingLeft = `${newPadding}px`;
+                      }
+                      break;
+                    }
+                  }
+                  paragraph = paragraph.parentNode;
+                }
+              }
+              
+              if (editorRef.current) {
+                onChange(editorRef.current.innerHTML);
+              }
+            }
+            return;
+          }
+          break;
+      }
+    }
+
+    // Handle Enter key in lists for better line creation
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        let node = range.startContainer;
+        let listItem = null;
+        
+        // Check if we're in a list item
+        while (node && node !== editorRef.current) {
+          if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'LI') {
+            listItem = node as HTMLElement;
+            break;
+          }
+          node = node.parentNode;
+        }
+        
+        // If we're in a list item and it's empty, break out of the list
+        if (listItem) {
+          const isEmpty = !listItem.textContent || 
+                          listItem.textContent === '\u00A0' || 
+                          listItem.textContent === '\u200B' ||
+                          listItem.innerHTML === '<br>';
+          
+          if (isEmpty) {
+            e.preventDefault();
+            
+            // Create a new paragraph after the list
+            const list = listItem.closest('ul, ol') as HTMLElement;
+            const paragraph = document.createElement('p');
+            paragraph.innerHTML = '<br>';
+            
+            // Apply any indentation from the list item
+            const indentLevel = listItem.style.getPropertyValue('--indent-level');
+            const paddingLeft = listItem.style.paddingLeft;
+            
+            if (indentLevel && indentLevel !== '0px') {
+              paragraph.style.paddingLeft = indentLevel;
+            } else if (paddingLeft) {
+              paragraph.style.paddingLeft = paddingLeft;
+            }
+            
+            // Insert paragraph after the list
+            if (list && list.parentNode) {
+              if (list.querySelectorAll('li').length === 1) {
+                // Only one item, replace the entire list
+                list.parentNode.replaceChild(paragraph, list);
+              } else {
+                // Multiple items, remove this item and add paragraph after list
+                listItem.remove();
+                list.parentNode.insertBefore(paragraph, list.nextSibling);
+              }
+              
+              // Set cursor to the new paragraph
+              const newRange = document.createRange();
+              newRange.setStart(paragraph, 0);
+              newRange.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(newRange);
+              
+              // Update content
+              if (editorRef.current) {
+                onChange(editorRef.current.innerHTML);
+              }
+            }
+            return;
+          }
+        }
+      }
+    }
+    
+    // Handle arrow key navigation in tables
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        let node = range.startContainer;
+        let tableCell = null;
+        
+        // Find if we're in a table cell
+        while (node && node !== editorRef.current) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as HTMLElement;
+            if (element.tagName === 'TD' || element.tagName === 'TH') {
+              tableCell = element;
+              break;
+            }
+          }
+          node = node.parentNode;
+        }
+        
+        if (tableCell) {
+          const table = tableCell.closest('table') as HTMLTableElement;
+          if (table) {
+            // Only handle navigation if we're at the edge of the cell content
+            const atStart = range.startOffset === 0 && range.startContainer === (tableCell.firstChild || tableCell);
+            const atEnd = range.startOffset === (range.startContainer.textContent?.length || 0) && range.startContainer === (tableCell.lastChild || tableCell);
+            
+            if ((e.key === 'ArrowLeft' && atStart) || 
+                (e.key === 'ArrowRight' && atEnd) ||
+                (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+              
+              e.preventDefault();
+              
+              const rows = Array.from(table.rows);
+              const currentRow = tableCell.closest('tr') as HTMLTableRowElement;
+              const currentRowIndex = rows.indexOf(currentRow);
+              const currentCellIndex = Array.from(currentRow.cells).indexOf(tableCell as HTMLTableCellElement);
+              
+              let targetCell = null;
+              
+              switch (e.key) {
+                case 'ArrowLeft':
+                  // Previous cell in same row
+                  if (currentCellIndex > 0) {
+                    targetCell = currentRow.cells[currentCellIndex - 1];
+                  } else if (currentRowIndex > 0) {
+                    // Last cell of previous row
+                    const prevRow = rows[currentRowIndex - 1];
+                    targetCell = prevRow.cells[prevRow.cells.length - 1];
+                  }
+                  break;
+                  
+                case 'ArrowRight':
+                  // Next cell in same row
+                  if (currentCellIndex < currentRow.cells.length - 1) {
+                    targetCell = currentRow.cells[currentCellIndex + 1];
+                  } else if (currentRowIndex < rows.length - 1) {
+                    // First cell of next row
+                    targetCell = rows[currentRowIndex + 1].cells[0];
+                  }
+                  break;
+                  
+                case 'ArrowUp':
+                  // Same column, previous row
+                  if (currentRowIndex > 0) {
+                    const prevRow = rows[currentRowIndex - 1];
+                    if (prevRow.cells[currentCellIndex]) {
+                      targetCell = prevRow.cells[currentCellIndex];
+                    }
+                  }
+                  break;
+                  
+                case 'ArrowDown':
+                  // Same column, next row
+                  if (currentRowIndex < rows.length - 1) {
+                    const nextRow = rows[currentRowIndex + 1];
+                    if (nextRow.cells[currentCellIndex]) {
+                      targetCell = nextRow.cells[currentCellIndex];
+                    }
+                  }
+                  break;
+              }
+              
+              if (targetCell) {
+                // Focus the target cell
+                const newRange = document.createRange();
+                if (targetCell.firstChild) {
+                  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    // Position at end for left/up navigation
+                    const lastChild = targetCell.lastChild;
+                    if (lastChild && lastChild.nodeType === Node.TEXT_NODE) {
+                      newRange.setStart(lastChild, lastChild.textContent?.length || 0);
+                    } else {
+                      newRange.setStart(targetCell, targetCell.childNodes.length);
+                    }
+                  } else {
+                    // Position at start for right/down navigation
+                    newRange.setStart(targetCell.firstChild, 0);
+                  }
+                } else {
+                  newRange.setStart(targetCell, 0);
+                }
+                newRange.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+                
+                // Ensure the cell is visible
+                targetCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+              }
+            }
+          }
+        }
+      }
+    }
     
     // Handle tab key
     if (e.key === 'Tab') {
@@ -131,6 +478,58 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       }
       
       e.preventDefault();
+      
+      // Check if we're in a table cell first
+      const tabRange = selection.getRangeAt(0);
+      let tabNode = tabRange.startContainer;
+      let tableCell = null;
+      
+      // Find if we're in a table cell
+      while (tabNode && tabNode !== editorRef.current) {
+        if (tabNode.nodeType === Node.ELEMENT_NODE) {
+          const element = tabNode as HTMLElement;
+          if (element.tagName === 'TD' || element.tagName === 'TH') {
+            tableCell = element;
+            break;
+          }
+        }
+        tabNode = tabNode.parentNode;
+      }
+      
+      if (tableCell) {
+        // Handle table navigation
+        const table = tableCell.closest('table');
+        if (table) {
+          const cells = Array.from(table.querySelectorAll('td, th'));
+          const currentIndex = cells.indexOf(tableCell);
+          
+          let targetCell = null;
+          if (e.shiftKey) {
+            // Shift+Tab: go to previous cell
+            targetCell = cells[currentIndex - 1] || cells[cells.length - 1];
+          } else {
+            // Tab: go to next cell
+            targetCell = cells[currentIndex + 1] || cells[0];
+          }
+          
+          if (targetCell) {
+            // Focus the target cell
+            const newRange = document.createRange();
+            if (targetCell.firstChild) {
+              newRange.setStart(targetCell.firstChild, 0);
+            } else {
+              newRange.setStart(targetCell, 0);
+            }
+            newRange.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+            
+            // Ensure the cell is visible
+            targetCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          }
+        }
+        return;
+      }
 
       let range = selection.getRangeAt(0); // Use let as it might be updated
       
@@ -385,7 +784,9 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       
       // Handle backspace at the beginning of indented paragraphs
       const isAtBeginning = range.startOffset === 0;
-      if (isAtBeginning && e.key === 'Backspace') {
+      const hasSelection = !range.collapsed; // Check if there's actually selected text
+      
+      if (isAtBeginning && e.key === 'Backspace' && !hasSelection) {
         // Find if we're in a paragraph or other block element
         let node = range.startContainer;
         let paragraph = null;
@@ -749,6 +1150,19 @@ const RichTextArea = ({ content, onChange, editorRef }: RichTextAreaProps) => {
       // Get the current content and pass it back
       onChange(editor.innerHTML);
       
+      // Fix empty paragraphs to ensure cursor visibility
+      const paragraphs = editor.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6');
+      paragraphs.forEach(paragraph => {
+        const element = paragraph as HTMLElement;
+        // If paragraph is completely empty or only contains whitespace
+        if (!element.textContent?.trim() && !element.querySelector('br, math-field, img, table')) {
+          // Ensure it has a BR tag for cursor visibility
+          if (!element.querySelector('br')) {
+            element.innerHTML = '<br>';
+          }
+        }
+      });
+      
       // Initialize MathLive fields in any newly added inline math
       initializeMathLiveFields();
     };
@@ -1073,6 +1487,22 @@ const styles = `
   margin-right: 0.5em;
   box-sizing: border-box;
   text-align: right;
+}
+
+/* Marker formatting classes for bold, italic, underline */
+.rich-text-editor ol li.marker-bold::before,
+.rich-text-editor ul li.marker-bold::before {
+  font-weight: bold;
+}
+
+.rich-text-editor ol li.marker-italic::before,
+.rich-text-editor ul li.marker-italic::before {
+  font-style: italic;
+}
+
+.rich-text-editor ol li.marker-underline::before,
+.rich-text-editor ul li.marker-underline::before {
+  text-decoration: underline;
 }
 
 /* Number styling for ordered lists */
