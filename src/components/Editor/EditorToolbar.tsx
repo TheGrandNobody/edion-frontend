@@ -1206,6 +1206,45 @@ const EditorToolbar = ({
           
           // Remove the list but keep the content
           document.execCommand(listType === 'UL' ? 'insertUnorderedList' : 'insertOrderedList', false);
+
+          // NEW - re-apply previous alignment to the new list
+          {
+            const sel = window.getSelection();
+            let list: HTMLElement | null = null;
+
+            if (sel?.anchorNode) {
+              let n: Node | null = sel.anchorNode;
+              while (n && n !== editorRef.current) {
+                if (
+                  n.nodeType === Node.ELEMENT_NODE &&
+                  ((n as HTMLElement).tagName === 'UL' || (n as HTMLElement).tagName === 'OL')
+                ) {
+                  list = n as HTMLElement;
+                  break;
+                }
+                n = n.parentNode;
+              }
+            }
+
+            if (list) {
+              list.style.textAlign = alignmentToTransfer;
+
+              list.querySelectorAll('li').forEach(liNode => {
+                const li = liNode as HTMLElement;
+
+                if (list.tagName === 'UL') {
+                  li.style.listStylePosition = 'inside';
+                }
+                li.style.removeProperty('justify-content');
+
+                if (alignmentToTransfer === 'center') {
+                  li.style.justifyContent = 'center';
+                } else if (alignmentToTransfer === 'right') {
+                  li.style.justifyContent = 'flex-end';
+                }
+              });
+            }
+          }
           
           // Find all paragraphs that were created from the list items
           const range = selection.getRangeAt(0);
